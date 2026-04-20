@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.1.1
+
+### Patch Changes
+
+- 236264a: Fix settings documentation in README.
+
 ## 0.1.0
 
 ### Minor Changes

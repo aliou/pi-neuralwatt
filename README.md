@@ -1,4 +1,4 @@
-![banner](assets/banner.png)
+![banner](https://assets.aliou.me/pi-extensions/banners/pi-neuralwatt.png)
 
 # Pi Neuralwatt Extension
 

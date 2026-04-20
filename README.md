@@ -1,3 +1,5 @@
+![banner](assets/banner.png)
+
 # Pi Neuralwatt Extension
 
 A Pi extension that adds [Neuralwatt](https://portal.neuralwatt.com/auth/register?ref=NW-ALIOU-Q7MF) as a model provider, giving you access to open-source models through an OpenAI-compatible API with energy transparency.

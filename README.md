@@ -72,28 +72,13 @@ When a Neuralwatt model is active, the footer status bar shows live quota usage 
 
 ## Settings
 
-Configure features via `/neuralwatt:settings` or `pi config`:
+Configure features with `/neuralwatt:settings`:
 
-```
-/neuralwatt:settings
-```
-
-Available settings:
-- **Quota command** (`quotaCommand`) — Show/hide `/neuralwatt:quota`
-- **Quota warnings** (`quotaWarnings`) — Enable/disable low quota notifications
-- **Sub-bar integration** (`subBarIntegration`) — Show/hide usage in status bar
+- **Quota command** — Show/hide `/neuralwatt:quota`
+- **Quota warnings** — Enable/disable low quota notifications
+- **Sub-bar integration** — Show/hide usage in status bar
 
 The provider itself cannot be disabled — it is always loaded.
-
-## Disabling Features
-
-Each feature is a separate Pi extension. You can disable individual features using `pi config`:
-
-```
-pi config extensions.disabled add @aliou/pi-neuralwatt/quota-warnings
-```
-
-This prevents the quota-warnings extension from loading while keeping the rest active. Replace `quota-warnings` with `command-quotas` or `sub-bar-integration` to disable other features.
 
 ## Adding or Updating Models
 

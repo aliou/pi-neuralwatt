@@ -1,18 +1,21 @@
 {
-  "$ref": "#/definitions/ExtensionTemplateConfig",
+  "$ref": "#/definitions/NeuralwattConfig",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "ExtensionTemplateConfig": {
+    "NeuralwattConfig": {
       "additionalProperties": false,
-      "description": "Raw config shape (what gets saved to disk). All fields optional -- only overrides are stored.\n\nJSDoc comments on fields become `description` in the generated JSON Schema. Run `pnpm gen:schema` after changing this interface.",
       "properties": {
-        "enabled": {
-          "description": "Enable or disable the extension.",
+        "quotaCommand": {
+          "description": "Show the quota command (/neuralwatt:quota).",
           "type": "boolean"
         },
-        "myOption": {
-          "description": "Custom option value.",
-          "type": "string"
+        "quotaWarnings": {
+          "description": "Show quota warnings when credits or energy are low.",
+          "type": "boolean"
+        },
+        "subBarIntegration": {
+          "description": "Show usage in the sub-bar / status bar.",
+          "type": "boolean"
         }
       },
       "type": "object"

@@ -60,6 +60,8 @@ The quota command shows three tabs:
 - **Credits** — credit balance with progress bar, accounting method
 - **Usage & Key** — monthly usage (cost, requests, tokens, energy), API key info, key allowance, rate limits
 
+https://github.com/user-attachments/assets/a8994940-c467-4744-a0f2-833cb63923ff
+
 ### Quota Warnings
 
 When enabled, the extension notifies you when credits or energy are running low. When you have an active subscription, only energy warnings fire (credits are on-demand top-up only). Warnings use escalation on severity transitions and have a cooldown for `warning` level.

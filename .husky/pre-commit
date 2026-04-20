@@ -1,0 +1,3 @@
+pnpm typecheck
+pnpm lint
+pnpm check:lockfile

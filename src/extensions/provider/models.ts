@@ -159,6 +159,49 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
+  // Kimi K2.6 - MoonshotAI
+  {
+    id: "moonshotai/Kimi-K2.6",
+    name: "Kimi K2.6",
+    reasoning: true,
+    input: ["text", "image"],
+    cost: {
+      input: 0.69,
+      output: 3.22,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 262144,
+    maxTokens: 65536,
+    compat: {
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: true,
+      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
+      maxTokensField: "max_tokens",
+    },
+  },
+  // Kimi K2.6 Fast - MoonshotAI
+  {
+    id: "kimi-k2.6-fast",
+    name: "Kimi K2.6 Fast",
+    reasoning: true,
+    fast: true,
+    input: ["text", "image"],
+    cost: {
+      input: 0.69,
+      output: 3.22,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 262144,
+    maxTokens: 65536,
+    compat: {
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: true,
+      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
+      maxTokensField: "max_tokens",
+    },
+  },
   // MiniMax M2.5 - MiniMax
   {
     id: "MiniMaxAI/MiniMax-M2.5",
@@ -242,30 +285,10 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
-  // Qwen3.6 35B Fast (qwen3.5-35b-fast) - Qwen
-  {
-    id: "qwen3.5-35b-fast",
-    name: "Qwen3.6 35B Fast",
-    reasoning: false,
-    fast: true,
-    input: ["text"],
-    cost: {
-      input: 0.05,
-      output: 0.1,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 131072,
-    maxTokens: 32768,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
   // Qwen3.6 35B Fast (qwen3.6-35b-fast) - Qwen
   {
     id: "qwen3.6-35b-fast",
-    name: "Qwen3.6 35B Fast (alt)",
+    name: "Qwen3.6 35B Fast",
     reasoning: false,
     fast: true,
     input: ["text"],

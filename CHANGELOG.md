@@ -1,5 +1,15 @@
 # @aliou/pi-extension-template
 
+## 0.2.0
+
+### Minor Changes
+
+- 6f4672e: Fetch live models from Neuralwatt API on session start. The extension registers with a hardcoded model cache immediately on startup, then fetches `/v1/models` on session start and re-registers the provider with live data (including pricing, capabilities, and limits from the new API metadata). A notification is shown when live models differ from the cache. Falls back to the hardcoded cache if the fetch fails.
+
+### Patch Changes
+
+- 0669972: Align model definitions with Neuralwatt API metadata: set reasoning true for GPT-OSS 20B, set reasoning false for Kimi K2.6 Fast, and remove unsupported supportsReasoningEffort from GLM-5.1, Kimi K2.5, Kimi K2.6, MiniMax M2.5, Qwen3.5 397B, and Qwen3.6 35B. Add supportsReasoningEffort to GPT-OSS 20B.
+
 ## 0.1.2
 
 ### Patch Changes

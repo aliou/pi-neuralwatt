@@ -74,8 +74,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 32768,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -103,7 +101,7 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
   {
     id: "openai/gpt-oss-20b",
     name: "GPT-OSS 20B",
-    reasoning: false,
+    reasoning: true,
     input: ["text"],
     cost: {
       input: 0.03,
@@ -115,6 +113,8 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 4096,
     compat: {
       supportsDeveloperRole: false,
+      supportsReasoningEffort: true,
+      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -134,8 +134,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -175,8 +173,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -184,7 +180,7 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
   {
     id: "kimi-k2.6-fast",
     name: "Kimi K2.6 Fast",
-    reasoning: true,
+    reasoning: false,
     fast: true,
     input: ["text", "image"],
     cost: {
@@ -197,8 +193,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -218,8 +212,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -239,8 +231,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -280,8 +270,6 @@ export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
     maxTokens: 32768,
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },

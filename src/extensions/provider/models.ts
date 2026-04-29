@@ -18,7 +18,10 @@ const NEURALWATT_REASONING_EFFORT_MAP = {
   xhigh: "high",
 } as const;
 
-export const NEURALWATT_MODELS: NeuralwattModelConfig[] = [
+/** Hardcoded model cache. Used as a fallback on startup before live models are fetched.
+ * Updated from https://api.neuralwatt.com/v1/models and https://portal.neuralwatt.com/pricing
+ */
+export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
   // Devstral Small 2 - Mistral
   {
     id: "mistralai/Devstral-Small-2-24B-Instruct-2512",

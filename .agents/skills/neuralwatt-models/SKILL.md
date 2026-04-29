@@ -106,23 +106,35 @@ Use browser/page extraction if needed. Do not invent pricing, image support, rea
 
 ## Field mapping
 
-Copy these directly from the Neuralwatt endpoint when available:
+The `/v1/models` endpoint now returns `metadata` with pricing, capabilities, and limits. When available, map from the API:
 
+From top-level fields:
 - `id`
 - `max_model_len` -> `contextWindow`
-- `owned_by` only as supporting evidence for comments/names
+- `owned_by` -> used to detect fast variants (`owned_by === "neuralwatt"`)
+
+From `metadata.pricing`:
+- `input_per_million` -> `cost.input`
+- `output_per_million` -> `cost.output`
+- `cached_input_per_million` -> `cost.cacheRead`
+- `cached_output_per_million` -> `cost.cacheWrite`
+
+From `metadata.capabilities`:
+- `vision` -> `input` (true = `["text", "image"]`, false = `["text"]`)
+- `reasoning` -> `reasoning`
+- `reasoning_effort` -> `compat.supportsReasoningEffort` (true = add reasoningEffortMap)
+- `developer_role` -> confirm `supportsDeveloperRole: false`
+
+From `metadata.limits`:
+- `max_output_tokens` -> `maxTokens` (null = use default 65536)
+
+From `metadata`:
+- `display_name` -> `name`
+- `deprecated` -> skip model if true
+- `pricing_tbd` -> skip model if true
 
 Use portal data or existing conventions for:
-
-- `name`
-- `cost.input` per 1M tokens
-- `cost.output` per 1M tokens
-- `cost.cacheRead` per 1M tokens
-- `cost.cacheWrite` per 1M tokens
-- `input`
-- `reasoning`
-- `maxTokens`
-- `fast`
+- `fast` (derived from `owned_by === "neuralwatt"` or `-fast` suffix)
 - comments above each model
 
 All Neuralwatt models should keep the provider compatibility defaults already used in this repo unless live behavior proves otherwise:
@@ -134,9 +146,7 @@ compat: {
 }
 ```
 
-Reasoning models should also include the repo's reasoning effort compatibility:
-
-```ts
+Reasoning models with `reasoning_effort` support should also include:
 compat: {
   supportsDeveloperRole: false,
   supportsReasoningEffort: true,

@@ -4,7 +4,7 @@ Pi extension providing a Neuralwatt inference API provider.
 
 ## Purpose
 
-Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models.ts` and validated against the live API via tests.
+Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models.ts` as a cache and also fetched live from `/v1/models` on session start. The live fetch re-registers the provider with up-to-date model data (including pricing, capabilities, and limits from the API metadata).
 
 ## Stack
 
@@ -25,11 +25,12 @@ src/
   config.ts                             # Config schema, settings registration, extension events
   lib/
     env.ts                              # API key resolution (auth.json -> env var)
+    fetch-models.ts                     # Fetch + map models from /v1/models API
   extensions/
     provider/
       index.ts                          # Provider + settings + quota store (always loaded)
-      models.ts                         # Hardcoded model definitions
-      models.test.ts                    # Test: compares hardcoded models against live API
+      models.ts                         # Hardcoded model cache (fallback)
+      models.test.ts                    # Test: compares cache against live API + unit tests for mapApiModel
     command-quotas/
       index.ts                          # Extension entry (checks config, registers command)
       command.ts                        # /neuralwatt:quota command handler
@@ -95,8 +96,17 @@ When a subscription is active, energy is the primary billing method. Credits are
 
 The provider itself cannot be disabled. Settings can also be changed via `pi config`.
 
+## Model loading
+
+The provider registers twice:
+
+1. **Immediately on startup** with `NEURALWATT_MODELS_CACHE` (hardcoded definitions) so models are available without network.
+2. **On `session_start`** it fetches `/v1/models` and re-registers the provider with live data. If the fetch fails, the hardcoded cache remains active.
+
+Live model data includes pricing, capabilities (reasoning, vision, reasoning_effort), and limits from the API `metadata` field. See `src/lib/fetch-models.ts` for the mapping logic.
+
 ## Updating Models
 
-1. Run `pnpm test` -- it fetches `/v1/models` and compares against hardcoded definitions
-2. Fix any discrepancies (missing models, changed context windows)
+1. Run `pnpm test` -- it fetches `/v1/models` and compares against hardcoded cache, also validates metadata fields
+2. Fix any discrepancies (missing models, changed context windows, pricing, capabilities)
 3. Re-run `pnpm test` to confirm

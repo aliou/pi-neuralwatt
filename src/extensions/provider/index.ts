@@ -8,6 +8,7 @@ import {
   registerNeuralwattSettings,
 } from "../../config";
 import { getNeuralwattApiKey } from "../../lib/env";
+import { fetchModels } from "../../lib/fetch-models";
 import type { NeuralwattQuotas } from "../../types/quota-api";
 import {
   NEURALWATT_QUOTAS_REQUEST_EVENT,
@@ -16,9 +17,24 @@ import {
   parseQuotaHeaders,
 } from "../../types/quota-events";
 import { fetchQuotas } from "../../utils/quotas";
-import { NEURALWATT_MODELS } from "./models";
+import type { NeuralwattModelConfig } from "./models";
+import { NEURALWATT_MODELS_CACHE } from "./models";
 
-export function registerNeuralwattProvider(pi: ExtensionAPI): void {
+function buildModelsPayload(models: NeuralwattModelConfig[]) {
+  return models.map(({ fast: _fast, ...model }) => ({
+    ...model,
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      ...model.compat,
+    },
+  }));
+}
+
+function registerNeuralwattProvider(
+  pi: ExtensionAPI,
+  models: NeuralwattModelConfig[],
+): void {
   pi.registerProvider("neuralwatt", {
     baseUrl: "https://api.neuralwatt.com/v1",
     apiKey: "NEURALWATT_API_KEY",
@@ -28,20 +44,15 @@ export function registerNeuralwattProvider(pi: ExtensionAPI): void {
       Referer: "https://pi.dev",
       "X-Title": "npm:@aliou/pi-neuralwatt",
     },
-    models: NEURALWATT_MODELS.map(({ fast: _fast, ...model }) => ({
-      ...model,
-      compat: {
-        supportsDeveloperRole: false,
-        maxTokensField: "max_tokens",
-        ...model.compat,
-      },
-    })),
+    models: buildModelsPayload(models),
   });
 }
 
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
-  registerNeuralwattProvider(pi);
+
+  // Register with hardcoded cache immediately so models are available on startup
+  registerNeuralwattProvider(pi, NEURALWATT_MODELS_CACHE);
 
   // Track which feature extensions loaded
   const loadedFeatures = new Set<NeuralwattFeatureId>();
@@ -131,16 +142,35 @@ export default async function (pi: ExtensionAPI) {
     loadedFeatures.add(feature);
   });
 
-  // On session start: request extensions to register, then emit config
+  // On session start: fetch live models, request extensions, emit config, fetch quotas
   pi.on("session_start", async (_event, ctx) => {
     loadedFeatures.clear();
     pi.events.emit(NEURALWATT_EXTENSIONS_REQUEST_EVENT, undefined);
     emitConfigUpdated(pi);
 
+    // Fetch live models from the API and re-register if successful
+    const result = await fetchModels();
+    if (result.success) {
+      const cacheIds = new Set(NEURALWATT_MODELS_CACHE.map((m) => m.id));
+      const liveIds = new Set(result.models.map((m) => m.id));
+      const added = result.models.filter((m) => !cacheIds.has(m.id));
+      const removed = NEURALWATT_MODELS_CACHE.filter((m) => !liveIds.has(m.id));
+      if (added.length > 0 || removed.length > 0) {
+        const parts: string[] = [];
+        if (added.length > 0) parts.push(`${added.length} new`);
+        if (removed.length > 0) parts.push(`${removed.length} removed`);
+        ctx.ui.notify(
+          `Neuralwatt models updated (${parts.join(", ")})`,
+          "info",
+        );
+      }
+      registerNeuralwattProvider(pi, result.models);
+    }
+
     if (ctx.model?.provider !== "neuralwatt") return;
     const apiKey = await getNeuralwattApiKey(ctx.modelRegistry.authStorage);
     if (!apiKey) return;
-    const result = await fetchQuotas(apiKey);
-    if (result.success) emitQuotas(result.data.quotas, "api");
+    const quotaResult = await fetchQuotas(apiKey);
+    if (quotaResult.success) emitQuotas(quotaResult.data.quotas, "api");
   });
 }

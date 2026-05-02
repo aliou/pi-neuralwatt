@@ -1,5 +1,15 @@
 # @aliou/pi-extension-template
 
+## 0.3.0
+
+### Minor Changes
+
+- 5e722f6: Update Pi dependencies to 0.72.0 and migrate reasoning model controls to `thinkingLevelMap`.
+
+### Patch Changes
+
+- 9034be4: Respect `PI_OFFLINE` environment variable. Live model fetching on session start is now skipped when `PI_OFFLINE` is set to `1`, `true`, or `yes`, keeping the hardcoded cache active.
+
 ## 0.2.0
 
 ### Minor Changes

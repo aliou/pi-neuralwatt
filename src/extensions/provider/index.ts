@@ -37,7 +37,7 @@ function buildModelsPayload(models: NeuralwattModelConfig[]) {
     ...model,
     compat: {
       supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
+      maxTokensField: "max_tokens" as const,
       ...model.compat,
     },
   }));

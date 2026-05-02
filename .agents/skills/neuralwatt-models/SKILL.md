@@ -92,7 +92,7 @@ curl -s https://api.neuralwatt.com/v1/models \
       id,
       owned_by,
       max_model_len
-    }' --arg id 'zai-org/GLM-5.1-FP8'
+    }' --arg id 'provider/model-id'
 ```
 
 ### 4) Check portal data when needed
@@ -122,7 +122,7 @@ From `metadata.pricing`:
 From `metadata.capabilities`:
 - `vision` -> `input` (true = `["text", "image"]`, false = `["text"]`)
 - `reasoning` -> `reasoning`
-- `reasoning_effort` -> `compat.supportsReasoningEffort` (true = add reasoningEffortMap)
+- `reasoning_effort` -> extra runtime evidence only; do not add legacy compat fields
 - `developer_role` -> confirm `supportsDeveloperRole: false`
 
 From `metadata.limits`:
@@ -146,13 +146,28 @@ compat: {
 }
 ```
 
-Reasoning models with `reasoning_effort` support should also include:
-compat: {
-  supportsDeveloperRole: false,
-  supportsReasoningEffort: true,
-  reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
-  maxTokensField: "max_tokens",
-}
+Reasoning models should assign `thinkingLevelMap` at the model level and keep compat minimal. Only expose multiple Pi thinking levels when official Neuralwatt docs or runtime evidence confirms distinct level support:
+
+```ts
+thinkingLevelMap: {
+  minimal: "low",
+  low: "low",
+  medium: "medium",
+  high: "high",
+  xhigh: null,
+},
+```
+
+When a model only has a binary or ambiguous thinking control, expose one known-good Pi thinking level:
+
+```ts
+thinkingLevelMap: {
+  minimal: null,
+  low: null,
+  medium: "medium",
+  high: null,
+  xhigh: null,
+},
 ```
 
 ## Decision rules
@@ -181,7 +196,7 @@ curl -sS https://api.neuralwatt.com/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d @- <<'JSON'
 {
-  "model": "zai-org/GLM-5.1-FP8",
+  "model": "provider/model-id",
   "messages": [{"role": "user", "content": "Reply with ok"}],
   "reasoning_effort": "low",
   "max_tokens": 64

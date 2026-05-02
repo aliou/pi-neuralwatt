@@ -207,9 +207,13 @@ describe("Neuralwatt models", () => {
     expect(result.input).toEqual(["text"]);
     expect(result.cost.input).toBe(0.03);
     expect(result.cost.output).toBe(0.16);
-    expect(
-      (result.compat as Record<string, unknown>)?.supportsReasoningEffort,
-    ).toBe(true);
+    expect(result.thinkingLevelMap).toEqual({
+      minimal: "low",
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: null,
+    });
     expect(result.fast).toBeUndefined();
   });
 
@@ -308,9 +312,13 @@ describe("Neuralwatt models", () => {
     const result = mapApiModel(visionModel);
     expect(result.input).toEqual(["text", "image"]);
     expect(result.reasoning).toBe(true);
-    expect(
-      (result.compat as Record<string, unknown>)?.supportsReasoningEffort,
-    ).toBeUndefined();
+    expect(result.thinkingLevelMap).toEqual({
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    });
   });
 
   it("should use defaults when metadata is missing", () => {

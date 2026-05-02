@@ -2,6 +2,22 @@ import type { NeuralwattModelConfig } from "../extensions/provider/models";
 
 const FETCH_TIMEOUT_MS = 15_000;
 
+const NEURALWATT_BINARY_THINKING_LEVEL_MAP = {
+  minimal: null,
+  low: null,
+  medium: "medium",
+  high: null,
+  xhigh: null,
+} as const;
+
+const GPT_OSS_THINKING_LEVEL_MAP = {
+  minimal: "low",
+  low: "low",
+  medium: "medium",
+  high: "high",
+  xhigh: null,
+} as const;
+
 export interface ApiModelMetadata {
   display_name: string;
   description: string | null;
@@ -50,14 +66,6 @@ export interface ApiResponse {
   data: ApiModel[];
 }
 
-const NEURALWATT_REASONING_EFFORT_MAP = {
-  minimal: "low",
-  low: "low",
-  medium: "medium",
-  high: "high",
-  xhigh: "high",
-} as const;
-
 /** Identify fast variants by their owned_by field or naming convention. */
 function isFastModel(model: ApiModel): boolean {
   if (model.owned_by === "neuralwatt") return true;
@@ -98,13 +106,11 @@ export function mapApiModel(model: ApiModel): NeuralwattModelConfig {
     result.maxTokens = meta.limits.max_output_tokens;
   }
 
-  // Reasoning effort support
-  if (meta?.capabilities.reasoning_effort) {
-    result.compat = {
-      ...result.compat,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
-    };
+  if (result.reasoning) {
+    result.thinkingLevelMap =
+      model.id === "openai/gpt-oss-20b"
+        ? GPT_OSS_THINKING_LEVEL_MAP
+        : NEURALWATT_BINARY_THINKING_LEVEL_MAP;
   }
 
   return result;

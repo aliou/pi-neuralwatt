@@ -10,12 +10,12 @@ export interface NeuralwattModelConfig extends ProviderModelConfig {
   fast?: boolean;
 }
 
-const NEURALWATT_REASONING_EFFORT_MAP = {
-  minimal: "low",
-  low: "low",
+const NEURALWATT_BINARY_THINKING_LEVEL_MAP = {
+  minimal: null,
+  low: null,
   medium: "medium",
-  high: "high",
-  xhigh: "high",
+  high: null,
+  xhigh: null,
 } as const;
 
 /** Hardcoded model cache. Used as a fallback on startup before live models are fetched.
@@ -75,6 +75,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 202752,
     maxTokens: 32768,
+    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -114,10 +115,15 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 16384,
     maxTokens: 4096,
+    thinkingLevelMap: {
+      minimal: "low",
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
-      supportsReasoningEffort: true,
-      reasoningEffortMap: NEURALWATT_REASONING_EFFORT_MAP,
       maxTokensField: "max_tokens",
     },
   },
@@ -135,6 +141,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 262144,
     maxTokens: 65536,
+    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -174,6 +181,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 262144,
     maxTokens: 65536,
+    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -213,6 +221,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 196608,
     maxTokens: 65536,
+    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -232,6 +241,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 262144,
     maxTokens: 65536,
+    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -262,7 +272,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     id: "Qwen/Qwen3.6-35B-A3B",
     name: "Qwen3.6 35B",
     reasoning: true,
-    input: ["text"],
+    input: ["text", "image"],
     cost: {
       input: 0.05,
       output: 0.1,
@@ -271,6 +281,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 131072,
     maxTokens: 32768,
+    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -282,7 +293,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     name: "Qwen3.6 35B Fast",
     reasoning: false,
     fast: true,
-    input: ["text"],
+    input: ["text", "image"],
     cost: {
       input: 0.05,
       output: 0.1,

@@ -35,16 +35,16 @@
     "@aliou/pi-utils-ui": "^0.1.0"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": ">=0.67.68",
-    "@mariozechner/pi-tui": ">=0.67.68",
+    "@mariozechner/pi-coding-agent": "0.72.0",
+    "@mariozechner/pi-tui": "0.72.0",
     "@sinclair/typebox": ">=0.34.0"
   },
   "devDependencies": {
     "@aliou/biome-plugins": "^0.8.1",
     "@biomejs/biome": "^2.4.12",
     "@changesets/cli": "^2.27.11",
-    "@mariozechner/pi-coding-agent": "0.67.68",
-    "@mariozechner/pi-tui": "0.67.68",
+    "@mariozechner/pi-coding-agent": "0.72.0",
+    "@mariozechner/pi-tui": "0.72.0",
     "@types/node": "^25.0.10",
     "husky": "^9.1.7",
     "ts-json-schema-generator": "^2.4.0",

@@ -39,3 +39,5 @@ result-*
 # Pi
 .pi/
 .poster/
+
+tmp/

@@ -1,5 +1,8 @@
 import { join } from "node:path";
-import { type ExtensionAPI, getAgentDir } from "@mariozechner/pi-coding-agent";
+import {
+  type ExtensionAPI,
+  getAgentDir,
+} from "@earendil-works/pi-coding-agent";
 import { getNeuralwattApiKey } from "../../lib/env";
 import { fetchQuotas } from "../../utils/quotas";
 import { QuotasComponent } from "./components/quotas-display";

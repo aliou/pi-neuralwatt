@@ -3,7 +3,7 @@
 // Pricing: https://portal.neuralwatt.com/pricing
 // max_model_len from /v1/models, pricing from /pricing page
 
-import type { ProviderModelConfig } from "@mariozechner/pi-coding-agent";
+import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
 export interface NeuralwattModelConfig extends ProviderModelConfig {
   /** Fast variant of a parent model (e.g. "glm-5-fast" is the fast variant of "zai-org/GLM-5.1-FP8"). */

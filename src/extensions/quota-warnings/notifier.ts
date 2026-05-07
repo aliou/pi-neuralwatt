@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { NeuralwattQuotas } from "../../types/quota-api";
 import { formatKwh, formatUsd } from "../../utils/quota-format";
 

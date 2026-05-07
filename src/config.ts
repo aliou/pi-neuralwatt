@@ -3,8 +3,8 @@ import {
   registerSettingsCommand,
   type SettingsSection,
 } from "@aliou/pi-utils-settings";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { SettingItem } from "@mariozechner/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { SettingItem } from "@earendil-works/pi-tui";
 
 export type NeuralwattFeatureId =
   | "quotaCommand"

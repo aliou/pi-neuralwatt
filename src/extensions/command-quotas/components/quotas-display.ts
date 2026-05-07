@@ -1,7 +1,7 @@
-import type { Theme } from "@mariozechner/pi-coding-agent";
-import { DynamicBorder } from "@mariozechner/pi-coding-agent";
-import type { Component, TUI } from "@mariozechner/pi-tui";
-import { Loader, matchesKey, truncateToWidth } from "@mariozechner/pi-tui";
+import type { Theme } from "@earendil-works/pi-coding-agent";
+import { DynamicBorder } from "@earendil-works/pi-coding-agent";
+import type { Component, TUI } from "@earendil-works/pi-tui";
+import { Loader, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
 import type { NeuralwattQuotas } from "../../../types/quota-api";
 import {
   renderCreditsTab,

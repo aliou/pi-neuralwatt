@@ -1,4 +1,3 @@
-import { appendFileSync } from "node:fs";
 import type {
   AuthStorage,
   ExtensionAPI,
@@ -24,16 +23,6 @@ import { isOffline } from "../../utils/is-offline";
 import { fetchQuotas } from "../../utils/quotas";
 import type { NeuralwattModelConfig } from "./models";
 import { NEURALWATT_MODELS_CACHE } from "./models";
-
-const DEBUG_LOG_FILE = "/tmp/pi-provider-reregister-debug.log";
-
-function debugLog(message: string, data?: unknown): void {
-  appendFileSync(
-    DEBUG_LOG_FILE,
-    `${new Date().toISOString()} [neuralwatt] ${message}${data === undefined ? "" : ` ${JSON.stringify(data)}`}\n`,
-    "utf8",
-  );
-}
 
 function buildModelsPayload(models: NeuralwattModelConfig[]) {
   return models.map(({ fast: _fast, ...model }) => ({
@@ -61,13 +50,6 @@ function registerNeuralwattProvider(
     },
     models: buildModelsPayload(models),
   };
-  debugLog("registerProvider", {
-    baseUrl: config.baseUrl,
-    apiKey: config.apiKey,
-    authHeader: config.authHeader,
-    headers: config.headers,
-    modelCount: config.models.length,
-  });
   pi.registerProvider("neuralwatt", config);
 }
 

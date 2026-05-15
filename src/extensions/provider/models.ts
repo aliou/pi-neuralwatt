@@ -34,7 +34,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 32768,
     compat: {
       supportsDeveloperRole: false,
@@ -54,7 +54,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 202752,
+    contextWindow: 202736,
     maxTokens: 32768,
     compat: {
       supportsDeveloperRole: false,
@@ -73,7 +73,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 202752,
+    contextWindow: 202736,
     maxTokens: 32768,
     thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
@@ -94,7 +94,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 202752,
+    contextWindow: 202736,
     maxTokens: 32768,
     compat: {
       supportsDeveloperRole: false,
@@ -113,7 +113,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 16384,
+    contextWindow: 16368,
     maxTokens: 4096,
     thinkingLevelMap: {
       minimal: "low",
@@ -139,7 +139,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 65536,
     thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
@@ -160,7 +160,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
@@ -179,7 +179,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 65536,
     thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
@@ -200,7 +200,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
@@ -219,7 +219,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 196608,
+    contextWindow: 196592,
     maxTokens: 65536,
     thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
@@ -239,7 +239,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 65536,
     thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
@@ -260,7 +260,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 262144,
+    contextWindow: 262128,
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
@@ -279,7 +279,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 131072,
+    contextWindow: 131056,
     maxTokens: 32768,
     thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
     compat: {
@@ -300,7 +300,7 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 131072,
+    contextWindow: 131056,
     maxTokens: 32768,
     compat: {
       supportsDeveloperRole: false,

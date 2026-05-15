@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.4.1
+
+### Patch Changes
+
+- 023320c: Update contextWindow values to match live API max_model_len for all 14 models
+
 ## 0.4.0
 
 ### Minor Changes

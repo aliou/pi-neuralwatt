@@ -20,7 +20,7 @@
       "./src/extensions/quota-warnings/index.ts",
       "./src/extensions/sub-bar-integration/index.ts"
     ],
-    "video": "https://assets.aliou.me/pi-extensions/demos/pi-neuralwatt.mp4"
+    "video": "https://assets.aliou.me/github/aliou/pi-neuralwatt/demo.mp4"
   },
   "publishConfig": {
     "access": "public"

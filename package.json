@@ -28,7 +28,8 @@
   "files": [
     "src",
     "schema.json",
-    "README.md"
+    "README.md",
+    "!src/**/*.test.ts"
   ],
   "dependencies": {
     "@aliou/pi-utils-settings": "^0.15.0",
@@ -41,7 +42,7 @@
   },
   "devDependencies": {
     "@aliou/biome-plugins": "^0.8.1",
-    "@biomejs/biome": "^2.4.12",
+    "@biomejs/biome": "^2.4.15",
     "@changesets/cli": "^2.27.11",
     "@earendil-works/pi-coding-agent": "0.74.0",
     "@earendil-works/pi-tui": "0.74.0",

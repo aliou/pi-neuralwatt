@@ -274,8 +274,8 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     reasoning: true,
     input: ["text", "image"],
     cost: {
-      input: 0.05,
-      output: 0.1,
+      input: 0.29,
+      output: 1.15,
       cacheRead: 0,
       cacheWrite: 0,
     },
@@ -295,8 +295,8 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     fast: true,
     input: ["text", "image"],
     cost: {
-      input: 0.05,
-      output: 0.1,
+      input: 0.29,
+      output: 1.15,
       cacheRead: 0,
       cacheWrite: 0,
     },

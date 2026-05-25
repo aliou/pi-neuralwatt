@@ -67,6 +67,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // GLM-5.1 Fast - ZhipuAI
@@ -112,6 +113,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Kimi K2.5 - MoonshotAI
@@ -138,6 +140,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Kimi K2.5 Fast - MoonshotAI
@@ -183,6 +186,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Kimi K2.6 Fast - MoonshotAI
@@ -228,6 +232,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Qwen3.5 397B - Qwen
@@ -254,6 +259,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Qwen3.5 397B Fast - Qwen
@@ -299,6 +305,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Qwen3.6 35B Fast - Qwen

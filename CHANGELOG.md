@@ -1,5 +1,30 @@
 # @aliou/pi-extension-template
 
+## 0.5.0
+
+### Minor Changes
+
+- 3c467b3: Remove live model sync from provider endpoint. Models are now purely hardcoded in `src/extensions/provider/models.ts` and validated against the Neuralwatt `/v1/models` API at test time.
+
+  Removed:
+
+  - `src/lib/fetch-models.ts` (live model fetch + `mapApiModel`)
+  - `src/utils/is-offline.ts` and its test (only used by fetch flow)
+  - `src/extensions/provider/provider-payload.ts` (`buildModelsPayload` wrapper)
+  - `NeuralwattModelConfig` type extension (uses `ProviderModelConfig` directly)
+  - `fast` field on model entries
+  - Live re-registration on `session_start`
+
+  Simplified:
+
+  - `NEURALWATT_MODELS_CACHE` → `NEURALWATT_MODELS`
+  - Provider registers once on startup with hardcoded list
+  - Tests now fetch live API and compare prices, context windows, reasoning, vision, and model existence
+
+### Patch Changes
+
+- c10a189: Add `requiresReasoningContentOnAssistantMessages` compat flag for reasoning models. Neuralwatt docs confirm these models need `reasoning_content` on replayed assistant turns to preserve chain-of-thought across turns in agentic conversations.
+
 ## 0.4.2
 
 ### Patch Changes

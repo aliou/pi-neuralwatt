@@ -1,27 +1,10 @@
 // Hardcoded models from Neuralwatt API
 // Source: https://api.neuralwatt.com/v1/models
-// Pricing: https://portal.neuralwatt.com/pricing
-// max_model_len from /v1/models, pricing from /pricing page
+// Pricing, capabilities, and limits from metadata fields in /v1/models
 
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
-export interface NeuralwattModelConfig extends ProviderModelConfig {
-  /** Fast variant of a parent model (e.g. "glm-5-fast" is the fast variant of "zai-org/GLM-5.1-FP8"). */
-  fast?: boolean;
-}
-
-const NEURALWATT_BINARY_THINKING_LEVEL_MAP = {
-  minimal: null,
-  low: null,
-  medium: "medium",
-  high: null,
-  xhigh: null,
-} as const;
-
-/** Hardcoded model cache. Used as a fallback on startup before live models are fetched.
- * Updated from https://api.neuralwatt.com/v1/models and https://portal.neuralwatt.com/pricing
- */
-export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
+export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   // Devstral Small 2 - Mistral
   {
     id: "mistralai/Devstral-Small-2-24B-Instruct-2512",
@@ -46,7 +29,6 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     id: "glm-5-fast",
     name: "GLM-5 Fast",
     reasoning: false,
-    fast: true,
     input: ["text"],
     cost: {
       input: 1.1,
@@ -75,7 +57,13 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 202736,
     maxTokens: 32768,
-    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -86,7 +74,6 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     id: "glm-5.1-fast",
     name: "GLM-5.1 Fast",
     reasoning: false,
-    fast: true,
     input: ["text"],
     cost: {
       input: 1.1,
@@ -141,7 +128,13 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 262128,
     maxTokens: 65536,
-    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -152,7 +145,6 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     id: "kimi-k2.5-fast",
     name: "Kimi K2.5 Fast",
     reasoning: false,
-    fast: true,
     input: ["text", "image"],
     cost: {
       input: 0.52,
@@ -181,7 +173,13 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 262128,
     maxTokens: 65536,
-    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -192,7 +190,6 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     id: "kimi-k2.6-fast",
     name: "Kimi K2.6 Fast",
     reasoning: false,
-    fast: true,
     input: ["text", "image"],
     cost: {
       input: 0.69,
@@ -221,7 +218,13 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 196592,
     maxTokens: 65536,
-    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -241,7 +244,13 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 262128,
     maxTokens: 65536,
-    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -252,7 +261,6 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     id: "qwen3.5-397b-fast",
     name: "Qwen3.5 397B Fast",
     reasoning: false,
-    fast: true,
     input: ["text"],
     cost: {
       input: 0.69,
@@ -281,18 +289,23 @@ export const NEURALWATT_MODELS_CACHE: NeuralwattModelConfig[] = [
     },
     contextWindow: 131056,
     maxTokens: 32768,
-    thinkingLevelMap: NEURALWATT_BINARY_THINKING_LEVEL_MAP,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
     },
   },
-  // Qwen3.6 35B Fast (qwen3.6-35b-fast) - Qwen
+  // Qwen3.6 35B Fast - Qwen
   {
     id: "qwen3.6-35b-fast",
     name: "Qwen3.6 35B Fast",
     reasoning: false,
-    fast: true,
     input: ["text", "image"],
     cost: {
       input: 0.29,

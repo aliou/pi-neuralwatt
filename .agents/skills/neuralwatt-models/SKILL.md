@@ -13,15 +13,14 @@ Take initiative.
 
 Do not start by asking which model to update. First detect drift, then update whatever needs updating:
 
-1. Run the model test to find mismatches and new models.
+1. Fetch live model data from `https://api.neuralwatt.com/v1/models`.
 2. Read the current hardcoded definitions in `src/extensions/provider/models.ts`.
-3. Fetch live model data from `https://api.neuralwatt.com/v1/models`.
-4. Check Neuralwatt portal pages for pricing and capabilities when model additions or pricing/capability changes are needed.
-5. Reconcile the differences.
-6. Edit `src/extensions/provider/models.ts`.
-7. Re-run the relevant tests.
-8. Create a changeset when model metadata changed.
-9. Commit only the relevant files.
+3. Check Neuralwatt portal pages for pricing and capabilities when model additions or pricing/capability changes are needed.
+4. Reconcile the differences.
+5. Edit `src/extensions/provider/models.ts`.
+6. Run the relevant tests.
+7. Create a changeset when model metadata changed.
+8. Commit only the relevant files.
 
 Only ask the user if there is a real blocker, such as an unreachable source, missing credentials for runtime validation, or conflicting evidence you cannot resolve.
 
@@ -41,23 +40,7 @@ Use these in order:
 
 ## Required workflow
 
-### 1) Start with tests
-
-Run the targeted model test first so you know what changed:
-
-```bash
-pnpm test -- src/extensions/provider/models.test.ts
-```
-
-Use the failures to identify:
-
-- stale `contextWindow` values on existing models
-- models that exist in code but no longer exist upstream
-- new Neuralwatt models missing from `NEURALWATT_MODELS`
-
-If the test passes, still check for drift manually by reading the current file and comparing with fresh endpoint data. Do not assume no work is needed just because tests pass.
-
-### 2) Inspect current definitions
+### 1) Inspect current definitions
 
 Read:
 
@@ -66,7 +49,7 @@ Read:
 
 Use the current file shape and comments as the formatting baseline.
 
-### 3) Fetch Neuralwatt endpoint data
+### 2) Fetch Neuralwatt endpoint data
 
 Query the full model list, then inspect affected models.
 
@@ -95,7 +78,7 @@ curl -s https://api.neuralwatt.com/v1/models \
     }' --arg id 'provider/model-id'
 ```
 
-### 4) Check portal data when needed
+### 3) Check portal data when needed
 
 For pricing and capabilities, check:
 

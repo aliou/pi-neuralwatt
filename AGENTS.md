@@ -4,7 +4,7 @@ Pi extension providing a Neuralwatt inference API provider.
 
 ## Purpose
 
-Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models.ts` as a cache and also fetched live from `/v1/models` on session start. The live fetch re-registers the provider with up-to-date model data (including pricing, capabilities, and limits from the API metadata).
+Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models.ts` from the `/v1/models` API (including pricing, capabilities, and limits from the `metadata` field).
 
 ## Stack
 
@@ -15,7 +15,7 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 - `pnpm typecheck` - Type check
 - `pnpm lint` - Lint
 - `pnpm format` - Format code
-- `pnpm test` - Run model sync test (compares hardcoded models against live API)
+- `pnpm test` - Run model validation tests
 - `pnpm changeset` - Create changeset for versioning
 
 ## Structure
@@ -25,12 +25,11 @@ src/
   config.ts                             # Config schema, settings registration, extension events
   lib/
     env.ts                              # API key resolution (auth.json -> env var)
-    fetch-models.ts                     # Fetch + map models from /v1/models API
   extensions/
     provider/
       index.ts                          # Provider + settings + quota store (always loaded)
-      models.ts                         # Hardcoded model cache (fallback)
-      models.test.ts                    # Test: compares cache against live API + unit tests for mapApiModel
+      models.ts                         # Hardcoded model definitions
+      models.test.ts                    # Validation tests for model structure
     command-quotas/
       index.ts                          # Extension entry (checks config, registers command)
       command.ts                        # /neuralwatt:quota command handler
@@ -98,15 +97,11 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 ## Model loading
 
-The provider registers twice:
-
-1. **Immediately on startup** with `NEURALWATT_MODELS_CACHE` (hardcoded definitions) so models are available without network.
-2. **On `session_start`** it fetches `/v1/models` and re-registers the provider with live data. If the fetch fails, the hardcoded cache remains active.
-
-Live model data includes pricing, capabilities (reasoning, vision, reasoning_effort), and limits from the API `metadata` field. See `src/lib/fetch-models.ts` for the mapping logic.
+The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `src/extensions/provider/models.ts` when the Neuralwatt API adds or changes models.
 
 ## Updating Models
 
-1. Run `pnpm test` -- it fetches `/v1/models` and compares against hardcoded cache, also validates metadata fields
-2. Fix any discrepancies (missing models, changed context windows, pricing, capabilities)
-3. Re-run `pnpm test` to confirm
+1. Check the Neuralwatt API (`https://api.neuralwatt.com/v1/models`) for current model list
+2. Compare against hardcoded definitions in `src/extensions/provider/models.ts`
+3. Add missing models, update changed fields (context windows, pricing, capabilities)
+4. Run `pnpm test` to validate

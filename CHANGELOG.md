@@ -1,5 +1,12 @@
 # @aliou/pi-extension-template
 
+## 0.5.1
+
+### Patch Changes
+
+- 41f28c5: Update the Neuralwatt provider API key configuration for Pi 0.77.0 env interpolation rules.
+- 575a9e3: Update Pi package metadata and local type-checking dependencies for Pi 0.77.0.
+
 ## 0.5.0
 
 ### Minor Changes

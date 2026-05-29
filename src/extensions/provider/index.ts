@@ -24,7 +24,7 @@ const HEADER_EMIT_THROTTLE_MS = 5_000;
 function registerNeuralwattProvider(pi: ExtensionAPI): void {
   pi.registerProvider("neuralwatt", {
     baseUrl: "https://api.neuralwatt.com/v1",
-    apiKey: "NEURALWATT_API_KEY",
+    apiKey: "$NEURALWATT_API_KEY",
     api: "openai-completions",
     authHeader: true,
     headers: {

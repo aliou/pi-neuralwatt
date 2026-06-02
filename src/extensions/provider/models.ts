@@ -22,6 +22,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresAssistantAfterToolResult: true,
     },
   },
   // GLM-5 Fast - ZhipuAI

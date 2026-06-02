@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.5.2
+
+### Patch Changes
+
+- 30805b8: Add Devstral tool-result role ordering compatibility.
+
 ## 0.5.1
 
 ### Patch Changes

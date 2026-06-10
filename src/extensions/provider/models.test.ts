@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NEURALWATT_MODELS } from "./models";
+import { LEGACY_NEURALWATT_MODEL_IDS, NEURALWATT_MODELS } from "./models";
 
 interface ApiModelMetadata {
   display_name: string;
@@ -88,12 +88,14 @@ function compareModels(
     const apiModel = apiModels.find((m) => m.id === hardcoded.id);
 
     if (!apiModel) {
-      discrepancies.push({
-        model: hardcoded.id,
-        field: "exists",
-        hardcoded: true,
-        api: false,
-      });
+      if (!LEGACY_NEURALWATT_MODEL_IDS.has(hardcoded.id)) {
+        discrepancies.push({
+          model: hardcoded.id,
+          field: "exists",
+          hardcoded: true,
+          api: false,
+        });
+      }
       continue;
     }
 

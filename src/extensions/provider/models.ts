@@ -4,27 +4,7 @@
 
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
-export const NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // Devstral Small 2 - Mistral
-  {
-    id: "mistralai/Devstral-Small-2-24B-Instruct-2512",
-    name: "Devstral Small 2",
-    reasoning: false,
-    input: ["text", "image"],
-    cost: {
-      input: 0.12,
-      output: 0.35,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 32768,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresAssistantAfterToolResult: true,
-    },
-  },
+const CANONICAL_NEURALWATT_MODELS: ProviderModelConfig[] = [
   // GLM-5 Fast - ZhipuAI
   {
     id: "glm-5-fast",
@@ -38,7 +18,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheWrite: 0,
     },
     contextWindow: 202736,
-    maxTokens: 32768,
+    maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
@@ -46,7 +26,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   },
   // GLM-5.1 - ZhipuAI
   {
-    id: "zai-org/GLM-5.1-FP8",
+    id: "glm-5.1",
     name: "GLM-5.1",
     reasoning: true,
     input: ["text"],
@@ -57,7 +37,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheWrite: 0,
     },
     contextWindow: 202736,
-    maxTokens: 32768,
+    maxTokens: 65536,
     thinkingLevelMap: {
       minimal: null,
       low: null,
@@ -84,37 +64,10 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheWrite: 0,
     },
     contextWindow: 202736,
-    maxTokens: 32768,
+    maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
-    },
-  },
-  // GPT-OSS 20B - OpenAI
-  {
-    id: "openai/gpt-oss-20b",
-    name: "GPT-OSS 20B",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 0.03,
-      output: 0.16,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 16368,
-    maxTokens: 4096,
-    thinkingLevelMap: {
-      minimal: "low",
-      low: "low",
-      medium: "medium",
-      high: "high",
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Kimi K2.5 - MoonshotAI
@@ -165,7 +118,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   },
   // Kimi K2.6 - MoonshotAI
   {
-    id: "moonshotai/Kimi-K2.6",
+    id: "kimi-k2.6",
     name: "Kimi K2.6",
     reasoning: true,
     input: ["text", "image"],
@@ -209,36 +162,9 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
-  // MiniMax M2.5 - MiniMax
-  {
-    id: "MiniMaxAI/MiniMax-M2.5",
-    name: "MiniMax M2.5",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 0.35,
-      output: 1.38,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 196592,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
   // Qwen3.5 397B - Qwen
   {
-    id: "Qwen/Qwen3.5-397B-A17B-FP8",
+    id: "qwen3.5-397b",
     name: "Qwen3.5 397B",
     reasoning: true,
     input: ["text"],
@@ -284,7 +210,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   },
   // Qwen3.6 35B - Qwen
   {
-    id: "Qwen/Qwen3.6-35B-A3B",
+    id: "qwen3.6-35b",
     name: "Qwen3.6 35B",
     reasoning: true,
     input: ["text", "image"],
@@ -295,7 +221,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheWrite: 0,
     },
     contextWindow: 131056,
-    maxTokens: 32768,
+    maxTokens: 65536,
     thinkingLevelMap: {
       minimal: null,
       low: null,
@@ -322,10 +248,44 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheWrite: 0,
     },
     contextWindow: 131056,
-    maxTokens: 32768,
+    maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
     },
   },
+];
+
+const LEGACY_MODEL_ALIAS_MAP = {
+  "zai-org/GLM-5.1-FP8": "glm-5.1",
+  "moonshotai/Kimi-K2.6": "kimi-k2.6",
+  "Qwen/Qwen3.5-397B-A17B-FP8": "qwen3.5-397b",
+  "Qwen/Qwen3.6-35B-A3B": "qwen3.6-35b",
+} as const;
+
+export const LEGACY_NEURALWATT_MODEL_IDS = new Set<string>(
+  Object.keys(LEGACY_MODEL_ALIAS_MAP),
+);
+
+const LEGACY_NEURALWATT_MODELS: ProviderModelConfig[] = Object.entries(
+  LEGACY_MODEL_ALIAS_MAP,
+).map(([legacyId, canonicalId]) => {
+  const canonical = CANONICAL_NEURALWATT_MODELS.find(
+    (model) => model.id === canonicalId,
+  );
+
+  if (!canonical) {
+    throw new Error(`Missing canonical model for legacy alias ${legacyId}`);
+  }
+
+  return {
+    ...canonical,
+    id: legacyId,
+    name: `${canonical.name} (legacy ID)`,
+  };
+});
+
+export const NEURALWATT_MODELS: ProviderModelConfig[] = [
+  ...CANONICAL_NEURALWATT_MODELS,
+  ...LEGACY_NEURALWATT_MODELS,
 ];

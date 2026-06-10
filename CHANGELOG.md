@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.5.3
+
+### Patch Changes
+
+- c68086f: Update Neuralwatt model metadata and keep legacy quantized model IDs as temporary aliases.
+
 ## 0.5.2
 
 ### Patch Changes

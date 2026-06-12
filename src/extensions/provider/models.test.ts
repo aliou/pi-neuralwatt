@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { LEGACY_NEURALWATT_MODEL_IDS, NEURALWATT_MODELS } from "./models";
+import {
+  getNeuralwattModels,
+  LEGACY_NEURALWATT_MODEL_IDS,
+  NEURALWATT_MODELS,
+} from "./models";
 
 interface ApiModelMetadata {
   display_name: string;
@@ -242,6 +246,18 @@ describe("Neuralwatt models", () => {
   it("should have unique model IDs", () => {
     const ids = NEURALWATT_MODELS.map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("should only include legacy model IDs when enabled", () => {
+    const defaultIds = new Set(getNeuralwattModels().map((m) => m.id));
+    const legacyIds = new Set(
+      getNeuralwattModels({ includeLegacyModelIds: true }).map((m) => m.id),
+    );
+
+    for (const legacyId of LEGACY_NEURALWATT_MODEL_IDS) {
+      expect(defaultIds.has(legacyId)).toBe(false);
+      expect(legacyIds.has(legacyId)).toBe(true);
+    }
   });
 
   it("should have required fields for every model", () => {

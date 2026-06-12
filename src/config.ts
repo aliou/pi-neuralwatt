@@ -28,24 +28,38 @@ export interface NeuralwattConfig {
   quotaWarnings?: boolean;
   /** Show usage in the sub-bar / status bar. */
   subBarIntegration?: boolean;
+  /** Include legacy Neuralwatt model IDs in the model picker. */
+  includeLegacyModelIds?: boolean;
 }
 
 export interface ResolvedNeuralwattConfig {
   quotaCommand: boolean;
   quotaWarnings: boolean;
   subBarIntegration: boolean;
+  includeLegacyModelIds: boolean;
 }
 
 const DEFAULTS: ResolvedNeuralwattConfig = {
   quotaCommand: true,
   quotaWarnings: true,
   subBarIntegration: true,
+  includeLegacyModelIds: false,
 };
 
 export const configLoader = new ConfigLoader<
   NeuralwattConfig,
   ResolvedNeuralwattConfig
->("neuralwatt", DEFAULTS);
+>("neuralwatt", DEFAULTS, {
+  migrations: [
+    {
+      name: "disable-legacy-model-ids-by-default",
+      shouldRun: (config) => config.includeLegacyModelIds === undefined,
+      message:
+        "[neuralwatt] legacy model IDs (ids including the provider and the quantization) are disabled by default. You can enable them with /neuralwatt:settings.",
+      run: (config) => ({ ...config, includeLegacyModelIds: false }),
+    },
+  ],
+});
 
 export const NEURALWATT_CONFIG_UPDATED_EVENT =
   "neuralwatt:config:updated" as const;
@@ -128,11 +142,32 @@ export function registerNeuralwattSettings(
             ),
           ],
         },
+        {
+          label: "Other settings",
+          items: [
+            {
+              id: "includeLegacyModelIds",
+              label: "Legacy model IDs",
+              description:
+                "Include deprecated Neuralwatt model IDs as aliases in the model picker",
+              currentValue:
+                (tabConfig?.includeLegacyModelIds ??
+                resolved.includeLegacyModelIds)
+                  ? "include"
+                  : "ignore",
+              values: ["include", "ignore"],
+            },
+          ],
+        },
       ];
     },
     onSettingChange: (id, newValue, config) => {
       if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {
         return null;
+      }
+
+      if (id === "includeLegacyModelIds") {
+        return { ...config, includeLegacyModelIds: newValue === "include" };
       }
 
       const enabled = newValue === "enabled";

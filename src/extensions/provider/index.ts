@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   configLoader,
   emitConfigUpdated,
+  NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
   type NeuralwattFeatureId,
@@ -16,12 +17,14 @@ import {
 } from "../../types/quota-events";
 import { fetchQuotas } from "../../utils/quotas";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import { NEURALWATT_MODELS } from "./models";
+import { getNeuralwattModels } from "./models";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
 
 function registerNeuralwattProvider(pi: ExtensionAPI): void {
+  const { includeLegacyModelIds } = configLoader.getConfig();
+
   pi.registerProvider("neuralwatt", {
     baseUrl: "https://api.neuralwatt.com/v1",
     apiKey: "$NEURALWATT_API_KEY",
@@ -31,7 +34,9 @@ function registerNeuralwattProvider(pi: ExtensionAPI): void {
       Referer: "https://pi.dev",
       "X-Title": "npm:@aliou/pi-neuralwatt",
     },
-    models: NEURALWATT_MODELS,
+    models: getNeuralwattModels({
+      includeLegacyModelIds,
+    }),
   });
 }
 
@@ -45,6 +50,10 @@ export default async function (pi: ExtensionAPI) {
   // Register settings in the provider so it is always available.
   registerNeuralwattSettings(pi, {
     getLoadedFeatures: () => loadedFeatures,
+  });
+
+  pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, () => {
+    registerNeuralwattProvider(pi);
   });
 
   let lastHeaderEmitAt = 0;
@@ -98,6 +107,10 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    for (const message of configLoader.drainMessages()) {
+      ctx.ui.notify(message, "warning");
+    }
+
     loadedFeatures.clear();
     pi.events.emit(NEURALWATT_EXTENSIONS_REQUEST_EVENT, undefined);
     emitConfigUpdated(pi);

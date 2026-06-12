@@ -4,7 +4,7 @@
 
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
-const CANONICAL_NEURALWATT_MODELS: ProviderModelConfig[] = [
+export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   // GLM-5 Fast - ZhipuAI
   {
     id: "glm-5-fast",
@@ -270,9 +270,7 @@ export const LEGACY_NEURALWATT_MODEL_IDS = new Set<string>(
 const LEGACY_NEURALWATT_MODELS: ProviderModelConfig[] = Object.entries(
   LEGACY_MODEL_ALIAS_MAP,
 ).map(([legacyId, canonicalId]) => {
-  const canonical = CANONICAL_NEURALWATT_MODELS.find(
-    (model) => model.id === canonicalId,
-  );
+  const canonical = NEURALWATT_MODELS.find((model) => model.id === canonicalId);
 
   if (!canonical) {
     throw new Error(`Missing canonical model for legacy alias ${legacyId}`);
@@ -285,7 +283,11 @@ const LEGACY_NEURALWATT_MODELS: ProviderModelConfig[] = Object.entries(
   };
 });
 
-export const NEURALWATT_MODELS: ProviderModelConfig[] = [
-  ...CANONICAL_NEURALWATT_MODELS,
-  ...LEGACY_NEURALWATT_MODELS,
-];
+export function getNeuralwattModels(options?: {
+  includeLegacyModelIds?: boolean;
+}): ProviderModelConfig[] {
+  if (options?.includeLegacyModelIds)
+    return [...NEURALWATT_MODELS, ...LEGACY_NEURALWATT_MODELS];
+
+  return NEURALWATT_MODELS;
+}

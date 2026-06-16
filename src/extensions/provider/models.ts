@@ -235,6 +235,33 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       requiresReasoningContentOnAssistantMessages: true,
     },
   },
+  // Kimi K2.7 Code - MoonshotAI
+  {
+    id: "moonshotai/Kimi-K2.7-Code",
+    name: "Kimi K2.7 Code",
+    reasoning: true,
+    input: ["text", "image"],
+    cost: {
+      input: 0.95,
+      output: 4.0,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 262128,
+    maxTokens: 65536,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
+    },
+  },
   // Qwen3.6 35B Fast - Qwen
   {
     id: "qwen3.6-35b-fast",

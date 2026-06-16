@@ -1,5 +1,15 @@
 # @aliou/pi-extension-template
 
+## 0.6.0
+
+### Minor Changes
+
+- 64a0791: Add a setting for showing legacy Neuralwatt model IDs. Legacy IDs now default to disabled, and existing config files are migrated with a notice pointing users to `/neuralwatt:settings`.
+
+### Patch Changes
+
+- 2d60a83: Add Kimi K2.7 Code model
+
 ## 0.5.3
 
 ### Patch Changes

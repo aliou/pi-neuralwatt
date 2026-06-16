@@ -5,7 +5,7 @@
     "NeuralwattConfig": {
       "additionalProperties": false,
       "properties": {
-        "legacyModels": {
+        "includeLegacyModelIds": {
           "description": "Include legacy Neuralwatt model IDs in the model picker.",
           "type": "boolean"
         },

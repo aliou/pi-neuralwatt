@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.6.1
+
+### Patch Changes
+
+- 1dece73: Mark Kimi K2.7 Code as thinking-only by setting `off` to `null` in its `thinkingLevelMap`.
+
 ## 0.6.0
 
 ### Minor Changes

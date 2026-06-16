@@ -283,6 +283,101 @@ const LEGACY_NEURALWATT_MODELS: ProviderModelConfig[] = Object.entries(
   };
 });
 
+interface NeuralwattApiModel {
+  id: string;
+  metadata: {
+    display_name: string | null;
+    provider: string;
+    capabilities: {
+      vision: boolean;
+      reasoning: boolean;
+      developer_role: boolean;
+    };
+    limits: {
+      max_context_length: number;
+      max_output_tokens: number | null;
+    };
+    pricing: {
+      input_per_million: number;
+      output_per_million: number;
+      cached_input_per_million: number | null;
+      cached_output_per_million: number | null;
+    };
+  };
+}
+
+export async function fetchNeuralwattModels(): Promise<ProviderModelConfig[] | undefined> {
+  try {
+    const response = await fetch("https://api.neuralwatt.com/v1/models");
+    if (!response.ok) return undefined;
+    const data = (await response.json()) as { data: NeuralwattApiModel[] };
+    if (!Array.isArray(data.data)) return undefined;
+
+    return data.data.map((model) => {
+      const md = model.metadata;
+      const reasoning = md.capabilities.reasoning;
+      const input: ("text" | "image")[] = ["text"];
+      if (md.capabilities.vision) input.push("image");
+
+      const config: ProviderModelConfig = {
+        id: model.id,
+        name: md.display_name ?? model.id,
+        reasoning,
+        input,
+        cost: {
+          input: md.pricing.input_per_million,
+          output: md.pricing.output_per_million,
+          cacheRead: md.pricing.cached_input_per_million ?? 0,
+          cacheWrite: md.pricing.cached_output_per_million ?? 0,
+        },
+        contextWindow: md.limits.max_context_length,
+        maxTokens: md.limits.max_output_tokens ?? 65536,
+        compat: {
+          supportsDeveloperRole: md.capabilities.developer_role,
+          maxTokensField: "max_tokens",
+        },
+      };
+
+      if (reasoning) {
+        config.thinkingLevelMap = {
+          minimal: null,
+          low: null,
+          medium: "medium",
+          high: null,
+          xhigh: null,
+        };
+        config.compat = {
+          ...config.compat,
+          requiresReasoningContentOnAssistantMessages: true,
+        };
+      }
+
+      return config;
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+export function buildModelList(
+  models: ProviderModelConfig[],
+  includeLegacyModelIds?: boolean,
+): ProviderModelConfig[] {
+  if (!includeLegacyModelIds) return models;
+
+  const legacy: ProviderModelConfig[] = [];
+  for (const [legacyId, canonicalId] of Object.entries(LEGACY_MODEL_ALIAS_MAP)) {
+    const canonical = models.find((m) => m.id === canonicalId);
+    if (!canonical) continue;
+    legacy.push({
+      ...canonical,
+      id: legacyId,
+      name: `${canonical.name} (legacy ID)`,
+    });
+  }
+  return [...models, ...legacy];
+}
+
 export function getNeuralwattModels(options?: {
   includeLegacyModelIds?: boolean;
 }): ProviderModelConfig[] {

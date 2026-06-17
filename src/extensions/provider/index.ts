@@ -19,6 +19,11 @@ import { fetchQuotas } from "../../utils/quotas";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import { getNeuralwattModels } from "./models";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
+import {
+  type NeuralwattRateLimitInfo,
+  normalizeNeuralwattRateLimitError,
+  parseRateLimitHeaders,
+} from "./rate-limit-error";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
 
@@ -70,17 +75,48 @@ export default async function (pi: ExtensionAPI) {
     pi.events.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, { quotas, source });
   }
 
+  // Stored rate-limit info from the most recent 429 response.
+  // Used in message_end to rewrite the generic error text with
+  // actionable details from Neuralwatt's response headers.
+  let pendingRateLimitInfo: NeuralwattRateLimitInfo | undefined;
+
   pi.on("message_end", (event, ctx) => {
-    const message = normalizeNeuralwattContextOverflowError(
+    // Rewrite rate-limit errors with layer-specific details
+    if (
+      pendingRateLimitInfo &&
+      event.message.role === "assistant" &&
+      event.message.stopReason === "error" &&
+      (event.message.provider === "neuralwatt" ||
+        ctx.model?.provider === "neuralwatt")
+    ) {
+      const message = normalizeNeuralwattRateLimitError(
+        event.message,
+        pendingRateLimitInfo,
+      );
+      pendingRateLimitInfo = undefined;
+      return { message };
+    }
+    pendingRateLimitInfo = undefined;
+
+    // Rewrite context overflow errors for Pi's native compaction
+    const overflowMessage = normalizeNeuralwattContextOverflowError(
       event.message,
       ctx.model?.provider,
     );
-    if (!message) return;
-    return { message };
+    if (!overflowMessage) return;
+    return { message: overflowMessage };
   });
 
   pi.on("after_provider_response", (event, ctx) => {
     if (ctx.model?.provider !== "neuralwatt") return;
+
+    // Capture rate-limit headers from 429 responses for message_end rewriting
+    if (event.status === 429) {
+      pendingRateLimitInfo = parseRateLimitHeaders(event.headers);
+    } else {
+      pendingRateLimitInfo = undefined;
+    }
+
     const quotas = buildQuotasFromHeaders(event.headers);
     if (!quotas) return;
     emitQuotas(quotas, "header");
@@ -107,6 +143,7 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    pendingRateLimitInfo = undefined;
     for (const message of configLoader.drainMessages()) {
       ctx.ui.notify(message, "warning");
     }

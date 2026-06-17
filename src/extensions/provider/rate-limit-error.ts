@@ -129,7 +129,7 @@ function formatRateLimitError(info: NeuralwattRateLimitInfo): string {
     parts.push("Retry immediately after an in-flight request completes.");
   }
 
-  return parts.join(" ");
+  return `429 rate limit: ${parts.join(" ")}`;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { getApiProvider } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   configLoader,
@@ -24,13 +25,18 @@ import {
   normalizeNeuralwattRateLimitError,
   parseRateLimitHeaders,
 } from "./rate-limit-error";
+import { updateQuotasFromSseComment } from "./sse-quotas";
+import { wrapNeuralwattStreamSimple } from "./stream-simple";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
 
-function registerNeuralwattProvider(pi: ExtensionAPI): void {
+function registerNeuralwattProvider(
+  pi: ExtensionAPI,
+  onSseQuota: (line: string) => void,
+): void {
   const { includeLegacyModelIds } = configLoader.getConfig();
 
-  pi.registerProvider("neuralwatt", {
+  const config: Parameters<ExtensionAPI["registerProvider"]>[1] = {
     baseUrl: "https://api.neuralwatt.com/v1",
     apiKey: "$NEURALWATT_API_KEY",
     api: "openai-completions",
@@ -42,13 +48,36 @@ function registerNeuralwattProvider(pi: ExtensionAPI): void {
     models: getNeuralwattModels({
       includeLegacyModelIds,
     }),
-  });
+  };
+
+  const provider = getApiProvider("openai-completions");
+  const baseStreamSimple = provider?.streamSimple;
+  if (baseStreamSimple) {
+    config.streamSimple = wrapNeuralwattStreamSimple(
+      baseStreamSimple as never,
+      onSseQuota,
+    ) as never;
+  }
+
+  pi.registerProvider("neuralwatt", config);
 }
 
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
-  registerNeuralwattProvider(pi);
+  let latestQuotas: NeuralwattQuotas | undefined;
+
+  const handleSseQuota = (line: string) => {
+    const quotas = updateQuotasFromSseComment(latestQuotas, line);
+    if (!quotas || quotas === latestQuotas) return;
+    latestQuotas = quotas;
+    pi.events.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, {
+      quotas,
+      source: "sse",
+    });
+  };
+
+  registerNeuralwattProvider(pi, handleSseQuota);
 
   const loadedFeatures = new Set<NeuralwattFeatureId>();
 
@@ -58,7 +87,7 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, () => {
-    registerNeuralwattProvider(pi);
+    registerNeuralwattProvider(pi, handleSseQuota);
   });
 
   let lastHeaderEmitAt = 0;
@@ -72,6 +101,7 @@ export default async function (pi: ExtensionAPI) {
     if (source === "header" && now - lastHeaderEmitAt < HEADER_EMIT_THROTTLE_MS)
       return;
     if (source === "header") lastHeaderEmitAt = now;
+    latestQuotas = quotas;
     pi.events.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, { quotas, source });
   }
 
@@ -96,7 +126,22 @@ export default async function (pi: ExtensionAPI) {
       pendingRateLimitInfo = undefined;
       return { message };
     }
-    pendingRateLimitInfo = undefined;
+
+    if (
+      event.message.role === "assistant" &&
+      event.message.stopReason === "error" &&
+      (event.message.provider === "neuralwatt" ||
+        ctx.model?.provider === "neuralwatt") &&
+      event.message.errorMessage?.includes("429")
+    ) {
+      return {
+        message: normalizeNeuralwattRateLimitError(event.message, {
+          layer: "unknown",
+          detail:
+            "Neuralwatt rate limit reached, but Pi did not receive layer-specific rate-limit headers. Retry shortly.",
+        }),
+      };
+    }
 
     // Rewrite context overflow errors for Pi's native compaction
     const overflowMessage = normalizeNeuralwattContextOverflowError(
@@ -127,11 +172,7 @@ export default async function (pi: ExtensionAPI) {
     quotaRequestInFlight = true;
     try {
       const quotas = await fetchRequestedQuotas(data);
-      if (quotas)
-        pi.events.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, {
-          quotas,
-          source: "api",
-        });
+      if (quotas) emitQuotas(quotas, "api");
     } finally {
       quotaRequestInFlight = false;
     }

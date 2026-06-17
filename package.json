@@ -33,7 +33,8 @@
   ],
   "dependencies": {
     "@aliou/pi-utils-settings": "^0.17.0",
-    "@aliou/pi-utils-ui": "^0.4.0"
+    "@aliou/pi-utils-ui": "^0.4.0",
+    "@earendil-works/pi-ai": "$@earendil-works/pi-coding-agent"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

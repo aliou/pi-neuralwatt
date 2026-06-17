@@ -1,6 +1,6 @@
 import type { NeuralwattQuotas } from "./quota-api";
 
-export type QuotaSource = "header" | "api";
+export type QuotaSource = "header" | "api" | "sse";
 
 export const NEURALWATT_QUOTAS_UPDATED_EVENT =
   "neuralwatt:quotas:updated" as const;

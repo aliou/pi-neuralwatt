@@ -84,12 +84,15 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     },
     contextWindow: 1048560,
     maxTokens: 65536,
+    // GLM-5.2 has two native reasoning depths (high, max) plus thinking-off.
+    // Pi levels below high disable thinking; high -> high, xhigh -> max.
+    // See https://portal.neuralwatt.com/docs/api/chat-completions#reasoning-effort
     thinkingLevelMap: {
-      minimal: "low",
-      low: "low",
-      medium: "medium",
+      minimal: null,
+      low: null,
+      medium: null,
       high: "high",
-      xhigh: null,
+      xhigh: "max",
     },
     compat: {
       supportsDeveloperRole: false,

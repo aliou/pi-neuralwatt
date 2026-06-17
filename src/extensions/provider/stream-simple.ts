@@ -57,13 +57,37 @@ function isProviderChatCompletionsUrl(
   }
 }
 
+async function forwardStream(
+  stream: AssistantMessageEventStream,
+  outer: AssistantMessageEventStream,
+  getRateLimitInfo: () => NeuralwattRateLimitInfo | undefined,
+  restoreFetch: () => void,
+): Promise<void> {
+  try {
+    for await (const event of stream) {
+      const rateLimitInfo = getRateLimitInfo();
+      if (event.type === "error" && rateLimitInfo) {
+        outer.push({
+          ...event,
+          error: normalizeNeuralwattRateLimitError(event.error, rateLimitInfo),
+        });
+      } else {
+        outer.push(event);
+      }
+    }
+  } finally {
+    restoreFetch();
+    outer.end();
+  }
+}
+
 export function wrapNeuralwattStreamSimple(
   base: AnyStreamSimple,
   onSseQuota: (line: string) => void,
 ): AnyStreamSimple {
   return (model, context, options = {}) => {
     let rateLimitInfo: NeuralwattRateLimitInfo | undefined;
-    let teeReader: Promise<void> | undefined;
+    let sseQuotaTask: Promise<void> | undefined;
     const outer = createAssistantMessageEventStream();
     const providerOrigin = new URL(
       model.baseUrl ?? "https://api.neuralwatt.com/v1",
@@ -82,7 +106,7 @@ export function wrapNeuralwattStreamSimple(
 
       if (response.ok && response.body) {
         const [sdkBody, quotaBody] = response.body.tee();
-        teeReader = readQuotaCommentsFromTee(quotaBody, onSseQuota);
+        sseQuotaTask = readQuotaCommentsFromTee(quotaBody, onSseQuota);
         return new Response(sdkBody, {
           headers: response.headers,
           status: response.status,
@@ -97,7 +121,7 @@ export function wrapNeuralwattStreamSimple(
 
     const restoreFetch = () => {
       if (globalThis.fetch === wrappedFetch) globalThis.fetch = originalFetch;
-      teeReader?.catch(() => {});
+      sseQuotaTask?.catch(() => {});
     };
 
     const stream = base(model, context, options);
@@ -107,28 +131,7 @@ export function wrapNeuralwattStreamSimple(
       originalOuterEnd(result);
     };
 
-    (async () => {
-      try {
-        for await (const event of stream as AsyncIterable<
-          Parameters<AssistantMessageEventStream["push"]>[0]
-        >) {
-          if (event.type === "error" && rateLimitInfo) {
-            outer.push({
-              ...event,
-              error: normalizeNeuralwattRateLimitError(
-                event.error,
-                rateLimitInfo,
-              ),
-            });
-          } else {
-            outer.push(event);
-          }
-        }
-      } finally {
-        restoreFetch();
-        outer.end();
-      }
-    })();
+    void forwardStream(stream, outer, () => rateLimitInfo, restoreFetch);
 
     return outer;
   };

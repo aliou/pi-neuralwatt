@@ -1,5 +1,22 @@
 # @aliou/pi-extension-template
 
+## 0.6.3
+
+### Patch Changes
+
+- 53884f1: Fix GLM-5.2 thinkingLevelMap to match Neuralwatt's reasoning_effort normalization.
+
+  GLM-5.2 has two native reasoning depths (high, max) plus thinking-off. Only expose
+  the levels the model actually distinguishes: high -> high, xhigh -> max, and disable
+  thinking (null) for minimal/low/medium so users get the behavior the level name implies
+  instead of Neuralwatt silently normalizing low/medium to high.
+
+- 56b63c1: Fix Kimi K2.7 Code model ID to match the Neuralwatt /v1/models listing.
+
+  The live API exposes this model as `kimi-k2.7-code` (lowercase, no namespace),
+  not `moonshotai/Kimi-K2.7-Code`. The previous ID caused the models validation
+  test to report it as missing and prevented requests from routing correctly.
+
 ## 0.6.2
 
 ### Patch Changes

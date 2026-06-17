@@ -267,7 +267,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   },
   // Kimi K2.7 Code - MoonshotAI
   {
-    id: "moonshotai/Kimi-K2.7-Code",
+    id: "kimi-k2.7-code",
     name: "Kimi K2.7 Code",
     reasoning: true,
     input: ["text", "image"],

@@ -1,5 +1,16 @@
 # @aliou/pi-extension-template
 
+## 0.7.0
+
+### Minor Changes
+
+- 9384557: Handle Neuralwatt stream rate limits before the OpenAI SDK drops response headers. Show layer-specific 429 messages, keep Pi auto-retry detection working, and parse SSE quota comments for live quota updates.
+
+### Patch Changes
+
+- 57e5ac2: Sync model list with live Neuralwatt API. Remove deprecated glm-5-fast (no longer served). Fix zai-org/GLM-5.1-FP8 context window from 202736 to 1048560 (matches the GLM-5.2-backed 1048K deployment).
+- 7ba08db: Sync model list with live Neuralwatt API. Add glm-5.2-fast and promote zai-org/GLM-5.1-FP8 from legacy alias to a standalone canonical entry (now serving a GLM-5.2 test build). Update glm-5.1 and glm-5.1-fast context windows to 1048560 (GLM-5.2-backed, 1048K).
+
 ## 0.6.3
 
 ### Patch Changes

@@ -24,7 +24,36 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
+  // GLM-5.1 (200K vLLM deployment) - ZhipuAI
+  // Legacy id previously aliased to glm-5.1; now serving a GLM-5.2 test build.
+  {
+    id: "zai-org/GLM-5.1-FP8",
+    name: "GLM-5.2 (test)",
+    reasoning: true,
+    input: ["text"],
+    cost: {
+      input: 1.1,
+      output: 3.6,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 202736,
+    maxTokens: 65536,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: "medium",
+      high: null,
+      xhigh: null,
+    },
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
+    },
+  },
   // GLM-5.1 - ZhipuAI
+  // Backed by the 1048K GLM-5.2 deployment (GLM-5.1 redirect in effect). Deprecated.
   {
     id: "glm-5.1",
     name: "GLM-5.1",
@@ -36,7 +65,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 202736,
+    contextWindow: 1048560,
     maxTokens: 65536,
     thinkingLevelMap: {
       minimal: null,
@@ -63,7 +92,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 202736,
+    contextWindow: 1048560,
     maxTokens: 65536,
     compat: {
       supportsDeveloperRole: false,
@@ -98,6 +127,25 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
       requiresReasoningContentOnAssistantMessages: true,
+    },
+  },
+  // GLM-5.2 Fast - ZhipuAI
+  {
+    id: "glm-5.2-fast",
+    name: "GLM-5.2 Fast",
+    reasoning: false,
+    input: ["text"],
+    cost: {
+      input: 1.45,
+      output: 4.5,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 1048560,
+    maxTokens: 65536,
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
     },
   },
   // Kimi K2.5 - MoonshotAI
@@ -315,7 +363,6 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
 ];
 
 const LEGACY_MODEL_ALIAS_MAP = {
-  "zai-org/GLM-5.1-FP8": "glm-5.1",
   "moonshotai/Kimi-K2.6": "kimi-k2.6",
   "Qwen/Qwen3.5-397B-A17B-FP8": "qwen3.5-397b",
   "Qwen/Qwen3.6-35B-A3B": "qwen3.6-35b",

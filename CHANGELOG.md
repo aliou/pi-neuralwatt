@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.6.2
+
+### Patch Changes
+
+- 1b208ed: Add GLM-5.2 model (ZhipuAI, 1M context, reasoning with reasoning_effort)
+
 ## 0.6.1
 
 ### Patch Changes

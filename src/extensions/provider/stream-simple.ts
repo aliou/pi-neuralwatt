@@ -1,3 +1,12 @@
+// Neuralwatt is OpenAI-compatible, but the OpenAI SDK throws on non-2xx
+// responses before Pi's after_provider_response hook can see the raw headers.
+// We wrap the built-in openai-completions streamSimple so 429 rate-limit
+// headers can be captured before the SDK turns them into a generic error, while
+// still delegating normal streaming behavior to Pi's provider implementation.
+//
+// The SSE tee used for live quota comments is inspired by:
+// https://github.com/monotykamary/pi-neuralwatt-provider
+
 import {
   type AssistantMessageEventStream,
   type Context,

@@ -5,25 +5,6 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
 export const NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // GLM-5 Fast - ZhipuAI
-  {
-    id: "glm-5-fast",
-    name: "GLM-5 Fast",
-    reasoning: false,
-    input: ["text"],
-    cost: {
-      input: 1.1,
-      output: 3.6,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 202736,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
   // GLM-5.1 (200K vLLM deployment) - ZhipuAI
   // Legacy id previously aliased to glm-5.1; now serving a GLM-5.2 test build.
   {
@@ -37,7 +18,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       cacheRead: 0,
       cacheWrite: 0,
     },
-    contextWindow: 202736,
+    contextWindow: 1048560,
     maxTokens: 65536,
     thinkingLevelMap: {
       minimal: null,

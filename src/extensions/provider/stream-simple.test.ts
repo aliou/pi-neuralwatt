@@ -82,6 +82,43 @@ describe("wrapNeuralwattStreamSimple", () => {
     expect(globalThis.fetch).toBe(fetchMock);
   });
 
+  it("ignores matching paths from other provider origins", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(null, {
+          status: 429,
+          headers: {
+            "X-Concurrent-Limit-Dimension": "model",
+            "X-Concurrent-Limit-Active": "3",
+            "X-Concurrent-Limit-Max": "2",
+          },
+        }),
+    );
+    globalThis.fetch = fetchMock as never;
+
+    const base: AnyStreamSimple = () => {
+      const stream = createAssistantMessageEventStream();
+      queueMicrotask(async () => {
+        await fetch("https://example.com/v1/chat/completions");
+        stream.push({
+          type: "error",
+          reason: "error",
+          error: makeAssistantMessage("429 status code (no body)"),
+        } as never);
+        stream.end();
+      });
+      return stream;
+    };
+
+    const wrapped = wrapNeuralwattStreamSimple(base, () => {});
+    const events = await collect(wrapped({} as never, {} as never));
+    const errorEvent = events.find(
+      (event) => (event as { type?: string }).type === "error",
+    ) as { error: { errorMessage: string } };
+
+    expect(errorEvent.error.errorMessage).toBe("429 status code (no body)");
+  });
+
   it("tees successful SSE responses and emits quota comments", async () => {
     const fetchMock = vi.fn(
       async () =>

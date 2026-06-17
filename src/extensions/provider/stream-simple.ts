@@ -35,6 +35,28 @@ function headersToRecord(headers: Headers): Record<string, string> {
   return record;
 }
 
+function isProviderChatCompletionsUrl(
+  input: RequestInfo | URL,
+  providerOrigin: string,
+): boolean {
+  const rawUrl =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  try {
+    const url = new URL(rawUrl);
+    return (
+      url.origin === providerOrigin &&
+      url.pathname.endsWith("/chat/completions")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function wrapNeuralwattStreamSimple(
   base: AnyStreamSimple,
   onSseQuota: (line: string) => void,
@@ -43,17 +65,14 @@ export function wrapNeuralwattStreamSimple(
     let rateLimitInfo: NeuralwattRateLimitInfo | undefined;
     let teeReader: Promise<void> | undefined;
     const outer = createAssistantMessageEventStream();
+    const providerOrigin = new URL(
+      model.baseUrl ?? "https://api.neuralwatt.com/v1",
+    ).origin;
     const originalFetch = globalThis.fetch;
     const wrappedFetch: typeof fetch = async (input, init) => {
       const response = await originalFetch(input, init);
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
 
-      if (!url.includes("/chat/completions")) return response;
+      if (!isProviderChatCompletionsUrl(input, providerOrigin)) return response;
 
       const headers = headersToRecord(response.headers);
       if (response.status === 429) {

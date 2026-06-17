@@ -70,6 +70,33 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
+  // GLM-5.2 - ZhipuAI (test canary)
+  {
+    id: "glm-5.2",
+    name: "GLM-5.2",
+    reasoning: true,
+    input: ["text"],
+    cost: {
+      input: 1.45,
+      output: 4.5,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 1048560,
+    maxTokens: 65536,
+    thinkingLevelMap: {
+      minimal: "low",
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: null,
+    },
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
+    },
+  },
   // Kimi K2.5 - MoonshotAI
   {
     id: "moonshotai/Kimi-K2.5",

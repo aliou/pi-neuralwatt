@@ -148,6 +148,7 @@ describe("normalizeNeuralwattRateLimitError", () => {
 
     const result = normalizeNeuralwattRateLimitError(baseMessage, info);
     expect(result.errorMessage).not.toBe("Too Many Requests");
+    expect(result.errorMessage).toMatch(/^429 rate limit:/);
     expect(result.errorMessage).toContain("Concurrent request limit reached");
     expect(result.errorMessage).toContain(
       "Retry immediately after an in-flight request completes",

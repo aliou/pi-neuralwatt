@@ -203,7 +203,7 @@ function compareModels(
   // Check for API models not in hardcoded list
   for (const apiModel of apiModels) {
     const hardcoded = hardcodedModels.find((m) => m.id === apiModel.id);
-    if (!hardcoded) {
+    if (!hardcoded && !LEGACY_NEURALWATT_MODEL_IDS.has(apiModel.id)) {
       discrepancies.push({
         model: apiModel.id,
         field: "exists",

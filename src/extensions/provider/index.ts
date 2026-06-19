@@ -21,7 +21,12 @@ import {
   type NeuralwattQuotasUpdatedPayload,
 } from "../../types/quota-events";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import { getNeuralwattModels, loadHiddenModels } from "./models";
+import {
+  getNeuralwattModels,
+  loadCachedHiddenModels,
+  loadHiddenModels,
+  writeHiddenModelsCache,
+} from "./models";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 import {
   type NeuralwattRateLimitInfo,
@@ -72,8 +77,24 @@ export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
   let latestQuotas: NeuralwattQuotas | undefined;
+
+  // Stale-while-revalidate seed for hidden models.
+  //
+  // Hidden models are only discoverable by hitting the authenticated
+  // `/v1/models` endpoint, which we can do inside `session_start` (Pi does not
+  // expose `authStorage` to extension factories). However, Pi validates scoped
+  // models (e.g. `neuralwatt/glm-5.2-short`) during startup, *before*
+  // `session_start` fires. To avoid "No models match pattern" warnings on saved
+  // scoped models, we synchronously restore the previous session's fetch from
+  // the on-disk cache so the provider is registered with hidden models at
+  // load time. `session_start` then revalidates from the live API and writes
+  // the cache back. First run with no cache still warns once.
   let hiddenModels: ProviderModelConfig[] = [];
+  if (configLoader.getConfig().includeHiddenModels) {
+    hiddenModels = loadCachedHiddenModels();
+  }
   let hiddenModelsLoaded = false;
+  let hiddenModelsAbort: AbortController | undefined;
 
   const handleSseQuota = (line: string) => {
     const quotas = updateQuotasFromSseComment(latestQuotas, line);
@@ -85,7 +106,7 @@ export default async function (pi: ExtensionAPI) {
     });
   };
 
-  registerNeuralwattProvider(pi, handleSseQuota);
+  registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
 
   const loadedFeatures = new Set<NeuralwattFeatureId>();
 
@@ -95,7 +116,22 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, () => {
+    // Toggle may have enabled hidden models since startup. Seed from the disk
+    // cache so previously discovered models are available immediately without
+    // waiting for the next session_start revalidation.
+    if (
+      configLoader.getConfig().includeHiddenModels &&
+      !hiddenModelsLoaded &&
+      hiddenModels.length === 0
+    ) {
+      hiddenModels = loadCachedHiddenModels();
+    }
     registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
+  });
+
+  pi.on("session_shutdown", () => {
+    hiddenModelsAbort?.abort();
+    hiddenModelsAbort = undefined;
   });
 
   let lastHeaderEmitAt = 0;
@@ -203,10 +239,20 @@ export default async function (pi: ExtensionAPI) {
 
     if (!hiddenModelsLoaded && configLoader.getConfig().includeHiddenModels) {
       hiddenModelsLoaded = true;
-      const fetched = await loadHiddenModels(ctx.modelRegistry.authStorage);
+      hiddenModelsAbort?.abort();
+      hiddenModelsAbort = new AbortController();
+      const fetched = await loadHiddenModels(
+        ctx.modelRegistry.authStorage,
+        hiddenModelsAbort.signal,
+      );
+      // Persist for the next startup so scoped models resolve without warnings
+      // on Pi's subsequent launches.
       if (fetched.length > 0) {
         hiddenModels = fetched;
-        registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
+        await writeHiddenModelsCache(hiddenModels);
+        if (!hiddenModelsAbort.signal.aborted) {
+          registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
+        }
       }
     }
 

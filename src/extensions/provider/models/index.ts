@@ -2,6 +2,7 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { buildLegacyNeuralwattModels } from "./legacy";
 import { NEURALWATT_MODELS } from "./public-models";
 
+export { loadCachedHiddenModels, writeHiddenModelsCache } from "./cache";
 export { loadHiddenModels } from "./hidden";
 export {
   buildLegacyNeuralwattModels,

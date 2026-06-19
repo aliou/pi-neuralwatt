@@ -108,11 +108,12 @@ function applyHiddenOverride(
  */
 export async function loadHiddenModels(
   authStorage: AuthStorage,
+  signal?: AbortSignal,
 ): Promise<ProviderModelConfig[]> {
   const apiKey = await getNeuralwattApiKey(authStorage);
   if (!apiKey) return [];
 
-  const result = await fetchNeuralwattModels(apiKey);
+  const result = await fetchNeuralwattModels(apiKey, signal);
   if (!result.success) return [];
 
   const publicIds = new Set(NEURALWATT_MODELS.map((model) => model.id));

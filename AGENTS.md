@@ -4,7 +4,7 @@ Pi extension providing a Neuralwatt inference API provider.
 
 ## Purpose
 
-Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models.ts` from the `/v1/models` API (including pricing, capabilities, and limits from the `metadata` field).
+Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models/public-models.ts` from the `/v1/models` API (including pricing, capabilities, and limits from the `metadata` field).
 
 ## Stack
 
@@ -27,9 +27,14 @@ src/
     env.ts                              # API key resolution (auth.json -> env var)
   extensions/
     provider/
-      index.ts                          # Provider + settings + quota store (always loaded)
-      models.ts                         # Hardcoded model definitions
-      models.test.ts                    # Validation tests for model structure
+      index.ts                          # Provider factory: registers provider + quota store (always loaded)
+      models/
+        index.ts                        # Re-exports + getNeuralwattModels helper
+        public-models.ts                # Hardcoded public model definitions
+        legacy.ts                       # Phased-out model ID aliases
+        hidden.ts                       # Hidden-model discovery from authenticated /v1/models
+        cache.ts                        # Stale-while-revalidate disk cache for hidden models
+      models.test.ts                    # Validation tests for public model structure
     command-quotas/
       index.ts                          # Extension entry (checks config, registers command)
       command.ts                        # /neuralwatt:quota command handler
@@ -97,11 +102,24 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 ## Model loading
 
-The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `src/extensions/provider/models.ts` when the Neuralwatt API adds or changes models.
+The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `src/extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models.
+
+### Hidden models (stale-while-revalidate)
+
+Some Neuralwatt models are accessible via the authenticated API key but not part of the unadvertised public list (e.g. `glm-5.2-short`). Enabling the `includeHiddenModels` setting makes them available.
+
+Discovery requires the API key, which Pi only exposes inside `session_start` (`ctx.modelRegistry.authStorage`). Pi validates scoped models during startup, *before* `session_start`, so a naive in-place fetch would warn `No models match pattern "neuralwatt/glm-5.2-short"` on saved scoped models every launch.
+
+To work around this, the provider factory uses stale-while-revalidate:
+
+1. At extension load (synchronous): read `${getAgentDir()}/cache/neuralwatt-hidden-models.json` and register the provider with the cached hidden models immediately. Zero latency. Pi's startup scoped-model validation sees them.
+2. On `session_start`: refetch `/v1/models`, write the result to the cache, and re-register the provider so the live list wins. The fetch is cancellable via an `AbortController` aborted on `session_shutdown`.
+
+First launch with no cache still warns once until `session_start` writes the cache. Subsequent launches resolve cleanly.
 
 ## Updating Models
 
 1. Check the Neuralwatt API (`https://api.neuralwatt.com/v1/models`) for current model list
-2. Compare against hardcoded definitions in `src/extensions/provider/models.ts`
+2. Compare against hardcoded definitions in `src/extensions/provider/models/public-models.ts`
 3. Add missing models, update changed fields (context windows, pricing, capabilities)
 4. Run `pnpm test` to validate

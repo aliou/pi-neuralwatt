@@ -171,12 +171,21 @@ export default async function (pi: ExtensionAPI) {
       return { message };
     }
 
+    // Fallback for 429s where no layer-specific headers were captured. The
+    // streamSimple wrap (wrapNeuralwattStreamSimple) already formats a
+    // detailed message via formatRateLimitError when it captures headers;
+    // detect that case by the `"429 rate limit:"` prefix it emits and leave
+    // it untouched. This branch only fires for genuinely headerless 429s
+    // (e.g. anonymous playground limits, or a 429 from infra in front of
+    // Neuralwatt), since after_provider_response cannot observe 429s — the
+    // OpenAI SDK throws before Pi's onResponse hook runs.
     if (
       event.message.role === "assistant" &&
       event.message.stopReason === "error" &&
       (event.message.provider === "neuralwatt" ||
         ctx.model?.provider === "neuralwatt") &&
-      event.message.errorMessage?.includes("429")
+      event.message.errorMessage?.includes("429") &&
+      !event.message.errorMessage.startsWith("429 rate limit:")
     ) {
       return {
         message: normalizeNeuralwattRateLimitError(event.message, {

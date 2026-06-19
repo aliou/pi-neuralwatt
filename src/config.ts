@@ -30,6 +30,8 @@ export interface NeuralwattConfig {
   subBarIntegration?: boolean;
   /** Include legacy Neuralwatt model IDs in the model picker. */
   includeLegacyModelIds?: boolean;
+  /** Include hidden Neuralwatt models discovered via the authenticated API. */
+  includeHiddenModels?: boolean;
 }
 
 export interface ResolvedNeuralwattConfig {
@@ -37,6 +39,7 @@ export interface ResolvedNeuralwattConfig {
   quotaWarnings: boolean;
   subBarIntegration: boolean;
   includeLegacyModelIds: boolean;
+  includeHiddenModels: boolean;
 }
 
 const DEFAULTS: ResolvedNeuralwattConfig = {
@@ -44,6 +47,7 @@ const DEFAULTS: ResolvedNeuralwattConfig = {
   quotaWarnings: true,
   subBarIntegration: true,
   includeLegacyModelIds: false,
+  includeHiddenModels: false,
 };
 
 export const configLoader = new ConfigLoader<
@@ -157,17 +161,34 @@ export function registerNeuralwattSettings(
                   : "ignore",
               values: ["include", "ignore"],
             },
+            {
+              id: "includeHiddenModels",
+              label: "Hidden models",
+              description:
+                "Include Neuralwatt models that are accessible via API key but not advertised in the public model list",
+              currentValue:
+                (tabConfig?.includeHiddenModels ?? resolved.includeHiddenModels)
+                  ? "include"
+                  : "ignore",
+              values: ["include", "ignore"],
+            },
           ],
         },
       ];
     },
     onSettingChange: (id, newValue, config) => {
-      if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {
-        return null;
-      }
-
+      // Non-feature toggles are handled first so they are not blocked by the
+      // loaded-features guard (they are managed directly by the provider).
       if (id === "includeLegacyModelIds") {
         return { ...config, includeLegacyModelIds: newValue === "include" };
+      }
+
+      if (id === "includeHiddenModels") {
+        return { ...config, includeHiddenModels: newValue === "include" };
+      }
+
+      if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {
+        return null;
       }
 
       const enabled = newValue === "enabled";

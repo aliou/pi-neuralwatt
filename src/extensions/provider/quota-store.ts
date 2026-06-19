@@ -1,8 +1,8 @@
 import type { AuthStorage } from "@earendil-works/pi-coding-agent";
 import { getNeuralwattApiKey } from "../../lib/env";
+import { fetchQuotas } from "../../lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../types/quota-api";
 import { parseQuotaHeaders } from "../../types/quota-events";
-import { fetchQuotas } from "../../utils/quotas";
 
 export function buildQuotasFromHeaders(
   headers: Record<string, string>,

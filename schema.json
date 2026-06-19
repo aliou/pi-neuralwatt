@@ -5,6 +5,10 @@
     "NeuralwattConfig": {
       "additionalProperties": false,
       "properties": {
+        "includeHiddenModels": {
+          "description": "Include hidden Neuralwatt models discovered via the authenticated API.",
+          "type": "boolean"
+        },
         "includeLegacyModelIds": {
           "description": "Include legacy Neuralwatt model IDs in the model picker.",
           "type": "boolean"

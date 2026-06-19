@@ -4,7 +4,7 @@ import {
   getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import { getNeuralwattApiKey } from "../../lib/env";
-import { fetchQuotas } from "../../utils/quotas";
+import { fetchQuotas } from "../../lib/neuralwatt-api";
 import { QuotasComponent } from "./components/quotas-display";
 
 function missingAuthMessage(): string {

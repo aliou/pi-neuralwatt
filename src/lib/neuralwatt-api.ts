@@ -1,6 +1,11 @@
+import type {
+  NeuralwattApiModel,
+  NeuralwattApiModelsResponse,
+} from "../types/models-api";
 import type { NeuralwattQuotas } from "../types/quota-api";
 import type { QuotasResult } from "../types/quota-events";
 
+const BASE_URL = "https://api.neuralwatt.com/v1";
 const FETCH_TIMEOUT_MS = 15_000;
 
 function isTimeoutReason(reason: unknown): boolean {
@@ -8,6 +13,55 @@ function isTimeoutReason(reason: unknown): boolean {
     (reason instanceof DOMException && reason.name === "TimeoutError") ||
     (reason instanceof Error && reason.name === "TimeoutError")
   );
+}
+
+function combineSignals(signal?: AbortSignal): AbortSignal {
+  const signals: AbortSignal[] = [AbortSignal.timeout(FETCH_TIMEOUT_MS)];
+  if (signal) signals.push(signal);
+  return AbortSignal.any(signals);
+}
+
+async function neuralwattFetch(
+  path: string,
+  apiKey: string,
+  signal?: AbortSignal,
+  headers?: Record<string, string>,
+): Promise<Response> {
+  return fetch(`${BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${apiKey}`, ...headers },
+    signal: combineSignals(signal),
+  });
+}
+
+export type NeuralwattModelsResult =
+  | { success: true; data: NeuralwattApiModel[] }
+  | { success: false };
+
+export async function fetchNeuralwattModels(
+  apiKey: string,
+  signal?: AbortSignal,
+): Promise<NeuralwattModelsResult> {
+  if (!apiKey) {
+    return { success: false };
+  }
+
+  const combined = combineSignals(signal);
+
+  try {
+    const response = await neuralwattFetch("/models", apiKey, combined, {
+      Referer: "https://pi.dev",
+      "X-Title": "npm:@aliou/pi-neuralwatt",
+    });
+
+    if (!response.ok) {
+      return { success: false };
+    }
+
+    const data: NeuralwattApiModelsResponse = await response.json();
+    return { success: true, data: data.data };
+  } catch {
+    return { success: false };
+  }
 }
 
 export async function fetchQuotas(
@@ -21,15 +75,10 @@ export async function fetchQuotas(
     };
   }
 
-  const signals: AbortSignal[] = [AbortSignal.timeout(FETCH_TIMEOUT_MS)];
-  if (signal) signals.push(signal);
-  const combined = AbortSignal.any(signals);
+  const combined = combineSignals(signal);
 
   try {
-    const response = await fetch("https://api.neuralwatt.com/v1/quota", {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: combined,
-    });
+    const response = await neuralwattFetch("/quota", apiKey, combined);
 
     if (!response.ok) {
       let message = response.statusText;

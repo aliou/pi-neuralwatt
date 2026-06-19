@@ -1,5 +1,8 @@
 import { getApiProvider } from "@earendil-works/pi-ai";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ProviderModelConfig,
+} from "@earendil-works/pi-coding-agent";
 import {
   configLoader,
   emitConfigUpdated,
@@ -10,15 +13,15 @@ import {
   registerNeuralwattSettings,
 } from "../../config";
 import { getNeuralwattApiKey } from "../../lib/env";
+import { fetchQuotas } from "../../lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../types/quota-api";
 import {
   NEURALWATT_QUOTAS_REQUEST_EVENT,
   NEURALWATT_QUOTAS_UPDATED_EVENT,
   type NeuralwattQuotasUpdatedPayload,
 } from "../../types/quota-events";
-import { fetchQuotas } from "../../utils/quotas";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import { getNeuralwattModels } from "./models";
+import { getNeuralwattModels, loadHiddenModels } from "./models";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 import {
   type NeuralwattRateLimitInfo,
@@ -33,8 +36,10 @@ const HEADER_EMIT_THROTTLE_MS = 5_000;
 function registerNeuralwattProvider(
   pi: ExtensionAPI,
   onSseQuota: (line: string) => void,
+  hiddenModels: ProviderModelConfig[] = [],
 ): void {
-  const { includeLegacyModelIds } = configLoader.getConfig();
+  const { includeLegacyModelIds, includeHiddenModels } =
+    configLoader.getConfig();
 
   const config: Parameters<ExtensionAPI["registerProvider"]>[1] = {
     baseUrl: "https://api.neuralwatt.com/v1",
@@ -45,9 +50,10 @@ function registerNeuralwattProvider(
       Referer: "https://pi.dev",
       "X-Title": "npm:@aliou/pi-neuralwatt",
     },
-    models: getNeuralwattModels({
-      includeLegacyModelIds,
-    }),
+    models: [
+      ...getNeuralwattModels({ includeLegacyModelIds }),
+      ...(includeHiddenModels ? hiddenModels : []),
+    ],
   };
 
   const provider = getApiProvider("openai-completions");
@@ -66,6 +72,8 @@ export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
   let latestQuotas: NeuralwattQuotas | undefined;
+  let hiddenModels: ProviderModelConfig[] = [];
+  let hiddenModelsLoaded = false;
 
   const handleSseQuota = (line: string) => {
     const quotas = updateQuotasFromSseComment(latestQuotas, line);
@@ -87,7 +95,7 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, () => {
-    registerNeuralwattProvider(pi, handleSseQuota);
+    registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
   });
 
   let lastHeaderEmitAt = 0;
@@ -192,6 +200,15 @@ export default async function (pi: ExtensionAPI) {
     loadedFeatures.clear();
     pi.events.emit(NEURALWATT_EXTENSIONS_REQUEST_EVENT, undefined);
     emitConfigUpdated(pi);
+
+    if (!hiddenModelsLoaded && configLoader.getConfig().includeHiddenModels) {
+      hiddenModelsLoaded = true;
+      const fetched = await loadHiddenModels(ctx.modelRegistry.authStorage);
+      if (fetched.length > 0) {
+        hiddenModels = fetched;
+        registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
+      }
+    }
 
     if (ctx.model?.provider !== "neuralwatt") return;
     const apiKey = await getNeuralwattApiKey(ctx.modelRegistry.authStorage);

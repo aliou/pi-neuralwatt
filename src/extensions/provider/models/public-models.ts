@@ -1,66 +1,9 @@
-// Hardcoded models from Neuralwatt API
-// Source: https://api.neuralwatt.com/v1/models
-// Pricing, capabilities, and limits from metadata fields in /v1/models
-
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
+// Public models returned by https://api.neuralwatt.com/v1/models (unauthenticated view).
+// Pricing, capabilities, and limits are sourced from the API metadata fields.
 export const NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // GLM-5.1 (200K vLLM deployment) - ZhipuAI
-  // Legacy id previously aliased to glm-5.1; now serving a GLM-5.2 test build.
-  {
-    id: "zai-org/GLM-5.1-FP8",
-    name: "GLM-5.2 (test)",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 1.1,
-      output: 3.6,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    // Backed by GLM-5.2 (redirect in effect). Mirror glm-5.2's native reasoning
-    // depths (high, max) plus thinking-off. Do not rely on Neuralwatt's
-    // server-side default-to-high injection for the GLM-5.1 redirect.
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: "max",
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // GLM-5.1 - ZhipuAI
-  // Fully deprecated; now serves the GLM-5.2 deployment via Neuralwatt's
-  // redirect. Tracked as a legacy alias of glm-5.2 (see LEGACY_MODEL_ALIAS_MAP);
-  // pricing will converge to GLM-5.2's as the redirect rolls out.
-
-  // GLM-5.1 Fast - ZhipuAI
-  {
-    id: "glm-5.1-fast",
-    name: "GLM-5.1 Fast",
-    reasoning: false,
-    input: ["text"],
-    cost: {
-      input: 1.1,
-      output: 3.6,
-      cacheRead: 0,
-      cacheWrite: 0,
-    },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // GLM-5.2 - ZhipuAI (test canary)
+  // GLM-5.2 - ZhipuAI
   {
     id: "glm-5.2",
     name: "GLM-5.2",
@@ -69,14 +12,11 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 1.45,
       output: 4.5,
-      cacheRead: 0,
+      cacheRead: 0.3625,
       cacheWrite: 0,
     },
     contextWindow: 1048560,
     maxTokens: 65536,
-    // GLM-5.2 has two native reasoning depths (high, max) plus thinking-off.
-    // Pi levels below high disable thinking; high -> high, xhigh -> max.
-    // See https://portal.neuralwatt.com/docs/api/chat-completions#reasoning-effort
     thinkingLevelMap: {
       minimal: null,
       low: null,
@@ -99,7 +39,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 1.45,
       output: 4.5,
-      cacheRead: 0,
+      cacheRead: 0.3625,
       cacheWrite: 0,
     },
     contextWindow: 1048560,
@@ -118,7 +58,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.52,
       output: 2.59,
-      cacheRead: 0,
+      cacheRead: 0.13,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -145,7 +85,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.52,
       output: 2.59,
-      cacheRead: 0,
+      cacheRead: 0.13,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -164,7 +104,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.69,
       output: 3.22,
-      cacheRead: 0,
+      cacheRead: 0.1725,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -191,7 +131,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.69,
       output: 3.22,
-      cacheRead: 0,
+      cacheRead: 0.1725,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -210,7 +150,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.69,
       output: 4.14,
-      cacheRead: 0,
+      cacheRead: 0.1725,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -237,7 +177,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.69,
       output: 4.14,
-      cacheRead: 0,
+      cacheRead: 0.1725,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -256,7 +196,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.29,
       output: 1.15,
-      cacheRead: 0,
+      cacheRead: 0.0725,
       cacheWrite: 0,
     },
     contextWindow: 131056,
@@ -283,7 +223,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.95,
       output: 4.0,
-      cacheRead: 0,
+      cacheRead: 0.2375,
       cacheWrite: 0,
     },
     contextWindow: 262128,
@@ -311,7 +251,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     cost: {
       input: 0.29,
       output: 1.15,
-      cacheRead: 0,
+      cacheRead: 0.0725,
       cacheWrite: 0,
     },
     contextWindow: 131056,
@@ -322,39 +262,3 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     },
   },
 ];
-
-const LEGACY_MODEL_ALIAS_MAP = {
-  "glm-5.1": "glm-5.2",
-  "moonshotai/Kimi-K2.6": "kimi-k2.6",
-  "Qwen/Qwen3.5-397B-A17B-FP8": "qwen3.5-397b",
-  "Qwen/Qwen3.6-35B-A3B": "qwen3.6-35b",
-} as const;
-
-export const LEGACY_NEURALWATT_MODEL_IDS = new Set<string>(
-  Object.keys(LEGACY_MODEL_ALIAS_MAP),
-);
-
-const LEGACY_NEURALWATT_MODELS: ProviderModelConfig[] = Object.entries(
-  LEGACY_MODEL_ALIAS_MAP,
-).map(([legacyId, canonicalId]) => {
-  const canonical = NEURALWATT_MODELS.find((model) => model.id === canonicalId);
-
-  if (!canonical) {
-    throw new Error(`Missing canonical model for legacy alias ${legacyId}`);
-  }
-
-  return {
-    ...canonical,
-    id: legacyId,
-    name: `${canonical.name} (legacy ID)`,
-  };
-});
-
-export function getNeuralwattModels(options?: {
-  includeLegacyModelIds?: boolean;
-}): ProviderModelConfig[] {
-  if (options?.includeLegacyModelIds)
-    return [...NEURALWATT_MODELS, ...LEGACY_NEURALWATT_MODELS];
-
-  return NEURALWATT_MODELS;
-}

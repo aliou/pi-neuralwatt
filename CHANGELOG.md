@@ -1,5 +1,17 @@
 # @aliou/pi-extension-template
 
+## 0.7.1
+
+### Patch Changes
+
+- 83ad6f8: Convert `glm-5.1` into a legacy alias of `glm-5.2`. GLM-5.1 is fully deprecated on Neuralwatt and now serves the GLM-5.2 deployment via server redirect. Aliasing inherits GLM-5.2's reasoning depths (high, max) and pricing; the latter is expected to converge as the redirect rolls out. The standalone `glm-5.1` canonical entry is removed. `glm-5.1-fast` is unchanged.
+- 5f62126: Reorganize Neuralwatt models into public, legacy, and hidden sections.
+
+  - Move model definitions into `src/extensions/provider/models/` with separate files for public models, legacy aliases, and hidden-model discovery.
+  - Add an `includeHiddenModels` setting (default `false`) that fetches accessible-but-unadvertised models from the authenticated `/v1/models` endpoint once per session start.
+  - Move Neuralwatt API client calls into `src/lib/neuralwatt-api.ts`.
+  - Update public model `cacheRead` pricing and move phased-out GLM-5.1 IDs to legacy aliases.
+
 ## 0.7.0
 
 ### Minor Changes

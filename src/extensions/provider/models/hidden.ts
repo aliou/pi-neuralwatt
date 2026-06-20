@@ -10,19 +10,10 @@ import { NEURALWATT_MODELS } from "./public-models";
 // Per-ID overrides for known hidden models. The authenticated /v1/models endpoint
 // exposes pricing and capabilities, but some Pi-specific behavior (thinking levels,
 // compat flags) has to be supplied by hand.
+// Previously hidden models that have since gone public now live in public-models.ts.
 const HIDDEN_MODEL_OVERRIDES: Partial<
   Record<string, Partial<ProviderModelConfig>>
-> = {
-  "glm-5.2-short": {
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: "max",
-    },
-  },
-};
+> = {};
 
 function buildHiddenModel(apiModel: NeuralwattApiModel): ProviderModelConfig {
   const meta = apiModel.metadata;

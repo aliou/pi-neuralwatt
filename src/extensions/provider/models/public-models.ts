@@ -49,6 +49,52 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
+  // GLM-5.2 Short - ZhipuAI (200K context, bounded reasoning budget)
+  {
+    id: "glm-5.2-short",
+    name: "GLM-5.2 Short",
+    reasoning: true,
+    input: ["text"],
+    cost: {
+      input: 1.45,
+      output: 4.5,
+      cacheRead: 0.3625,
+      cacheWrite: 0,
+    },
+    contextWindow: 199984,
+    maxTokens: 65536,
+    thinkingLevelMap: {
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: "max",
+    },
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
+    },
+  },
+  // GLM-5.2 Short Fast - ZhipuAI (200K context, reasoning disabled)
+  {
+    id: "glm-5.2-short-fast",
+    name: "GLM-5.2 Short Fast",
+    reasoning: false,
+    input: ["text"],
+    cost: {
+      input: 1.45,
+      output: 4.5,
+      cacheRead: 0.3625,
+      cacheWrite: 0,
+    },
+    contextWindow: 199984,
+    maxTokens: 65536,
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+    },
+  },
   // Kimi K2.5 - MoonshotAI
   {
     id: "moonshotai/Kimi-K2.5",

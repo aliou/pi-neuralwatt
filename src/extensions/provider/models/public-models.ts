@@ -18,6 +18,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     contextWindow: 1048560,
     maxTokens: 65536,
     thinkingLevelMap: {
+      off: "none",
       minimal: null,
       low: null,
       medium: null,
@@ -64,6 +65,7 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
     contextWindow: 199984,
     maxTokens: 65536,
     thinkingLevelMap: {
+      off: "none",
       minimal: null,
       low: null,
       medium: null,

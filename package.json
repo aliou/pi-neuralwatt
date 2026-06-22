@@ -1,6 +1,6 @@
 {
   "name": "@aliou/pi-neuralwatt",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "license": "MIT",
   "type": "module",
   "private": false,

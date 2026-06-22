@@ -46,6 +46,11 @@ function registerNeuralwattProvider(
   const { includeLegacyModelIds, includeHiddenModels } =
     configLoader.getConfig();
 
+  const publicModels = getNeuralwattModels({ includeLegacyModelIds });
+  const resolvedHiddenModels = includeHiddenModels
+    ? dedupeHiddenModels(hiddenModels, publicModels)
+    : [];
+
   const config: Parameters<ExtensionAPI["registerProvider"]>[1] = {
     baseUrl: "https://api.neuralwatt.com/v1",
     apiKey: "$NEURALWATT_API_KEY",
@@ -55,10 +60,7 @@ function registerNeuralwattProvider(
       Referer: "https://pi.dev",
       "X-Title": "npm:@aliou/pi-neuralwatt",
     },
-    models: [
-      ...getNeuralwattModels({ includeLegacyModelIds }),
-      ...(includeHiddenModels ? hiddenModels : []),
-    ],
+    models: [...publicModels, ...resolvedHiddenModels],
   };
 
   const provider = getApiProvider("openai-completions");
@@ -71,6 +73,23 @@ function registerNeuralwattProvider(
   }
 
   pi.registerProvider("neuralwatt", config);
+}
+
+/**
+ * Drop any hidden model whose ID collides with a public or legacy model.
+ *
+ * Models can graduate from hidden (authenticated /v1/models only) to public
+ * (unauthenticated list). When that happens, a stale on-disk cache may still
+ * list the now-public ID, which would register it twice and make Pi treat the
+ * scoped model as ambiguous ("No models match pattern"). Dedupe against the
+ * public list so a stale cache can never shadow a public model.
+ */
+function dedupeHiddenModels(
+  hiddenModels: ProviderModelConfig[],
+  publicModels: ProviderModelConfig[],
+): ProviderModelConfig[] {
+  const publicIds = new Set(publicModels.map((m) => m.id));
+  return hiddenModels.filter((m) => !publicIds.has(m.id));
 }
 
 export default async function (pi: ExtensionAPI) {
@@ -254,14 +273,14 @@ export default async function (pi: ExtensionAPI) {
         ctx.modelRegistry.authStorage,
         hiddenModelsAbort.signal,
       );
-      // Persist for the next startup so scoped models resolve without warnings
-      // on Pi's subsequent launches.
-      if (fetched.length > 0) {
-        hiddenModels = fetched;
-        await writeHiddenModelsCache(hiddenModels);
-        if (!hiddenModelsAbort.signal.aborted) {
-          registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
-        }
+      // Persist for the next startup so scoped models resolve without
+      // warnings on Pi's subsequent launches. Always write the cache (even
+      // when empty) and re-register, so graduated or removed hidden models
+      // are purged from both the cache and the provider's model list.
+      hiddenModels = fetched;
+      await writeHiddenModelsCache(hiddenModels);
+      if (!hiddenModelsAbort.signal.aborted) {
+        registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
       }
     }
 

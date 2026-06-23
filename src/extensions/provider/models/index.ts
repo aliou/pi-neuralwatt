@@ -6,6 +6,8 @@ import { getNeuralwattApiKey } from "../../../lib/env";
 import { fetchNeuralwattModels } from "../../../lib/neuralwatt-api";
 import type { NeuralwattApiModel } from "../../../types/models-api";
 
+export { loadCachedModels, writeModelsCache } from "./cache";
+
 // Per-ID overrides for known models. The authenticated /v1/models endpoint
 // exposes pricing and capabilities, but some Pi-specific behavior (thinking
 // levels, compat flags) has to be supplied by hand.

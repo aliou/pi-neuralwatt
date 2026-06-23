@@ -21,7 +21,8 @@ import {
   type NeuralwattQuotasUpdatedPayload,
 } from "../../types/quota-events";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import { loadNeuralwattModels } from "./models";
+import { loadCachedModels, loadNeuralwattModels } from "./models";
+import { writeModelsCache } from "./models/cache";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 import {
   type NeuralwattRateLimitInfo,
@@ -76,10 +77,11 @@ export default async function (pi: ExtensionAPI) {
   let pendingRateLimitInfo: NeuralwattRateLimitInfo | undefined;
 
   // The provider ships with no hardcoded model list and does not discover
-  // models on session_start. Models are populated on demand by
-  // `/neuralwatt:fetch`, which hits the authenticated /v1/models endpoint and
-  // re-registers the provider with the fresh list.
-  let models: ProviderModelConfig[] = [];
+  // models on session_start. The last fetched list is restored synchronously
+  // from disk so the provider (and its scoped models) shows up in the picker
+  // immediately — no API call is made on startup. `/neuralwatt:fetch` is the
+  // only thing that hits the network and rewrites the cache.
+  let models: ProviderModelConfig[] = loadCachedModels();
 
   const handleSseQuota = (line: string) => {
     const quotas = updateQuotasFromSseComment(latestQuotas, line);
@@ -120,8 +122,10 @@ export default async function (pi: ExtensionAPI) {
       }
 
       // Atomic replace: registerProvider swaps the provider's model list for
-      // `fetched` in a single call — clear + write in one go.
+      // `fetched` in a single call — clear + write in one go. Then persist so
+      // the next launch resolves instantly without a fetch.
       models = fetched;
+      await writeModelsCache(models);
       registerNeuralwattProvider(pi, handleSseQuota, models);
       ctx.ui.notify(`Fetched ${fetched.length} models from Neuralwatt.`, "info");
     },

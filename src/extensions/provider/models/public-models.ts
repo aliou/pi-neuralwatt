@@ -97,52 +97,6 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       maxTokensField: "max_tokens",
     },
   },
-  // Kimi K2.5 - MoonshotAI
-  {
-    id: "moonshotai/Kimi-K2.5",
-    name: "Kimi K2.5",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.52,
-      output: 2.59,
-      cacheRead: 0.13,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Kimi K2.5 Fast - MoonshotAI
-  {
-    id: "kimi-k2.5-fast",
-    name: "Kimi K2.5 Fast",
-    reasoning: false,
-    input: ["text", "image"],
-    cost: {
-      input: 0.52,
-      output: 2.59,
-      cacheRead: 0.13,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
   // Kimi K2.6 - MoonshotAI
   {
     id: "kimi-k2.6",

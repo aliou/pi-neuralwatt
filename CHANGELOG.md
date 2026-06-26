@@ -1,5 +1,12 @@
 # @aliou/pi-extension-template
 
+## 0.7.6
+
+### Patch Changes
+
+- d707a7e: Add public Neuralwatt flex model variants.
+- ed64814: Remove deprecated Kimi K2.5 and Kimi K2.5 Fast from public model list, add as legacy aliases to Kimi K2.6
+
 ## 0.7.5
 
 ### Patch Changes

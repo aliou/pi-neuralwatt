@@ -60,6 +60,10 @@ interface Discrepancy {
   api: unknown;
 }
 
+function isFlexModelId(id: string): boolean {
+  return id.endsWith("-flex");
+}
+
 async function fetchApiModels(): Promise<ApiModel[]> {
   const response = await fetch("https://api.neuralwatt.com/v1/models", {
     headers: {
@@ -92,7 +96,10 @@ function compareModels(
     const apiModel = apiModels.find((m) => m.id === hardcoded.id);
 
     if (!apiModel) {
-      if (!LEGACY_NEURALWATT_MODEL_IDS.has(hardcoded.id)) {
+      if (
+        !LEGACY_NEURALWATT_MODEL_IDS.has(hardcoded.id) &&
+        !isFlexModelId(hardcoded.id)
+      ) {
         discrepancies.push({
           model: hardcoded.id,
           field: "exists",
@@ -246,6 +253,26 @@ describe("Neuralwatt models", () => {
   it("should have unique model IDs", () => {
     const ids = NEURALWATT_MODELS.map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("should mirror reasoning config for flex variants", () => {
+    const byId = new Map(NEURALWATT_MODELS.map((m) => [m.id, m]));
+
+    expect(byId.get("glm-5.2-flex")?.thinkingLevelMap).toEqual(
+      byId.get("glm-5.2")?.thinkingLevelMap,
+    );
+    expect(byId.get("glm-5.2-short-flex")?.thinkingLevelMap).toEqual(
+      byId.get("glm-5.2-short")?.thinkingLevelMap,
+    );
+    expect(byId.get("glm-5.2-short-fast-flex")?.reasoning).toBe(
+      byId.get("glm-5.2-short-fast")?.reasoning,
+    );
+    expect(byId.get("kimi-k2.6-flex")?.thinkingLevelMap).toEqual(
+      byId.get("kimi-k2.6")?.thinkingLevelMap,
+    );
+    expect(byId.get("kimi-k2.7-code-flex")?.thinkingLevelMap).toEqual(
+      byId.get("kimi-k2.7-code")?.thinkingLevelMap,
+    );
   });
 
   it("should only include legacy model IDs when enabled", () => {

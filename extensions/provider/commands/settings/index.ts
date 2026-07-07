@@ -7,6 +7,7 @@ import type { SettingItem } from "@earendil-works/pi-tui";
 import {
   configLoader,
   type NeuralwattConfig,
+  type NeuralwattRawConfig,
   type ResolvedNeuralwattConfig,
 } from "../../../../src/config";
 import {
@@ -49,13 +50,60 @@ function featureRow(
   };
 }
 
+function optionalFeatureValue(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (value && typeof value === "object") {
+    const enabled = (value as { enabled?: boolean }).enabled;
+    if (typeof enabled === "boolean") return enabled;
+  }
+  return undefined;
+}
+
+function featureValue(value: unknown, fallback: boolean): boolean {
+  return optionalFeatureValue(value) ?? fallback;
+}
+
+function toNestedConfig(config: NeuralwattRawConfig): NeuralwattConfig {
+  const provider = "provider" in config ? config.provider : undefined;
+
+  return {
+    provider: {
+      ...(provider ?? {}),
+      includeLegacyModelIds:
+        provider?.includeLegacyModelIds ??
+        ("includeLegacyModelIds" in config
+          ? config.includeLegacyModelIds
+          : undefined),
+      includeHiddenModels:
+        provider?.includeHiddenModels ??
+        ("includeHiddenModels" in config
+          ? config.includeHiddenModels
+          : undefined),
+    },
+    quotaCommand: {
+      ...(typeof config.quotaCommand === "object" ? config.quotaCommand : {}),
+      enabled: optionalFeatureValue(config.quotaCommand),
+    },
+    quotaWarnings: {
+      ...(typeof config.quotaWarnings === "object" ? config.quotaWarnings : {}),
+      enabled: optionalFeatureValue(config.quotaWarnings),
+    },
+    subBarIntegration: {
+      ...(typeof config.subBarIntegration === "object"
+        ? config.subBarIntegration
+        : {}),
+      enabled: optionalFeatureValue(config.subBarIntegration),
+    },
+  };
+}
+
 export function registerNeuralwattSettings(
   pi: ExtensionAPI,
   options: RegisterNeuralwattSettingsOptions,
 ): void {
   const { getLoadedFeatures } = options;
 
-  registerSettingsCommand<NeuralwattConfig, ResolvedNeuralwattConfig>(pi, {
+  registerSettingsCommand<NeuralwattRawConfig, ResolvedNeuralwattConfig>(pi, {
     commandName: "neuralwatt:settings",
     title: "Neuralwatt Settings",
     configStore: configLoader,
@@ -69,23 +117,30 @@ export function registerNeuralwattSettings(
               "quotaCommand",
               "Quota command",
               "Toggle the /neuralwatt:quota command, showing your API usage at a glance",
-              tabConfig?.quotaCommand?.enabled ?? resolved.quotaCommand.enabled,
+              featureValue(
+                tabConfig?.quotaCommand,
+                resolved.quotaCommand.enabled,
+              ),
               loaded.has("quotaCommand"),
             ),
             featureRow(
               "quotaWarnings",
               "Quota warnings",
               "Toggle notifications when credits or energy are running low",
-              tabConfig?.quotaWarnings?.enabled ??
+              featureValue(
+                tabConfig?.quotaWarnings,
                 resolved.quotaWarnings.enabled,
+              ),
               loaded.has("quotaWarnings"),
             ),
             featureRow(
               "subBarIntegration",
               "Sub-bar integration",
               "Toggle integration with the status bar and sub-core",
-              tabConfig?.subBarIntegration?.enabled ??
+              featureValue(
+                tabConfig?.subBarIntegration,
                 resolved.subBarIntegration.enabled,
+              ),
               loaded.has("subBarIntegration"),
             ),
           ],
@@ -99,7 +154,12 @@ export function registerNeuralwattSettings(
               description:
                 "Include deprecated Neuralwatt model IDs as aliases in the model picker",
               currentValue:
-                (tabConfig?.provider?.includeLegacyModelIds ??
+                ((tabConfig &&
+                  "provider" in tabConfig &&
+                  tabConfig.provider?.includeLegacyModelIds) ??
+                (tabConfig &&
+                  "includeLegacyModelIds" in tabConfig &&
+                  tabConfig.includeLegacyModelIds) ??
                 resolved.provider.includeLegacyModelIds)
                   ? "include"
                   : "ignore",
@@ -111,7 +171,12 @@ export function registerNeuralwattSettings(
               description:
                 "Include Neuralwatt models that are accessible via API key but not advertised in the public model list",
               currentValue:
-                (tabConfig?.provider?.includeHiddenModels ??
+                ((tabConfig &&
+                  "provider" in tabConfig &&
+                  tabConfig.provider?.includeHiddenModels) ??
+                (tabConfig &&
+                  "includeHiddenModels" in tabConfig &&
+                  tabConfig.includeHiddenModels) ??
                 resolved.provider.includeHiddenModels)
                   ? "include"
                   : "ignore",
@@ -125,20 +190,22 @@ export function registerNeuralwattSettings(
       // Non-feature toggles are handled first so they are not blocked by the
       // loaded-features guard (they are managed directly by the provider).
       if (id === "includeLegacyModelIds") {
+        const nestedConfig = toNestedConfig(config);
         return {
-          ...config,
+          ...nestedConfig,
           provider: {
-            ...config.provider,
+            ...nestedConfig.provider,
             includeLegacyModelIds: newValue === "include",
           },
         };
       }
 
       if (id === "includeHiddenModels") {
+        const nestedConfig = toNestedConfig(config);
         return {
-          ...config,
+          ...nestedConfig,
           provider: {
-            ...config.provider,
+            ...nestedConfig.provider,
             includeHiddenModels: newValue === "include",
           },
         };
@@ -152,18 +219,21 @@ export function registerNeuralwattSettings(
       switch (id) {
         case "quotaCommand":
           return {
-            ...config,
-            quotaCommand: { ...config.quotaCommand, enabled },
+            ...toNestedConfig(config),
+            quotaCommand: { ...toNestedConfig(config).quotaCommand, enabled },
           };
         case "quotaWarnings":
           return {
-            ...config,
-            quotaWarnings: { ...config.quotaWarnings, enabled },
+            ...toNestedConfig(config),
+            quotaWarnings: { ...toNestedConfig(config).quotaWarnings, enabled },
           };
         case "subBarIntegration":
           return {
-            ...config,
-            subBarIntegration: { ...config.subBarIntegration, enabled },
+            ...toNestedConfig(config),
+            subBarIntegration: {
+              ...toNestedConfig(config).subBarIntegration,
+              enabled,
+            },
           };
         default:
           return null;

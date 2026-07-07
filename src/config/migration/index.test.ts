@@ -5,7 +5,11 @@ import { ConfigLoader } from "@aliou/pi-utils-settings";
 import { afterEach, describe, expect, it } from "vitest";
 import packageJson from "../../../package.json";
 import { DEFAULT_CONFIG } from "../defaults";
-import type { NeuralwattConfig, ResolvedNeuralwattConfig } from "../types";
+import type {
+  NeuralwattConfig,
+  NeuralwattRawConfig,
+  ResolvedNeuralwattConfig,
+} from "../types";
 import { backupConfig, flatToNestedConfigMigration } from "./index";
 
 const tempDirs: string[] = [];
@@ -23,7 +27,7 @@ async function runFlatMigration(
 ): Promise<NeuralwattConfig> {
   const { filePath } = await tempConfigFile();
   return flatToNestedConfigMigration.run(
-    config as NeuralwattConfig,
+    config as NeuralwattRawConfig,
     filePath,
   ) as Promise<NeuralwattConfig>;
 }
@@ -75,7 +79,7 @@ describe("flatToNestedConfigMigration", () => {
   it("creates a backup next to the migrated config", async () => {
     const { dir, filePath } = await tempConfigFile();
     await flatToNestedConfigMigration.run(
-      { quotaCommand: false } as unknown as NeuralwattConfig,
+      { quotaCommand: false } as unknown as NeuralwattRawConfig,
       filePath,
     );
 
@@ -101,6 +105,18 @@ describe("flatToNestedConfigMigration", () => {
     await expect(readFile(backupPath, "utf-8")).resolves.toBe("keep me");
   });
 
+  it("fails the migration when the backup cannot be written", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "neuralwatt-config-"));
+    tempDirs.push(dir);
+
+    await expect(
+      flatToNestedConfigMigration.run(
+        { quotaCommand: false } as NeuralwattRawConfig,
+        join(dir, "missing.json"),
+      ),
+    ).rejects.toThrow();
+  });
+
   it("provides migration messages through ConfigLoader.drainMessages", async () => {
     const cwd = process.cwd();
     const dir = await mkdtemp(join(tmpdir(), "neuralwatt-loader-"));
@@ -116,7 +132,7 @@ describe("flatToNestedConfigMigration", () => {
     try {
       process.chdir(dir);
       const loader = new ConfigLoader<
-        NeuralwattConfig,
+        NeuralwattRawConfig,
         ResolvedNeuralwattConfig
       >("neuralwatt", DEFAULT_CONFIG, {
         scopes: ["local"],

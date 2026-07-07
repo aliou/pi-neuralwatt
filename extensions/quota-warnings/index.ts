@@ -16,13 +16,14 @@ import { checkQuotas, clearAlertState } from "./notifier";
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
-  let enabled = configLoader.getConfig().quotaWarnings;
+  let enabled = configLoader.getConfig().quotaWarnings.enabled;
   let currentProvider: string | undefined;
   let currentContext: ExtensionContext | undefined;
 
   // Listen for config changes at runtime
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, (data: unknown) => {
-    enabled = (data as NeuralwattConfigUpdatedPayload).config.quotaWarnings;
+    enabled = (data as NeuralwattConfigUpdatedPayload).config.quotaWarnings
+      .enabled;
 
     if (!enabled) {
       clearAlertState();

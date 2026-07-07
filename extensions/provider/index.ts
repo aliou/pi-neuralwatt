@@ -46,11 +46,12 @@ function registerNeuralwattProvider(
   onSseQuota: (line: string) => void,
   hiddenModels: ProviderModelConfig[] = [],
 ): void {
-  const { includeLegacyModelIds, includeHiddenModels } =
-    configLoader.getConfig();
+  const { provider: providerConfig } = configLoader.getConfig();
 
-  const publicModels = getNeuralwattModels({ includeLegacyModelIds });
-  const resolvedHiddenModels = includeHiddenModels
+  const publicModels = getNeuralwattModels({
+    includeLegacyModelIds: providerConfig.includeLegacyModelIds,
+  });
+  const resolvedHiddenModels = providerConfig.includeHiddenModels
     ? dedupeHiddenModels(hiddenModels, publicModels)
     : [];
 
@@ -112,7 +113,7 @@ export default async function (pi: ExtensionAPI) {
   // load time. `session_start` then revalidates from the live API and writes
   // the cache back. First run with no cache still warns once.
   let hiddenModels: ProviderModelConfig[] = [];
-  if (configLoader.getConfig().includeHiddenModels) {
+  if (configLoader.getConfig().provider.includeHiddenModels) {
     hiddenModels = loadCachedHiddenModels();
   }
   let hiddenModelsLoaded = false;
@@ -142,7 +143,7 @@ export default async function (pi: ExtensionAPI) {
     // cache so previously discovered models are available immediately without
     // waiting for the next session_start revalidation.
     if (
-      configLoader.getConfig().includeHiddenModels &&
+      configLoader.getConfig().provider.includeHiddenModels &&
       !hiddenModelsLoaded &&
       hiddenModels.length === 0
     ) {
@@ -260,15 +261,19 @@ export default async function (pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     pendingRateLimitInfo = undefined;
-    for (const message of configLoader.drainMessages()) {
-      ctx.ui.notify(message, "warning");
+    const messages = [...new Set(configLoader.drainMessages())];
+    if (messages.length > 0) {
+      ctx.ui.notify(messages.join("\n"), "info");
     }
 
     loadedFeatures.clear();
     pi.events.emit(NEURALWATT_EXTENSIONS_REQUEST_EVENT, undefined);
     emitConfigUpdated(pi);
 
-    if (!hiddenModelsLoaded && configLoader.getConfig().includeHiddenModels) {
+    if (
+      !hiddenModelsLoaded &&
+      configLoader.getConfig().provider.includeHiddenModels
+    ) {
       hiddenModelsLoaded = true;
       hiddenModelsAbort?.abort();
       hiddenModelsAbort = new AbortController();

@@ -11,7 +11,7 @@ export default async function (pi: ExtensionAPI) {
 
   const config = configLoader.getConfig();
 
-  if (config.quotaCommand) {
+  if (config.quotaCommand.enabled) {
     registerQuotasCommand(pi);
   }
 

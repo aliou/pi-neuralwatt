@@ -55,7 +55,7 @@ function formatStatus(quotas: NeuralwattQuotas, theme: Theme): string {
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
-  let enabled = configLoader.getConfig().subBarIntegration;
+  let enabled = configLoader.getConfig().subBarIntegration.enabled;
   let subCoreReady = false;
   let currentProvider: string | undefined;
   let currentAuthStorage: AuthStorage | undefined;
@@ -63,7 +63,8 @@ export default async function (pi: ExtensionAPI) {
 
   // Listen for config changes at runtime
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, (data: unknown) => {
-    enabled = (data as NeuralwattConfigUpdatedPayload).config.subBarIntegration;
+    enabled = (data as NeuralwattConfigUpdatedPayload).config.subBarIntegration
+      .enabled;
   });
 
   function isActive(): boolean {

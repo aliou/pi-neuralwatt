@@ -1,9 +1,17 @@
 import type { ResolvedNeuralwattConfig } from "./types";
 
 export const DEFAULT_CONFIG: ResolvedNeuralwattConfig = {
-  quotaCommand: true,
-  quotaWarnings: true,
-  subBarIntegration: true,
-  includeLegacyModelIds: false,
-  includeHiddenModels: false,
+  provider: {
+    includeLegacyModelIds: false,
+    includeHiddenModels: false,
+  },
+  quotaCommand: {
+    enabled: true,
+  },
+  quotaWarnings: {
+    enabled: true,
+  },
+  subBarIntegration: {
+    enabled: true,
+  },
 };

@@ -80,6 +80,8 @@ Configure features with `/neuralwatt:settings`:
 
 The provider itself cannot be disabled — it is always loaded.
 
+Configuration uses nested per-feature sections. Existing flat config files are migrated automatically, with a backup written next to the migrated config.
+
 ## Adding or Updating Models
 
 Models are hardcoded in `extensions/provider/models/public-models.ts` and validated against the live API. To update:

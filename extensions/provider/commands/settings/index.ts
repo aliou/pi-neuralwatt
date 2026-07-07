@@ -69,21 +69,23 @@ export function registerNeuralwattSettings(
               "quotaCommand",
               "Quota command",
               "Toggle the /neuralwatt:quota command, showing your API usage at a glance",
-              tabConfig?.quotaCommand ?? resolved.quotaCommand,
+              tabConfig?.quotaCommand?.enabled ?? resolved.quotaCommand.enabled,
               loaded.has("quotaCommand"),
             ),
             featureRow(
               "quotaWarnings",
               "Quota warnings",
               "Toggle notifications when credits or energy are running low",
-              tabConfig?.quotaWarnings ?? resolved.quotaWarnings,
+              tabConfig?.quotaWarnings?.enabled ??
+                resolved.quotaWarnings.enabled,
               loaded.has("quotaWarnings"),
             ),
             featureRow(
               "subBarIntegration",
               "Sub-bar integration",
               "Toggle integration with the status bar and sub-core",
-              tabConfig?.subBarIntegration ?? resolved.subBarIntegration,
+              tabConfig?.subBarIntegration?.enabled ??
+                resolved.subBarIntegration.enabled,
               loaded.has("subBarIntegration"),
             ),
           ],
@@ -97,8 +99,8 @@ export function registerNeuralwattSettings(
               description:
                 "Include deprecated Neuralwatt model IDs as aliases in the model picker",
               currentValue:
-                (tabConfig?.includeLegacyModelIds ??
-                resolved.includeLegacyModelIds)
+                (tabConfig?.provider?.includeLegacyModelIds ??
+                resolved.provider.includeLegacyModelIds)
                   ? "include"
                   : "ignore",
               values: ["include", "ignore"],
@@ -109,7 +111,8 @@ export function registerNeuralwattSettings(
               description:
                 "Include Neuralwatt models that are accessible via API key but not advertised in the public model list",
               currentValue:
-                (tabConfig?.includeHiddenModels ?? resolved.includeHiddenModels)
+                (tabConfig?.provider?.includeHiddenModels ??
+                resolved.provider.includeHiddenModels)
                   ? "include"
                   : "ignore",
               values: ["include", "ignore"],
@@ -122,11 +125,23 @@ export function registerNeuralwattSettings(
       // Non-feature toggles are handled first so they are not blocked by the
       // loaded-features guard (they are managed directly by the provider).
       if (id === "includeLegacyModelIds") {
-        return { ...config, includeLegacyModelIds: newValue === "include" };
+        return {
+          ...config,
+          provider: {
+            ...config.provider,
+            includeLegacyModelIds: newValue === "include",
+          },
+        };
       }
 
       if (id === "includeHiddenModels") {
-        return { ...config, includeHiddenModels: newValue === "include" };
+        return {
+          ...config,
+          provider: {
+            ...config.provider,
+            includeHiddenModels: newValue === "include",
+          },
+        };
       }
 
       if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {
@@ -136,11 +151,20 @@ export function registerNeuralwattSettings(
       const enabled = newValue === "enabled";
       switch (id) {
         case "quotaCommand":
-          return { ...config, quotaCommand: enabled };
+          return {
+            ...config,
+            quotaCommand: { ...config.quotaCommand, enabled },
+          };
         case "quotaWarnings":
-          return { ...config, quotaWarnings: enabled };
+          return {
+            ...config,
+            quotaWarnings: { ...config.quotaWarnings, enabled },
+          };
         case "subBarIntegration":
-          return { ...config, subBarIntegration: enabled };
+          return {
+            ...config,
+            subBarIntegration: { ...config.subBarIntegration, enabled },
+          };
         default:
           return null;
       }

@@ -102,11 +102,13 @@ When a subscription is active, energy is the primary billing method. Credits are
 ## Settings
 
 `/neuralwatt:settings` allows toggling:
-- **Quota command** (`quotaCommand`) - Show/hide `/neuralwatt:quota` command
-- **Quota warnings** (`quotaWarnings`) - Enable/disable low quota notifications
-- **Sub-bar integration** (`subBarIntegration`) - Show/hide usage in status bar
+- **Quota command** (`quotaCommand.enabled`) - Show/hide `/neuralwatt:quota` command
+- **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
+- **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
+- **Legacy model IDs** (`provider.includeLegacyModelIds`) - Include deprecated model aliases
+- **Hidden models** (`provider.includeHiddenModels`) - Include authenticated hidden models
 
-The provider itself cannot be disabled. Settings can also be changed via `pi config`.
+The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
 ## Model loading
 
@@ -114,7 +116,7 @@ The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definition
 
 ### Hidden models (stale-while-revalidate)
 
-Some Neuralwatt models are accessible via the authenticated API key but not part of the unadvertised public list (e.g. `glm-5.2-short`). Enabling the `includeHiddenModels` setting makes them available.
+Some Neuralwatt models are accessible via the authenticated API key but not part of the unadvertised public list (e.g. `glm-5.2-short`). Enabling the `provider.includeHiddenModels` setting makes them available.
 
 Discovery requires the API key, which Pi only exposes inside `session_start` (`ctx.modelRegistry.authStorage`). Pi validates scoped models during startup, *before* `session_start`, so a naive in-place fetch would warn `No models match pattern "neuralwatt/glm-5.2-short"` on saved scoped models every launch.
 

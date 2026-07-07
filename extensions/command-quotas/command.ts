@@ -3,8 +3,8 @@ import {
   type ExtensionAPI,
   getAgentDir,
 } from "@earendil-works/pi-coding-agent";
-import { getNeuralwattApiKey } from "../../lib/env";
-import { fetchQuotas } from "../../lib/neuralwatt-api";
+import { fetchQuotas } from "../../src/lib/neuralwatt-api";
+import { getNeuralwattApiKey } from "../_shared/auth";
 import { QuotasComponent } from "./components/quotas-display";
 
 function missingAuthMessage(): string {

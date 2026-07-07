@@ -1,9 +1,9 @@
-import type { NeuralwattQuotas } from "../../types/quota-api";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import {
   percentCreditsRemaining,
   percentEnergyRemaining,
-} from "../../utils/quota-bar";
-import { formatKwh } from "../../utils/quota-format";
+} from "../../src/utils/quota-bar";
+import { formatKwh } from "../../src/utils/quota-format";
 
 interface RateWindow {
   label: string;

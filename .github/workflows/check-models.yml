@@ -27,4 +27,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check Neuralwatt models
-        run: pnpm vitest run src/extensions/provider/models.test.ts
+        run: pnpm vitest run extensions/provider/models.test.ts

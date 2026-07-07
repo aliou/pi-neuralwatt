@@ -2,17 +2,15 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { configLoader } from "../../src/config";
 import {
-  configLoader,
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
-  type NeuralwattConfigUpdatedPayload,
-} from "../../config";
-import {
   NEURALWATT_QUOTAS_UPDATED_EVENT,
+  type NeuralwattConfigUpdatedPayload,
   type NeuralwattQuotasUpdatedPayload,
-} from "../../types/quota-events";
+} from "../../src/events";
 import { checkQuotas, clearAlertState } from "./notifier";
 
 export default async function (pi: ExtensionAPI) {

@@ -2,7 +2,7 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { DynamicBorder } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { Loader, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
-import type { NeuralwattQuotas } from "../../../types/quota-api";
+import type { NeuralwattQuotas } from "../../../src/types/quota-api";
 import {
   renderCreditsTab,
   renderSubscriptionTab,

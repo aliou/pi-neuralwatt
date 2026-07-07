@@ -1,9 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { configLoader } from "../../src/config";
 import {
-  configLoader,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
-} from "../../config";
+} from "../../src/events";
 import { registerQuotasCommand } from "./command";
 
 export default async function (pi: ExtensionAPI) {

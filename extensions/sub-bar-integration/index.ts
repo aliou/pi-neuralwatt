@@ -4,24 +4,22 @@ import type {
   ExtensionContext,
   Theme,
 } from "@earendil-works/pi-coding-agent";
+import { configLoader } from "../../src/config";
 import {
-  configLoader,
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
-  type NeuralwattConfigUpdatedPayload,
-} from "../../config";
-import type { NeuralwattQuotas } from "../../types/quota-api";
-import {
   NEURALWATT_QUOTAS_REQUEST_EVENT,
   NEURALWATT_QUOTAS_UPDATED_EVENT,
+  type NeuralwattConfigUpdatedPayload,
   type NeuralwattQuotasUpdatedPayload,
-} from "../../types/quota-events";
+} from "../../src/events";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import {
   percentCreditsRemaining,
   percentEnergyRemaining,
-} from "../../utils/quota-bar";
-import { formatKwh, formatUsd } from "../../utils/quota-format";
+} from "../../src/utils/quota-bar";
+import { formatKwh, formatUsd } from "../../src/utils/quota-format";
 import { toUsageSnapshot } from "./snapshot";
 
 function formatStatus(quotas: NeuralwattQuotas, theme: Theme): string {

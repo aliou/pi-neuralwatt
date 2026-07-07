@@ -4,7 +4,7 @@ Pi extension providing a Neuralwatt inference API provider.
 
 ## Purpose
 
-Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `src/extensions/provider/models/public-models.ts` from the `/v1/models` API (including pricing, capabilities, and limits from the `metadata` field).
+Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `extensions/provider/models/public-models.ts` from the `/v1/models` API (including pricing, capabilities, and limits from the `metadata` field).
 
 ## Stack
 
@@ -21,39 +21,47 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 ## Structure
 
 ```
+extensions/
+  provider/
+    index.ts                            # Provider factory: registers provider + quota store (always loaded)
+    commands/settings/index.ts          # /neuralwatt:settings command
+    models/
+      index.ts                          # Re-exports + getNeuralwattModels helper
+      public-models.ts                  # Hardcoded public model definitions
+      legacy.ts                         # Phased-out model ID aliases
+      hidden.ts                         # Hidden-model discovery from authenticated /v1/models
+      cache.ts                          # Stale-while-revalidate disk cache for hidden models
+  command-quotas/
+    index.ts                            # Extension entry (checks config, registers command)
+    command.ts                          # /neuralwatt:quota command handler
+    components/
+      quotas-display.ts                 # TUI component (tabs, input)
+      quota-tabs.ts                     # Tab rendering (subscription, credits, usage & key)
+      progress-bar.ts                   # TUI progress bar renderer
+  quota-warnings/
+    index.ts                            # Extension entry (checks config, listens for events)
+    notifier.ts                         # Low quota / overage warning logic
+  sub-bar-integration/
+    index.ts                            # Extension entry (checks config, sub-bar + status bar)
+    snapshot.ts                         # Usage snapshot builder
+  _shared/
+    auth.ts                             # API key resolution (auth.json -> env var)
 src/
-  config.ts                             # Config schema, settings registration, extension events
+  config/
+    types.ts                            # Config schema types
+    defaults.ts                         # Default resolved config
+    loader.ts                           # ConfigLoader setup
+    migration/index.ts                  # Config migrations
+  events.ts                             # Extension event constants, payloads, header parsing
   lib/
-    env.ts                              # API key resolution (auth.json -> env var)
-  extensions/
-    provider/
-      index.ts                          # Provider factory: registers provider + quota store (always loaded)
-      models/
-        index.ts                        # Re-exports + getNeuralwattModels helper
-        public-models.ts                # Hardcoded public model definitions
-        legacy.ts                       # Phased-out model ID aliases
-        hidden.ts                       # Hidden-model discovery from authenticated /v1/models
-        cache.ts                        # Stale-while-revalidate disk cache for hidden models
-      models.test.ts                    # Validation tests for public model structure
-    command-quotas/
-      index.ts                          # Extension entry (checks config, registers command)
-      command.ts                        # /neuralwatt:quota command handler
-      components/
-        quotas-display.ts               # TUI component (tabs, input)
-        quota-tabs.ts                   # Tab rendering (subscription, credits, usage & key)
-    quota-warnings/
-      index.ts                          # Extension entry (checks config, listens for events)
-      notifier.ts                       # Low quota / overage warning logic
-    sub-bar-integration/
-      index.ts                          # Extension entry (checks config, sub-bar + status bar)
-      snapshot.ts                       # Usage snapshot builder
+    neuralwatt-api.ts                   # Neuralwatt API helpers
   types/
+    models-api.ts                       # /v1/models response types
     quota-api.ts                        # /v1/quota response types
-    quota-events.ts                     # Event constants, header parsing, result types
+    quota-result.ts                     # Quota fetch result types
   utils/
-    quotas.ts                           # Fetch quota from /v1/quota API
     quota-format.ts                     # USD, kWh, token number formatters
-    quota-bar.ts                        # Progress bar renderer, severity, percent calc
+    quota-bar.ts                        # Quota severity and percent helpers
 .agents/skills/
   neuralwatt-models/
     SKILL.md                            # Skill for retrieving/updating model list (dev only)
@@ -102,7 +110,7 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 ## Model loading
 
-The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `src/extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models.
+The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models.
 
 ### Hidden models (stale-while-revalidate)
 
@@ -120,6 +128,6 @@ First launch with no cache still warns once until `session_start` writes the cac
 ## Updating Models
 
 1. Check the Neuralwatt API (`https://api.neuralwatt.com/v1/models`) for current model list
-2. Compare against hardcoded definitions in `src/extensions/provider/models/public-models.ts`
+2. Compare against hardcoded definitions in `extensions/provider/models/public-models.ts`
 3. Add missing models, update changed fields (context windows, pricing, capabilities)
 4. Run `pnpm test` to validate

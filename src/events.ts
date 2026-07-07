@@ -1,6 +1,19 @@
-import type { NeuralwattQuotas } from "./quota-api";
+import type { ResolvedNeuralwattConfig } from "./config";
+import type { NeuralwattQuotas } from "./types/quota-api";
 
-export type QuotaSource = "header" | "api" | "sse";
+export type NeuralwattFeatureId =
+  | "quotaCommand"
+  | "quotaWarnings"
+  | "subBarIntegration";
+
+export const NEURALWATT_EXTENSIONS_REQUEST_EVENT =
+  "neuralwatt:extensions:request" as const;
+
+export const NEURALWATT_EXTENSIONS_REGISTER_EVENT =
+  "neuralwatt:extensions:register" as const;
+
+export const NEURALWATT_CONFIG_UPDATED_EVENT =
+  "neuralwatt:config:updated" as const;
 
 export const NEURALWATT_QUOTAS_UPDATED_EVENT =
   "neuralwatt:quotas:updated" as const;
@@ -8,21 +21,20 @@ export const NEURALWATT_QUOTAS_UPDATED_EVENT =
 export const NEURALWATT_QUOTAS_REQUEST_EVENT =
   "neuralwatt:quotas:request" as const;
 
+export interface NeuralwattExtensionsRegisterPayload {
+  feature: NeuralwattFeatureId;
+}
+
+export interface NeuralwattConfigUpdatedPayload {
+  config: ResolvedNeuralwattConfig;
+}
+
+export type QuotaSource = "header" | "api" | "sse";
+
 export interface NeuralwattQuotasUpdatedPayload {
   quotas: NeuralwattQuotas;
   source: QuotaSource;
 }
-
-export type QuotasErrorKind =
-  | "cancelled"
-  | "timeout"
-  | "config"
-  | "http"
-  | "network";
-
-export type QuotasResult =
-  | { success: true; data: { quotas: NeuralwattQuotas } }
-  | { success: false; error: { message: string; kind: QuotasErrorKind } };
 
 /** Minimal quota data parsed from response headers */
 export interface NeuralwattHeaderQuotas {

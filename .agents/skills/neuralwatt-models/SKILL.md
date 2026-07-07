@@ -1,11 +1,11 @@
 ---
 name: neuralwatt-models
-description: Update model metadata for the pi-neuralwatt extension. Use when adding or refreshing entries in src/extensions/provider/models.ts, checking Neuralwatt model availability, or syncing hardcoded models with the live Neuralwatt API.
+description: Update model metadata for the pi-neuralwatt extension. Use when adding or refreshing entries in extensions/provider/models/public-models.ts, checking Neuralwatt model availability, or syncing hardcoded models with the live Neuralwatt API.
 ---
 
 # Update Neuralwatt models
 
-Update `src/extensions/provider/models.ts` from live Neuralwatt data, not guesswork.
+Update `extensions/provider/models/public-models.ts` from live Neuralwatt data, not guesswork.
 
 ## Default behavior
 
@@ -14,10 +14,10 @@ Take initiative.
 Do not start by asking which model to update. First detect drift, then update whatever needs updating:
 
 1. Fetch live model data from `https://api.neuralwatt.com/v1/models`.
-2. Read the current hardcoded definitions in `src/extensions/provider/models.ts`.
+2. Read the current hardcoded definitions in `extensions/provider/models/public-models.ts`.
 3. Check Neuralwatt portal pages for pricing and capabilities when model additions or pricing/capability changes are needed.
 4. Reconcile the differences.
-5. Edit `src/extensions/provider/models.ts`.
+5. Edit `extensions/provider/models/public-models.ts`.
 6. Run the relevant tests.
 7. Create a changeset when model metadata changed.
 8. Commit only the relevant files.
@@ -31,7 +31,7 @@ Do not push.
 Use these in order:
 
 1. Neuralwatt models endpoint: `https://api.neuralwatt.com/v1/models`
-2. Existing test failures from `src/extensions/provider/models.test.ts`
+2. Existing test failures from `extensions/provider/models.test.ts`
 3. Neuralwatt portal pages:
    - `https://portal.neuralwatt.com/models`
    - `https://portal.neuralwatt.com/pricing`
@@ -44,8 +44,8 @@ Use these in order:
 
 Read:
 
-- `src/extensions/provider/models.ts`
-- `src/extensions/provider/models.test.ts`
+- `extensions/provider/models/public-models.ts`
+- `extensions/provider/models.test.ts`
 
 Use the current file shape and comments as the formatting baseline.
 
@@ -223,14 +223,14 @@ When model metadata changed:
 3. Re-run verification before committing:
 
 ```bash
-pnpm test -- src/extensions/provider/models.test.ts
+pnpm test -- extensions/provider/models.test.ts
 pnpm typecheck
 pnpm lint
 ```
 
 4. Check `git status`.
 5. Stage only relevant files, usually:
-   - `src/extensions/provider/models.ts`
+   - `extensions/provider/models/public-models.ts`
    - `.changeset/*.md`
 6. Commit with a concise conventional commit message, for example:
 
@@ -256,5 +256,5 @@ When done, summarize:
 
 Use these exact paths in this repo:
 
-- `src/extensions/provider/models.ts`
-- `src/extensions/provider/models.test.ts`
+- `extensions/provider/models/public-models.ts`
+- `extensions/provider/models.test.ts`

@@ -1,6 +1,6 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { NeuralwattQuotas } from "../../types/quota-api";
-import { formatKwh, formatUsd } from "../../utils/quota-format";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
+import { formatKwh, formatUsd } from "../../src/utils/quota-format";
 
 export type WarningSeverity = "warning" | "critical";
 

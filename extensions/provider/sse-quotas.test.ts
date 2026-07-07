@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NeuralwattQuotas } from "../../types/quota-api";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import {
   readQuotaCommentsFromTee,
   updateQuotasFromSseComment,

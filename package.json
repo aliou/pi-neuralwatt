@@ -15,10 +15,10 @@
   },
   "pi": {
     "extensions": [
-      "./src/extensions/provider/index.ts",
-      "./src/extensions/command-quotas/index.ts",
-      "./src/extensions/quota-warnings/index.ts",
-      "./src/extensions/sub-bar-integration/index.ts"
+      "./extensions/provider/index.ts",
+      "./extensions/command-quotas/index.ts",
+      "./extensions/quota-warnings/index.ts",
+      "./extensions/sub-bar-integration/index.ts"
     ],
     "video": "https://assets.aliou.me/github/aliou/pi-neuralwatt/demo.mp4"
   },
@@ -27,9 +27,11 @@
   },
   "files": [
     "src",
+    "extensions",
     "schema.json",
     "README.md",
-    "!src/**/*.test.ts"
+    "!src/**/*.test.ts",
+    "!extensions/**/*.test.ts"
   ],
   "dependencies": {
     "@aliou/pi-utils-settings": "^0.18.0",
@@ -65,8 +67,8 @@
     "format": "biome check --write",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:schema": "ts-json-schema-generator --path src/config.ts --type NeuralwattConfig --no-type-check -o schema.json",
-    "check:schema": "ts-json-schema-generator --path src/config.ts --type NeuralwattConfig --no-type-check -o /tmp/schema-check.json && diff -q schema.json /tmp/schema-check.json",
+    "gen:schema": "ts-json-schema-generator --path src/config/types.ts --type NeuralwattConfig --no-type-check -o schema.json",
+    "check:schema": "ts-json-schema-generator --path src/config/types.ts --type NeuralwattConfig --no-type-check -o /tmp/schema-check.json && diff -q schema.json /tmp/schema-check.json",
     "check:lockfile": "pnpm install --frozen-lockfile --ignore-scripts",
     "prepare": "[ -d .git ] && husky || true",
     "changeset": "changeset",

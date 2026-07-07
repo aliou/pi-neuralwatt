@@ -1,85 +1,27 @@
 import {
-  ConfigLoader,
   registerSettingsCommand,
   type SettingsSection,
 } from "@aliou/pi-utils-settings";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { SettingItem } from "@earendil-works/pi-tui";
-
-export type NeuralwattFeatureId =
-  | "quotaCommand"
-  | "quotaWarnings"
-  | "subBarIntegration";
-
-export const NEURALWATT_EXTENSIONS_REQUEST_EVENT =
-  "neuralwatt:extensions:request" as const;
-
-export const NEURALWATT_EXTENSIONS_REGISTER_EVENT =
-  "neuralwatt:extensions:register" as const;
-
-export interface NeuralwattExtensionsRegisterPayload {
-  feature: NeuralwattFeatureId;
-}
-
-export interface NeuralwattConfig {
-  /** Show the quota command (/neuralwatt:quota). */
-  quotaCommand?: boolean;
-  /** Show quota warnings when credits or energy are low. */
-  quotaWarnings?: boolean;
-  /** Show usage in the sub-bar / status bar. */
-  subBarIntegration?: boolean;
-  /** Include legacy Neuralwatt model IDs in the model picker. */
-  includeLegacyModelIds?: boolean;
-  /** Include hidden Neuralwatt models discovered via the authenticated API. */
-  includeHiddenModels?: boolean;
-}
-
-export interface ResolvedNeuralwattConfig {
-  quotaCommand: boolean;
-  quotaWarnings: boolean;
-  subBarIntegration: boolean;
-  includeLegacyModelIds: boolean;
-  includeHiddenModels: boolean;
-}
-
-const DEFAULTS: ResolvedNeuralwattConfig = {
-  quotaCommand: true,
-  quotaWarnings: true,
-  subBarIntegration: true,
-  includeLegacyModelIds: false,
-  includeHiddenModels: false,
-};
-
-export const configLoader = new ConfigLoader<
-  NeuralwattConfig,
-  ResolvedNeuralwattConfig
->("neuralwatt", DEFAULTS, {
-  migrations: [
-    {
-      name: "disable-legacy-model-ids-by-default",
-      shouldRun: (config) => config.includeLegacyModelIds === undefined,
-      message:
-        "[neuralwatt] legacy model IDs (ids including the provider and the quantization) are disabled by default. You can enable them with /neuralwatt:settings.",
-      run: (config) => ({ ...config, includeLegacyModelIds: false }),
-    },
-  ],
-});
-
-export const NEURALWATT_CONFIG_UPDATED_EVENT =
-  "neuralwatt:config:updated" as const;
-
-export interface NeuralwattConfigUpdatedPayload {
-  config: ResolvedNeuralwattConfig;
-}
-
-export function emitConfigUpdated(pi: ExtensionAPI): void {
-  pi.events.emit(NEURALWATT_CONFIG_UPDATED_EVENT, {
-    config: configLoader.getConfig(),
-  });
-}
+import {
+  configLoader,
+  type NeuralwattConfig,
+  type ResolvedNeuralwattConfig,
+} from "../../../../src/config";
+import {
+  NEURALWATT_CONFIG_UPDATED_EVENT,
+  type NeuralwattFeatureId,
+} from "../../../../src/events";
 
 export interface RegisterNeuralwattSettingsOptions {
   getLoadedFeatures: () => Set<NeuralwattFeatureId>;
+}
+
+function emitConfigUpdated(pi: ExtensionAPI): void {
+  pi.events.emit(NEURALWATT_CONFIG_UPDATED_EVENT, {
+    config: configLoader.getConfig(),
+  });
 }
 
 function featureRow(

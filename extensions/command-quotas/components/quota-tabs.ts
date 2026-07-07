@@ -1,17 +1,17 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
-import type { NeuralwattQuotas } from "../../../types/quota-api";
+import type { NeuralwattQuotas } from "../../../src/types/quota-api";
 import {
   percentCreditsRemaining,
   percentEnergyRemaining,
-  renderProgressBar,
   severityFromPercent,
-} from "../../../utils/quota-bar";
+} from "../../../src/utils/quota-bar";
 import {
   formatKwh,
   formatTokens,
   formatUsd,
-} from "../../../utils/quota-format";
+} from "../../../src/utils/quota-format";
+import { renderProgressBar } from "./progress-bar";
 
 /**
  * Subscription tab — plan details, energy quota, billing period.

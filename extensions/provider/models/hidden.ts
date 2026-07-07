@@ -2,9 +2,9 @@ import type {
   AuthStorage,
   ProviderModelConfig,
 } from "@earendil-works/pi-coding-agent";
-import { getNeuralwattApiKey } from "../../../lib/env";
-import { fetchNeuralwattModels } from "../../../lib/neuralwatt-api";
-import type { NeuralwattApiModel } from "../../../types/models-api";
+import { fetchNeuralwattModels } from "../../../src/lib/neuralwatt-api";
+import type { NeuralwattApiModel } from "../../../src/types/models-api";
+import { getNeuralwattApiKey } from "../../_shared/auth";
 import { NEURALWATT_MODELS } from "./public-models";
 
 // Per-ID overrides for known hidden models. The authenticated /v1/models endpoint

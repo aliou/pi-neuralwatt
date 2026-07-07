@@ -3,23 +3,20 @@ import type {
   ExtensionAPI,
   ProviderModelConfig,
 } from "@earendil-works/pi-coding-agent";
+import { configLoader } from "../../src/config";
 import {
-  configLoader,
-  emitConfigUpdated,
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
-  type NeuralwattFeatureId,
-  registerNeuralwattSettings,
-} from "../../config";
-import { getNeuralwattApiKey } from "../../lib/env";
-import { fetchQuotas } from "../../lib/neuralwatt-api";
-import type { NeuralwattQuotas } from "../../types/quota-api";
-import {
   NEURALWATT_QUOTAS_REQUEST_EVENT,
   NEURALWATT_QUOTAS_UPDATED_EVENT,
+  type NeuralwattFeatureId,
   type NeuralwattQuotasUpdatedPayload,
-} from "../../types/quota-events";
+} from "../../src/events";
+import { fetchQuotas } from "../../src/lib/neuralwatt-api";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
+import { getNeuralwattApiKey } from "../_shared/auth";
+import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import {
   getNeuralwattModels,
@@ -37,6 +34,12 @@ import { updateQuotasFromSseComment } from "./sse-quotas";
 import { wrapNeuralwattStreamSimple } from "./stream-simple";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
+
+function emitConfigUpdated(pi: ExtensionAPI): void {
+  pi.events.emit(NEURALWATT_CONFIG_UPDATED_EVENT, {
+    config: configLoader.getConfig(),
+  });
+}
 
 function registerNeuralwattProvider(
   pi: ExtensionAPI,

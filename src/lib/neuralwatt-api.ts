@@ -3,7 +3,7 @@ import type {
   NeuralwattApiModelsResponse,
 } from "../types/models-api";
 import type { NeuralwattQuotas } from "../types/quota-api";
-import type { QuotasResult } from "../types/quota-events";
+import type { QuotasResult } from "../types/quota-result";
 
 const BASE_URL = "https://api.neuralwatt.com/v1";
 const FETCH_TIMEOUT_MS = 15_000;

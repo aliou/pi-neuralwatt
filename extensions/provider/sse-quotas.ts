@@ -1,4 +1,4 @@
-import type { NeuralwattQuotas } from "../../types/quota-api";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
 
 const JOULES_PER_KWH = 3_600_000;
 

@@ -36,7 +36,7 @@ pi install npm:@aliou/pi-neuralwatt
 pi install git:github.com/aliou/pi-neuralwatt
 
 # Local development
-pi -e ./src/extensions/provider/index.ts
+pi -e ./extensions/provider/index.ts
 ```
 
 ## Usage
@@ -82,7 +82,7 @@ The provider itself cannot be disabled — it is always loaded.
 
 ## Adding or Updating Models
 
-Models are hardcoded in `src/extensions/provider/models.ts` and validated against the live API. To update:
+Models are hardcoded in `extensions/provider/models/public-models.ts` and validated against the live API. To update:
 
 1. Run `pnpm test` — it fetches `/v1/models` and compares against hardcoded definitions
 2. Fix any discrepancies (missing models, changed context windows)

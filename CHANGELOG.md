@@ -1,5 +1,13 @@
 # @aliou/pi-extension-template
 
+## 0.8.0
+
+### Minor Changes
+
+- e5e562a: Migrate Neuralwatt settings to nested per-feature configuration.
+
+  Old flat config is migrated automatically, and a backup file is written next to the migrated config. Feature behavior is unchanged.
+
 ## 0.7.6
 
 ### Patch Changes

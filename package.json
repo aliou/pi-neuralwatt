@@ -16,6 +16,7 @@
   "pi": {
     "extensions": [
       "./extensions/provider/index.ts",
+      "./extensions/allowances/index.ts",
       "./extensions/command-quotas/index.ts",
       "./extensions/quota-warnings/index.ts",
       "./extensions/sub-bar-integration/index.ts"
@@ -39,7 +40,7 @@
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": ">=0.80.8",
-    "@earendil-works/pi-coding-agent": ">=0.80.8",
+    "@earendil-works/pi-coding-agent": ">=0.81.0",
     "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {

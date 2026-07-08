@@ -94,6 +94,10 @@ function toNestedConfig(config: NeuralwattRawConfig): NeuralwattConfig {
         : {}),
       enabled: optionalFeatureValue(config.subBarIntegration),
     },
+    allowances:
+      "allowances" in config && typeof config.allowances === "object"
+        ? config.allowances
+        : undefined,
   };
 }
 

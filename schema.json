@@ -2,12 +2,87 @@
   "$ref": "#/definitions/NeuralwattConfig",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "NeuralwattAllowanceLimitConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "allowanceUsd": {
+          "description": "Maximum spend in USD for this allowance scope.",
+          "type": "number"
+        },
+        "enabled": {
+          "description": "Send this allowance header on Neuralwatt requests.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "NeuralwattAllowanceWarningsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Show warnings when session allowance is low.",
+          "type": "boolean"
+        },
+        "remainingThresholds": {
+          "description": "Remaining-percent thresholds that trigger one warning per session.",
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "NeuralwattAllowanceWidgetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Show Neuralwatt allowance state near the editor.",
+          "type": "boolean"
+        },
+        "placement": {
+          "$ref": "#/definitions/NeuralwattWidgetPlacement",
+          "description": "Place the widget above or below the editor."
+        }
+      },
+      "type": "object"
+    },
+    "NeuralwattAllowancesConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Inject Neuralwatt allowance headers and display allowance state.",
+          "type": "boolean"
+        },
+        "request": {
+          "$ref": "#/definitions/NeuralwattAllowanceLimitConfig",
+          "description": "Per-request allowance behavior."
+        },
+        "session": {
+          "$ref": "#/definitions/NeuralwattAllowanceLimitConfig",
+          "description": "Per-session allowance behavior."
+        },
+        "warnings": {
+          "$ref": "#/definitions/NeuralwattAllowanceWarningsConfig",
+          "description": "Session allowance warnings."
+        },
+        "widget": {
+          "$ref": "#/definitions/NeuralwattAllowanceWidgetConfig",
+          "description": "Editor-adjacent allowance widget."
+        }
+      },
+      "type": "object"
+    },
     "NeuralwattConfig": {
       "additionalProperties": false,
       "properties": {
         "$schema": {
           "description": "$schema URL for editor autocomplete.",
           "type": "string"
+        },
+        "allowances": {
+          "$ref": "#/definitions/NeuralwattAllowancesConfig",
+          "description": "Hidden Neuralwatt request/session allowance controls."
         },
         "provider": {
           "$ref": "#/definitions/NeuralwattProviderConfig",
@@ -71,6 +146,13 @@
         }
       },
       "type": "object"
+    },
+    "NeuralwattWidgetPlacement": {
+      "enum": [
+        "aboveEditor",
+        "belowEditor"
+      ],
+      "type": "string"
     }
   }
 }

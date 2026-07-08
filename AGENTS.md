@@ -44,6 +44,12 @@ extensions/
   sub-bar-integration/
     index.ts                            # Extension entry (checks config, sub-bar + status bar)
     snapshot.ts                         # Usage snapshot builder
+  allowances/
+    index.ts                            # Extension entry (request headers, widget, warnings)
+    command.ts                          # /neuralwatt:allowances command
+    headers.ts                          # before_provider_headers allowance injection
+    widget.ts                           # Editor-adjacent allowance widget rendering
+    warnings.ts                         # Session allowance threshold warnings
   _shared/
     auth.ts                             # API key resolution (auth.json -> env var)
 src/
@@ -89,6 +95,21 @@ Two sources of quota data:
 
 2. **API fetch** - `/v1/quota` endpoint returns full balance, usage, limits, and subscription info. Used for the `/neuralwatt:quota` command and initial session fetch.
 
+## Allowance Tracking
+
+The optional hidden allowance extension is configured through `/neuralwatt:allowances` (Session and Global tabs) or direct JSON config edits. It injects request/session allowance headers during `before_provider_headers`:
+
+- `X-Session-ID`
+- `X-Session-Allowance-USD`
+- `X-Request-Allowance-USD`
+
+The provider extension parses only the new allowance response headers in `after_provider_response` and emits `neuralwatt:allowances:updated`:
+
+- `X-Session-Spent-USD`
+- `X-Session-Allowance-Remaining-USD`
+
+Allowance state is header-only. Do not add SSE/local accumulation or backward-compatible allowance header parsing.
+
 ### Subscription vs credits
 
 When a subscription is active, energy is the primary billing method. Credits are on-demand top-up only. The quota warnings system respects this: it only warns about credits when there is no active subscription. When subscribed, only energy warnings are shown.
@@ -108,7 +129,7 @@ When a subscription is active, energy is the primary billing method. Credits are
 - **Legacy model IDs** (`provider.includeLegacyModelIds`) - Include deprecated model aliases
 - **Hidden models** (`provider.includeHiddenModels`) - Include authenticated hidden models
 
-The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
+Allowance settings live under `allowances` in config files and are intentionally hidden from `/neuralwatt:settings`; use `/neuralwatt:allowances` instead. The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
 ## Model loading
 

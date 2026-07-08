@@ -70,9 +70,31 @@ When enabled, the extension notifies you when credits or energy are running low.
 
 When a Neuralwatt model is active, the footer status bar shows live quota usage (credits and energy). The status updates after each response and on session start.
 
+### Request and Session Allowances
+
+Configure per-session and per-request USD allowances with:
+
+```text
+/neuralwatt:allowances
+```
+
+The command has **Session** and **Global** tabs. These settings are intentionally hidden from `/neuralwatt:settings`. You can also edit the Neuralwatt config file directly (`~/.pi/agent/extensions/neuralwatt.json` or `.pi/extensions/neuralwatt.json`).
+
+```json
+{
+  "allowances": {
+    "enabled": true,
+    "session": { "enabled": true, "allowanceUsd": 1 },
+    "request": { "enabled": true, "allowanceUsd": 0.05 },
+    "widget": { "enabled": true, "placement": "belowEditor" },
+    "warnings": { "enabled": true, "remainingThresholds": [50, 20, 10] }
+  }
+}
+```
+
 ## Settings
 
-Configure features with `/neuralwatt:settings`:
+Configure visible features with `/neuralwatt:settings`:
 
 - **Quota command** — Show/hide `/neuralwatt:quota`
 - **Quota warnings** — Enable/disable low quota notifications
@@ -80,7 +102,7 @@ Configure features with `/neuralwatt:settings`:
 - **Legacy model IDs** — Include deprecated model aliases
 - **Hidden models** — Include models available only to the configured API key
 
-The provider itself cannot be disabled — it is always loaded.
+The provider itself cannot be disabled — it is always loaded. Allowance settings are managed by `/neuralwatt:allowances` and are not shown in the main settings UI.
 
 Configuration uses nested per-feature sections. Existing flat config files are migrated automatically, with a backup written next to the migrated config.
 
@@ -137,7 +159,7 @@ This repository uses [Changesets](https://github.com/changesets/changesets) for 
 
 ## Requirements
 
-- Pi coding agent v0.80.8+
+- Pi coding agent v0.81.0+
 - Neuralwatt API key (configured in `~/.pi/agent/auth.json` or via `NEURALWATT_API_KEY`)
 
 ## Links

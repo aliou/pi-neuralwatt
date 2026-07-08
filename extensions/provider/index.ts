@@ -5,6 +5,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { configLoader } from "../../src/config";
 import {
+  NEURALWATT_ALLOWANCES_UPDATED_EVENT,
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
@@ -16,6 +17,7 @@ import {
 import { fetchQuotas } from "../../src/lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
+import { buildAllowancesFromHeaders } from "./allowance-store";
 import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import { getNeuralwattModels, refreshNeuralwattModels } from "./models";
@@ -202,6 +204,15 @@ export default async function (pi: ExtensionAPI) {
       pendingRateLimitInfo = parseRateLimitHeaders(event.headers);
     } else {
       pendingRateLimitInfo = undefined;
+    }
+
+    const allowance = buildAllowancesFromHeaders(
+      event.headers,
+      ctx.sessionManager.getSessionId(),
+      configLoader.getConfig().allowances,
+    );
+    if (allowance) {
+      pi.events.emit(NEURALWATT_ALLOWANCES_UPDATED_EVENT, allowance);
     }
 
     const quotas = buildQuotasFromHeaders(event.headers);

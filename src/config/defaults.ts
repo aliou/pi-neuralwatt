@@ -14,4 +14,21 @@ export const DEFAULT_CONFIG: ResolvedNeuralwattConfig = {
   subBarIntegration: {
     enabled: true,
   },
+  allowances: {
+    enabled: false,
+    session: {
+      enabled: true,
+    },
+    request: {
+      enabled: false,
+    },
+    widget: {
+      enabled: false,
+      placement: "belowEditor",
+    },
+    warnings: {
+      enabled: false,
+      remainingThresholds: [50, 20, 10],
+    },
+  },
 };

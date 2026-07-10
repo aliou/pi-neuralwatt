@@ -14,12 +14,31 @@ import {
   type Model,
   type SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
+import { getFlexSessionState } from "../../src/flex-session";
 import {
   type NeuralwattRateLimitInfo,
   normalizeNeuralwattRateLimitError,
   parseRateLimitHeaders,
 } from "./rate-limit-error";
 import { readQuotaCommentsFromTee } from "./sse-quotas";
+
+function shouldUseFlexTimeout(model: Model<string>): boolean {
+  const state = getFlexSessionState();
+  if (state.enabled) return true;
+  if (model.id?.endsWith("-flex")) return true;
+  return false;
+}
+
+function applyFlexTimeout(
+  model: Model<string>,
+  options: SimpleStreamOptions,
+): void {
+  const state = getFlexSessionState();
+  if (!shouldUseFlexTimeout(model)) return;
+  if (options.timeoutMs !== undefined && options.timeoutMs >= state.timeoutMs)
+    return;
+  options.timeoutMs = state.timeoutMs;
+}
 
 export type AnyStreamSimple = (
   model: Model<string>,
@@ -86,6 +105,7 @@ export function wrapNeuralwattStreamSimple(
   onSseQuota: (line: string) => void,
 ): AnyStreamSimple {
   return (model, context, options = {}) => {
+    applyFlexTimeout(model, options);
     let rateLimitInfo: NeuralwattRateLimitInfo | undefined;
     let sseQuotaTask: Promise<void> | undefined;
     const outer = createAssistantMessageEventStream();

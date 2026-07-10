@@ -21,6 +21,8 @@ export const NEURALWATT_QUOTAS_UPDATED_EVENT =
 export const NEURALWATT_QUOTAS_REQUEST_EVENT =
   "neuralwatt:quotas:request" as const;
 
+export const NEURALWATT_FLEX_UPDATED_EVENT = "neuralwatt:flex:updated" as const;
+
 export interface NeuralwattExtensionsRegisterPayload {
   feature: NeuralwattFeatureId;
 }
@@ -34,6 +36,11 @@ export type QuotaSource = "header" | "api" | "sse";
 export interface NeuralwattQuotasUpdatedPayload {
   quotas: NeuralwattQuotas;
   source: QuotaSource;
+}
+
+export interface NeuralwattFlexUpdatedPayload {
+  enabled: boolean;
+  timeoutMs: number;
 }
 
 /** Minimal quota data parsed from response headers */

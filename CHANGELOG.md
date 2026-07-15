@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.8.1
+
+### Patch Changes
+
+- a3d331b: Suppress repeated Neuralwatt quota warnings by applying the 60-minute cooldown to repeated critical warnings and throttling SSE quota emissions.
+
 ## 0.8.0
 
 ### Minor Changes

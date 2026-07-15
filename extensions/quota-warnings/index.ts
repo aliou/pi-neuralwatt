@@ -17,7 +17,6 @@ export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
   let enabled = configLoader.getConfig().quotaWarnings.enabled;
-  let currentProvider: string | undefined;
   let currentContext: ExtensionContext | undefined;
 
   // Listen for config changes at runtime
@@ -33,36 +32,29 @@ export default async function (pi: ExtensionAPI) {
   pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data: unknown) => {
     if (!enabled) return;
     if (!data || typeof data !== "object") return;
-    if (currentProvider !== "neuralwatt" || !currentContext) return;
-    const { quotas, source } = data as NeuralwattQuotasUpdatedPayload;
-    checkQuotas(currentContext, quotas, source === "header");
+    if (!currentContext) return;
+    if (currentContext.model?.provider !== "neuralwatt") return;
+
+    const { quotas } = data as NeuralwattQuotasUpdatedPayload;
+    checkQuotas(currentContext, quotas);
   });
 
   pi.on("session_start", async (_event, ctx) => {
     currentContext = ctx;
-    currentProvider = ctx.model?.provider;
     if (ctx.model?.provider !== "neuralwatt") return;
     clearAlertState();
   });
 
   pi.on("model_select", (_event, ctx) => {
     currentContext = ctx;
-    currentProvider = ctx.model?.provider;
-    if (ctx.model?.provider !== "neuralwatt") {
-      clearAlertState();
-      return;
-    }
-    clearAlertState();
   });
 
   pi.on("session_before_switch", (_event, ctx) => {
     currentContext = ctx;
-    currentProvider = ctx.model?.provider;
   });
 
   pi.on("session_shutdown", () => {
     currentContext = undefined;
-    currentProvider = undefined;
     clearAlertState();
   });
 

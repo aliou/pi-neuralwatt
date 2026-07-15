@@ -11,6 +11,8 @@ interface AlertState {
   lastNotifiedAt: number;
 }
 
+// Module-level state so cooldowns survive across invocations of checkQuotas()
+// within the same Pi runtime.
 const alerts = new Map<string, AlertState>();
 
 export function clearAlertState(): void {
@@ -22,9 +24,9 @@ function shouldNotify(key: string, severity: WarningSeverity): boolean {
   if (!state) return true;
 
   const order: WarningSeverity[] = ["warning", "critical"];
-  if (order.indexOf(severity) > order.indexOf(state.lastSeverity)) return true;
-
-  if (severity === "critical") return true;
+  const currentIndex = order.indexOf(severity);
+  const lastIndex = order.indexOf(state.lastSeverity);
+  if (currentIndex > lastIndex) return true;
 
   return Date.now() - state.lastNotifiedAt >= COOLDOWN_MS;
 }
@@ -40,7 +42,6 @@ function markNotified(key: string, severity: WarningSeverity): void {
 export function checkQuotas(
   ctx: ExtensionContext,
   quotas: NeuralwattQuotas,
-  skipAlreadyWarned: boolean,
 ): void {
   if (!ctx.hasUI) return;
 
@@ -55,7 +56,7 @@ export function checkQuotas(
       if (pct <= 25) {
         const severity: WarningSeverity = pct <= 10 ? "critical" : "warning";
         const key = "credits";
-        if (!skipAlreadyWarned || shouldNotify(key, severity)) {
+        if (shouldNotify(key, severity)) {
           markNotified(key, severity);
           warnings.push(
             `Credits: ${pct.toFixed(0)}% remaining (${formatUsd(credits_remaining_usd)} of ${formatUsd(total_credits_usd)})`,
@@ -77,7 +78,7 @@ export function checkQuotas(
             ? "critical"
             : "warning";
         const key = "energy";
-        if (!skipAlreadyWarned || shouldNotify(key, severity)) {
+        if (shouldNotify(key, severity)) {
           markNotified(key, severity);
           const tag = in_overage ? " [OVERAGE]" : "";
           warnings.push(

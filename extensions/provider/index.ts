@@ -119,14 +119,17 @@ export default async function (pi: ExtensionAPI) {
   let hiddenModelsLoaded = false;
   let hiddenModelsAbort: AbortController | undefined;
 
+  let lastSseEmitAt = 0;
+
   const handleSseQuota = (line: string) => {
+    const now = Date.now();
+    if (now - lastSseEmitAt < HEADER_EMIT_THROTTLE_MS) return;
+
     const quotas = updateQuotasFromSseComment(latestQuotas, line);
     if (!quotas || quotas === latestQuotas) return;
-    latestQuotas = quotas;
-    pi.events.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, {
-      quotas,
-      source: "sse",
-    });
+
+    lastSseEmitAt = now;
+    emitQuotas(quotas, "sse");
   };
 
   registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);

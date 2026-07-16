@@ -1,6 +1,6 @@
 ---
 name: neuralwatt-models
-description: Update model metadata for the pi-neuralwatt extension. Use when adding or refreshing entries in extensions/provider/models/public-models.ts, checking Neuralwatt model availability, or syncing hardcoded models with the live Neuralwatt API.
+description: Update public or hidden model metadata for the pi-neuralwatt extension. Use when adding or refreshing entries in extensions/provider/models/public-models.ts or extensions/provider/models/hidden.ts, checking Neuralwatt model availability, or syncing hardcoded models with the live Neuralwatt API.
 ---
 
 # Update Neuralwatt models
@@ -183,6 +183,101 @@ Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a
 - Do not add `compat` fields beyond current repo conventions unless live behavior requires it.
 - Do not ask the user which models to update unless there is a true ambiguity you cannot resolve.
 
+## Adding hidden models
+
+Use this workflow when a model is available only to authenticated accounts or direct inference requests.
+
+### Choose the hidden-model path
+
+First compare these two requests using the same credential:
+
+1. Fetch the authenticated `GET /v1/models` catalog.
+2. Send a minimal `POST /v1/chat/completions` request for the candidate model ID.
+
+Handle the result as follows:
+
+- If the authenticated catalog includes the model, dynamic discovery in `extensions/provider/models/hidden.ts` should load it. Add an override only when Pi-specific behavior is missing or incorrect.
+- If chat completions accepts the model but the authenticated catalog omits it, add a fully specified entry to `HIDDEN_NEURALWATT_MODELS` in `extensions/provider/models/hidden.ts`.
+- If chat completions rejects the model, do not add it. Test likely aliases before concluding that it is unavailable.
+- Never place an API-omitted model in `NEURALWATT_MODELS`. Public definitions are validated against the public catalog and are exposed regardless of `provider.includeHiddenModels`.
+
+`refreshNeuralwattModels` merges hardcoded hidden models with cached and dynamically discovered models for online and offline startup. Public and legacy baseline definitions take precedence over hidden entries. Keep hardcoded hidden IDs unique, and remove or graduate an entry when Neuralwatt starts advertising it publicly.
+
+### Probe runtime behavior
+
+An API-omitted model has no trustworthy catalog metadata, so verify each configured capability directly:
+
+- Exact accepted model ID and the canonical model ID returned in the response.
+- Plain text and streaming.
+- System and developer roles separately.
+- Tool calling and JSON mode.
+- Image input with a recognizable image when claiming vision support.
+- Thinking disabled and enabled, including the exact request field and whether reasoning content appears.
+- Prompt caching by repeating a sufficiently long identical prefix and inspecting `usage.prompt_tokens_details.cached_tokens`.
+- Context and output limits from official model documentation, portal data, or bounded runtime tests.
+
+For binary thinking controlled through `chat_template_kwargs.enable_thinking`, use Pi's generic chat-template mapping rather than sending a fixed literal:
+
+```ts
+reasoning: true,
+thinkingLevelMap: {
+  minimal: null,
+  low: null,
+  medium: "medium",
+  high: null,
+  xhigh: null,
+  max: null,
+},
+compat: {
+  supportsDeveloperRole: false,
+  maxTokensField: "max_tokens",
+  thinkingFormat: "chat-template",
+  chatTemplateKwargs: {
+    enable_thinking: { $var: "thinking.enabled" },
+  },
+},
+```
+
+Only use this shape after direct requests prove that the model accepts `chat_template_kwargs.enable_thinking`. Use the model's actual role behavior instead of copying `supportsDeveloperRole` from another model.
+
+### Determine pricing carefully
+
+Neuralwatt accounts can use energy-based billing. On those accounts, `x-request-cost-usd`, `x-cache-savings-usd`, and usage totals measure energy billing and do not by themselves establish token prices. Do not derive `cost.input`, `cost.output`, or `cost.cacheRead` from one energy-billed request.
+
+Prefer, in order:
+
+1. Neuralwatt portal pricing.
+2. Neuralwatt model metadata when it becomes available.
+3. Consistent official upstream or provider pricing corroborated by multiple controlled probes.
+
+Document uncertainty in the implementation comment when pricing remains inferred. Confirm cache reads through token usage even when the cache-savings header remains zero.
+
+### Implement and verify
+
+Read and update:
+
+- `extensions/provider/models/hidden.ts`
+- `extensions/provider/models/refresh.ts`
+- `extensions/provider/models/refresh.test.ts`
+- `extensions/provider/models/index.ts` when a new hidden-model collection must be exported
+
+Add tests that prove:
+
+1. The hardcoded hidden model appears and is persisted when `includeHiddenModels` is enabled, even when discovery returns an empty list.
+2. The model is absent when `includeHiddenModels` is disabled.
+3. The exact runtime-critical config is preserved: modalities, reasoning mapping, compat fields, context, output limit, and costs.
+4. Public models retain precedence on ID collisions.
+
+Run the complete model checks because public-catalog validation must remain unchanged:
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+```
+
+Create a patch changeset for the package and stage only the hidden-model implementation, tests, and changeset.
+
 ## Required runtime checks
 
 Do not rely only on metadata for `reasoning` or multimodal support when the evidence is mixed or when adding a new model with unclear behavior.
@@ -275,4 +370,7 @@ When done, summarize:
 Use these exact paths in this repo:
 
 - `extensions/provider/models/public-models.ts`
+- `extensions/provider/models/hidden.ts`
+- `extensions/provider/models/refresh.ts`
+- `extensions/provider/models/refresh.test.ts`
 - `extensions/provider/models.test.ts`

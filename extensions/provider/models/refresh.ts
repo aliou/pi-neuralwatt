@@ -5,7 +5,7 @@ import type {
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
-import { loadHiddenModels } from "./hidden";
+import { HIDDEN_NEURALWATT_MODELS, loadHiddenModels } from "./hidden";
 import { buildLegacyNeuralwattModels } from "./legacy";
 import { NEURALWATT_MODELS } from "./public-models";
 
@@ -67,6 +67,22 @@ function dedupeHiddenModels(
   return hiddenModels.filter((model) => !baselineIds.has(model.id));
 }
 
+function configuredHiddenModels(
+  discoveredModels: ProviderModelConfig[],
+  baselineModels: ProviderModelConfig[],
+): ProviderModelConfig[] {
+  const hardcodedIds = new Set(
+    HIDDEN_NEURALWATT_MODELS.map((model) => model.id),
+  );
+  return dedupeHiddenModels(
+    [
+      ...HIDDEN_NEURALWATT_MODELS,
+      ...discoveredModels.filter((model) => !hardcodedIds.has(model.id)),
+    ],
+    baselineModels,
+  );
+}
+
 function cachedHiddenModels(
   stored: ModelsStoreEntry | undefined,
 ): ProviderModelConfig[] {
@@ -104,7 +120,10 @@ export async function refreshNeuralwattModels(
     return baseline;
   }
 
-  const cachedHidden = dedupeHiddenModels(cachedHiddenModels(stored), baseline);
+  const cachedHidden = configuredHiddenModels(
+    cachedHiddenModels(stored),
+    baseline,
+  );
   const cachedCatalog = [...baseline, ...cachedHidden];
 
   if (!context.allowNetwork || context.signal?.aborted) {
@@ -124,7 +143,7 @@ export async function refreshNeuralwattModels(
     throw new Error("Neuralwatt model catalog refresh failed");
   }
 
-  const catalog = [...baseline, ...dedupeHiddenModels(hidden, baseline)];
+  const catalog = [...baseline, ...configuredHiddenModels(hidden, baseline)];
   await persistModels(context, catalog);
   return catalog;
 }

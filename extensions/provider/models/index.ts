@@ -2,7 +2,7 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { buildLegacyNeuralwattModels } from "./legacy";
 import { NEURALWATT_MODELS } from "./public-models";
 
-export { loadHiddenModels } from "./hidden";
+export { HIDDEN_NEURALWATT_MODELS, loadHiddenModels } from "./hidden";
 export {
   buildLegacyNeuralwattModels,
   LEGACY_MODEL_ALIAS_MAP,

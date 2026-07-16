@@ -38,17 +38,17 @@
     "@aliou/pi-utils-ui": "^0.5.0"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": ">=0.80.8",
+    "@earendil-works/pi-coding-agent": ">=0.80.8",
     "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {
     "@aliou/biome-plugins": "^0.11.0",
     "@biomejs/biome": "^2.4.15",
     "@changesets/cli": "^2.27.11",
-    "@earendil-works/pi-ai": "0.80.3",
-    "@earendil-works/pi-coding-agent": "0.80.3",
-    "@earendil-works/pi-tui": "0.80.3",
+    "@earendil-works/pi-ai": "0.80.8",
+    "@earendil-works/pi-coding-agent": "0.80.8",
+    "@earendil-works/pi-tui": "0.80.8",
     "@types/node": "^25.0.10",
     "husky": "^9.1.7",
     "ts-json-schema-generator": "^2.4.0",

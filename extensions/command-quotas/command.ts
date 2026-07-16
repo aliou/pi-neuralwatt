@@ -16,7 +16,7 @@ export function registerQuotasCommand(pi: ExtensionAPI): void {
   pi.registerCommand("neuralwatt:quota", {
     description: "Display Neuralwatt API usage and quota",
     handler: async (_args, ctx) => {
-      const apiKey = await getNeuralwattApiKey(ctx.modelRegistry.authStorage);
+      const apiKey = await getNeuralwattApiKey(ctx.modelRegistry);
       if (!apiKey) {
         ctx.ui.notify(missingAuthMessage(), "warning");
         return;

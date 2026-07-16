@@ -1,7 +1,7 @@
 import { getApiProvider } from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
-  ProviderModelConfig,
+  ModelRegistry,
 } from "@earendil-works/pi-coding-agent";
 import { configLoader } from "../../src/config";
 import {
@@ -18,12 +18,7 @@ import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
 import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import {
-  getNeuralwattModels,
-  loadCachedHiddenModels,
-  loadHiddenModels,
-  writeHiddenModelsCache,
-} from "./models";
+import { getNeuralwattModels, refreshNeuralwattModels } from "./models";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 import {
   type NeuralwattRateLimitInfo,
@@ -44,18 +39,15 @@ function emitConfigUpdated(pi: ExtensionAPI): void {
 function registerNeuralwattProvider(
   pi: ExtensionAPI,
   onSseQuota: (line: string) => void,
-  hiddenModels: ProviderModelConfig[] = [],
 ): void {
   const { provider: providerConfig } = configLoader.getConfig();
 
-  const publicModels = getNeuralwattModels({
+  const models = getNeuralwattModels({
     includeLegacyModelIds: providerConfig.includeLegacyModelIds,
   });
-  const resolvedHiddenModels = providerConfig.includeHiddenModels
-    ? dedupeHiddenModels(hiddenModels, publicModels)
-    : [];
 
   const config: Parameters<ExtensionAPI["registerProvider"]>[1] = {
+    name: "Neuralwatt",
     baseUrl: "https://api.neuralwatt.com/v1",
     apiKey: "$NEURALWATT_API_KEY",
     api: "openai-completions",
@@ -64,7 +56,14 @@ function registerNeuralwattProvider(
       Referer: "https://pi.dev",
       "X-Title": "npm:@aliou/pi-neuralwatt",
     },
-    models: [...publicModels, ...resolvedHiddenModels],
+    models,
+    refreshModels: (context) =>
+      refreshNeuralwattModels(context, {
+        includeLegacyModelIds:
+          configLoader.getConfig().provider.includeLegacyModelIds,
+        includeHiddenModels:
+          configLoader.getConfig().provider.includeHiddenModels,
+      }),
   };
 
   const provider = getApiProvider("openai-completions");
@@ -79,45 +78,10 @@ function registerNeuralwattProvider(
   pi.registerProvider("neuralwatt", config);
 }
 
-/**
- * Drop any hidden model whose ID collides with a public or legacy model.
- *
- * Models can graduate from hidden (authenticated /v1/models only) to public
- * (unauthenticated list). When that happens, a stale on-disk cache may still
- * list the now-public ID, which would register it twice and make Pi treat the
- * scoped model as ambiguous ("No models match pattern"). Dedupe against the
- * public list so a stale cache can never shadow a public model.
- */
-function dedupeHiddenModels(
-  hiddenModels: ProviderModelConfig[],
-  publicModels: ProviderModelConfig[],
-): ProviderModelConfig[] {
-  const publicIds = new Set(publicModels.map((m) => m.id));
-  return hiddenModels.filter((m) => !publicIds.has(m.id));
-}
-
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
   let latestQuotas: NeuralwattQuotas | undefined;
-
-  // Stale-while-revalidate seed for hidden models.
-  //
-  // Hidden models are only discoverable by hitting the authenticated
-  // `/v1/models` endpoint, which we can do inside `session_start` (Pi does not
-  // expose `authStorage` to extension factories). However, Pi validates scoped
-  // models (e.g. `neuralwatt/glm-5.2-short`) during startup, *before*
-  // `session_start` fires. To avoid "No models match pattern" warnings on saved
-  // scoped models, we synchronously restore the previous session's fetch from
-  // the on-disk cache so the provider is registered with hidden models at
-  // load time. `session_start` then revalidates from the live API and writes
-  // the cache back. First run with no cache still warns once.
-  let hiddenModels: ProviderModelConfig[] = [];
-  if (configLoader.getConfig().provider.includeHiddenModels) {
-    hiddenModels = loadCachedHiddenModels();
-  }
-  let hiddenModelsLoaded = false;
-  let hiddenModelsAbort: AbortController | undefined;
 
   let lastSseEmitAt = 0;
 
@@ -132,7 +96,10 @@ export default async function (pi: ExtensionAPI) {
     emitQuotas(quotas, "sse");
   };
 
-  registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
+  registerNeuralwattProvider(pi, handleSseQuota);
+  let registeredProviderSettings = {
+    ...configLoader.getConfig().provider,
+  };
 
   const loadedFeatures = new Set<NeuralwattFeatureId>();
 
@@ -142,22 +109,17 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, () => {
-    // Toggle may have enabled hidden models since startup. Seed from the disk
-    // cache so previously discovered models are available immediately without
-    // waiting for the next session_start revalidation.
+    const next = configLoader.getConfig().provider;
     if (
-      configLoader.getConfig().provider.includeHiddenModels &&
-      !hiddenModelsLoaded &&
-      hiddenModels.length === 0
+      next.includeLegacyModelIds ===
+        registeredProviderSettings.includeLegacyModelIds &&
+      next.includeHiddenModels ===
+        registeredProviderSettings.includeHiddenModels
     ) {
-      hiddenModels = loadCachedHiddenModels();
+      return;
     }
-    registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
-  });
-
-  pi.on("session_shutdown", () => {
-    hiddenModelsAbort?.abort();
-    hiddenModelsAbort = undefined;
+    registeredProviderSettings = { ...next };
+    registerNeuralwattProvider(pi, handleSseQuota);
   });
 
   let lastHeaderEmitAt = 0;
@@ -179,6 +141,7 @@ export default async function (pi: ExtensionAPI) {
   // Used in message_end to rewrite the generic error text with
   // actionable details from Neuralwatt's response headers.
   let pendingRateLimitInfo: NeuralwattRateLimitInfo | undefined;
+  let currentModelRegistry: ModelRegistry | undefined;
 
   pi.on("message_end", (event, ctx) => {
     // Rewrite rate-limit errors with layer-specific details
@@ -246,11 +209,14 @@ export default async function (pi: ExtensionAPI) {
     emitQuotas(quotas, "header");
   });
 
-  pi.events.on(NEURALWATT_QUOTAS_REQUEST_EVENT, async (data: unknown) => {
+  pi.events.on(NEURALWATT_QUOTAS_REQUEST_EVENT, async () => {
     if (quotaRequestInFlight) return;
     quotaRequestInFlight = true;
     try {
-      const quotas = await fetchRequestedQuotas(data);
+      const apiKey = currentModelRegistry
+        ? await getNeuralwattApiKey(currentModelRegistry)
+        : undefined;
+      const quotas = await fetchRequestedQuotas(apiKey);
       if (quotas) emitQuotas(quotas, "api");
     } finally {
       quotaRequestInFlight = false;
@@ -263,6 +229,7 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    currentModelRegistry = ctx.modelRegistry;
     pendingRateLimitInfo = undefined;
     const messages = [...new Set(configLoader.drainMessages())];
     if (messages.length > 0) {
@@ -273,32 +240,14 @@ export default async function (pi: ExtensionAPI) {
     pi.events.emit(NEURALWATT_EXTENSIONS_REQUEST_EVENT, undefined);
     emitConfigUpdated(pi);
 
-    if (
-      !hiddenModelsLoaded &&
-      configLoader.getConfig().provider.includeHiddenModels
-    ) {
-      hiddenModelsLoaded = true;
-      hiddenModelsAbort?.abort();
-      hiddenModelsAbort = new AbortController();
-      const fetched = await loadHiddenModels(
-        ctx.modelRegistry.authStorage,
-        hiddenModelsAbort.signal,
-      );
-      // Persist for the next startup so scoped models resolve without
-      // warnings on Pi's subsequent launches. Always write the cache (even
-      // when empty) and re-register, so graduated or removed hidden models
-      // are purged from both the cache and the provider's model list.
-      hiddenModels = fetched;
-      await writeHiddenModelsCache(hiddenModels);
-      if (!hiddenModelsAbort.signal.aborted) {
-        registerNeuralwattProvider(pi, handleSseQuota, hiddenModels);
-      }
-    }
-
     if (ctx.model?.provider !== "neuralwatt") return;
-    const apiKey = await getNeuralwattApiKey(ctx.modelRegistry.authStorage);
+    const apiKey = await getNeuralwattApiKey(ctx.modelRegistry);
     if (!apiKey) return;
     const quotaResult = await fetchQuotas(apiKey);
     if (quotaResult.success) emitQuotas(quotaResult.data.quotas, "api");
+  });
+
+  pi.on("session_shutdown", () => {
+    currentModelRegistry = undefined;
   });
 }

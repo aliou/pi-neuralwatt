@@ -1,4 +1,4 @@
-import type { AuthStorage } from "@earendil-works/pi-coding-agent";
+import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 const PROVIDER_ID = "neuralwatt";
 
@@ -11,8 +11,7 @@ const PROVIDER_ID = "neuralwatt";
  * 3. Environment variable NEURALWATT_API_KEY
  */
 export async function getNeuralwattApiKey(
-  authStorage: AuthStorage,
+  modelRegistry: ModelRegistry,
 ): Promise<string | undefined> {
-  const key = await authStorage.getApiKey(PROVIDER_ID);
-  return key ?? process.env.NEURALWATT_API_KEY;
+  return modelRegistry.getApiKeyForProvider(PROVIDER_ID);
 }

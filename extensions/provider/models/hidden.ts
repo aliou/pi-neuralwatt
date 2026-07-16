@@ -1,10 +1,6 @@
-import type {
-  AuthStorage,
-  ProviderModelConfig,
-} from "@earendil-works/pi-coding-agent";
+import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { fetchNeuralwattModels } from "../../../src/lib/neuralwatt-api";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
-import { getNeuralwattApiKey } from "../../_shared/auth";
 import { NEURALWATT_MODELS } from "./public-models";
 
 // Per-ID overrides for known hidden models. The authenticated /v1/models endpoint
@@ -95,17 +91,17 @@ function applyHiddenOverride(
  *
  * Hidden models are any models returned by the API that are not already part of
  * the public hardcoded list. If the API key is missing or the request fails, an
- * empty array is returned silently.
+ * `undefined` distinguishes an unavailable/failed request from a successful
+ * empty hidden-model list, allowing refresh callers to preserve stale cache.
  */
 export async function loadHiddenModels(
-  authStorage: AuthStorage,
+  apiKey: string,
   signal?: AbortSignal,
-): Promise<ProviderModelConfig[]> {
-  const apiKey = await getNeuralwattApiKey(authStorage);
-  if (!apiKey) return [];
+): Promise<ProviderModelConfig[] | undefined> {
+  if (!apiKey) return undefined;
 
   const result = await fetchNeuralwattModels(apiKey, signal);
-  if (!result.success) return [];
+  if (!result.success) return undefined;
 
   const publicIds = new Set(NEURALWATT_MODELS.map((model) => model.id));
 

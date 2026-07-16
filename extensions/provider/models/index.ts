@@ -2,7 +2,6 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { buildLegacyNeuralwattModels } from "./legacy";
 import { NEURALWATT_MODELS } from "./public-models";
 
-export { loadCachedHiddenModels, writeHiddenModelsCache } from "./cache";
 export { loadHiddenModels } from "./hidden";
 export {
   buildLegacyNeuralwattModels,
@@ -10,6 +9,7 @@ export {
   LEGACY_NEURALWATT_MODEL_IDS,
 } from "./legacy";
 export { NEURALWATT_MODELS } from "./public-models";
+export { refreshNeuralwattModels } from "./refresh";
 
 export function getNeuralwattModels(options?: {
   includeLegacyModelIds?: boolean;

@@ -77,14 +77,22 @@ Configure features with `/neuralwatt:settings`:
 - **Quota command** — Show/hide `/neuralwatt:quota`
 - **Quota warnings** — Enable/disable low quota notifications
 - **Sub-bar integration** — Show/hide usage in status bar
+- **Legacy model IDs** — Include deprecated model aliases
+- **Hidden models** — Include models available only to the configured API key
 
 The provider itself cannot be disabled — it is always loaded.
 
 Configuration uses nested per-feature sections. Existing flat config files are migrated automatically, with a backup written next to the migrated config.
 
+### Model Refresh
+
+Neuralwatt registers its public models without network access. When hidden models are enabled, opening `/model` refreshes the authenticated catalog in the background. `pi update --models` forces an immediate refresh.
+
+Pi stores the complete effective Neuralwatt catalog in `~/.pi/agent/models-store.json` for offline startup. Current hardcoded public and legacy definitions remain authoritative when cached models are restored.
+
 ## Adding or Updating Models
 
-Models are hardcoded in `extensions/provider/models/public-models.ts` and validated against the live API. To update:
+Public models are hardcoded in `extensions/provider/models/public-models.ts` and validated against the live API. To update:
 
 1. Run `pnpm test` — it fetches `/v1/models` and compares against hardcoded definitions
 2. Fix any discrepancies (missing models, changed context windows)
@@ -129,7 +137,7 @@ This repository uses [Changesets](https://github.com/changesets/changesets) for 
 
 ## Requirements
 
-- Pi coding agent v0.67.68+
+- Pi coding agent v0.80.8+
 - Neuralwatt API key (configured in `~/.pi/agent/auth.json` or via `NEURALWATT_API_KEY`)
 
 ## Links

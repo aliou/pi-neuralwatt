@@ -30,7 +30,7 @@ extensions/
       public-models.ts                  # Hardcoded public model definitions
       legacy.ts                         # Phased-out model ID aliases
       hidden.ts                         # Hidden-model discovery from authenticated /v1/models
-      cache.ts                          # Stale-while-revalidate disk cache for hidden models
+      refresh.ts                        # Pi-managed dynamic catalog refresh and cache
   command-quotas/
     index.ts                            # Extension entry (checks config, registers command)
     command.ts                          # /neuralwatt:quota command handler
@@ -114,18 +114,20 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models.
 
-### Hidden models (stale-while-revalidate)
+### Hidden models
 
-Some Neuralwatt models are accessible via the authenticated API key but not part of the unadvertised public list (e.g. `glm-5.2-short`). Enabling the `provider.includeHiddenModels` setting makes them available.
+Some Neuralwatt models are accessible via the authenticated API key but not part of the public list. Enabling the `provider.includeHiddenModels` setting makes them available.
 
-Discovery requires the API key, which Pi only exposes inside `session_start` (`ctx.modelRegistry.authStorage`). Pi validates scoped models during startup, *before* `session_start`, so a naive in-place fetch would warn `No models match pattern "neuralwatt/glm-5.2-short"` on saved scoped models every launch.
+The provider implements Pi's `refreshModels(context)` API. Pi supplies the resolved credential, abort signal, network policy, and provider-scoped model store. Opening `/model` refreshes the catalog in the background; `pi update --models` forces a refresh.
 
-To work around this, the provider factory uses stale-while-revalidate:
+The refresh flow is:
 
-1. At extension load (synchronous): read `${getAgentDir()}/cache/neuralwatt-hidden-models.json` and register the provider with the cached hidden models immediately. Zero latency. Pi's startup scoped-model validation sees them.
-2. On `session_start`: refetch `/v1/models`, write the result to the cache, and re-register the provider so the live list wins. The fetch is cancellable via an `AbortController` aborted on `session_shutdown`.
+1. Register hardcoded public models and configured legacy aliases synchronously.
+2. During offline startup, restore dynamic hidden models from Pi's provider-scoped cache.
+3. During network refresh, fetch authenticated `/v1/models`, combine hidden models with current public and legacy definitions, and persist the complete effective catalog through `context.store`.
+4. Preserve the stale catalog when a network refresh fails. A successful empty result purges removed hidden models.
 
-First launch with no cache still warns once until `session_start` writes the cache. Subsequent launches resolve cleanly.
+Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public and legacy definitions in source remain authoritative over cached copies.
 
 ## Updating Models
 

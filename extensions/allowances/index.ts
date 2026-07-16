@@ -14,16 +14,6 @@ import { applyAllowanceHeaders } from "./headers";
 import { checkAllowanceWarnings, clearAllowanceWarningState } from "./warnings";
 import { ALLOWANCE_WIDGET_KEY, renderAllowanceWidget } from "./widget";
 
-type BeforeProviderHeadersEvent = {
-  type: "before_provider_headers";
-  headers: Record<string, string | null | undefined>;
-};
-
-type BeforeProviderHeadersHandler = (
-  event: BeforeProviderHeadersEvent,
-  ctx: ExtensionContext,
-) => void | Promise<void>;
-
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
@@ -57,15 +47,7 @@ export default async function (pi: ExtensionAPI) {
     );
   }
 
-  // Pi exposes before_provider_headers at runtime before the published 0.80.3
-  // TypeScript declarations include the overload. Keep this local shim until the
-  // dev dependency catches up.
-  const onBeforeProviderHeaders = pi.on as unknown as (
-    event: "before_provider_headers",
-    handler: BeforeProviderHeadersHandler,
-  ) => void;
-
-  onBeforeProviderHeaders("before_provider_headers", (event, ctx) => {
+  pi.on("before_provider_headers", (event, ctx) => {
     if (ctx.model?.provider !== "neuralwatt") return;
     applyAllowanceHeaders(
       event.headers,

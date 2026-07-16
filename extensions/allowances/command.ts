@@ -174,6 +174,7 @@ function warningsSummary(config: NeuralwattConfig): string {
 
 function projectOverrideSection(): SettingsSection[] {
   if (!hasAllowanceConfig(configLoader.getRawConfig("local"))) return [];
+  const effective = configLoader.getConfig();
   return [
     {
       label: "Project override",
@@ -182,8 +183,8 @@ function projectOverrideSection(): SettingsSection[] {
           id: "projectOverride",
           label: "Project config",
           description:
-            "This command edits user-wide allowance defaults. This project also has .pi/extensions/neuralwatt.json allowance overrides that may take precedence.",
-          currentValue: "present",
+            "This command edits user-wide defaults. Project allowances in .pi/extensions/neuralwatt.json take precedence.",
+          currentValue: `${featureSummary(effective)} · session ${sessionSummary(effective)} · request ${requestSummary(effective)}`,
           values: [],
         },
       ],

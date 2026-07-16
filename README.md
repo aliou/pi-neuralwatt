@@ -159,7 +159,7 @@ This repository uses [Changesets](https://github.com/changesets/changesets) for 
 
 ## Requirements
 
-- Pi coding agent v0.81.0+
+- Pi coding agent v0.80.8+
 - Neuralwatt API key (configured in `~/.pi/agent/auth.json` or via `NEURALWATT_API_KEY`)
 
 ## Links

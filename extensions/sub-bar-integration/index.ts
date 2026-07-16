@@ -1,5 +1,4 @@
 import type {
-  AuthStorage,
   ExtensionAPI,
   ExtensionContext,
   Theme,
@@ -58,7 +57,6 @@ export default async function (pi: ExtensionAPI) {
   let enabled = configLoader.getConfig().subBarIntegration.enabled;
   let subCoreReady = false;
   let currentProvider: string | undefined;
-  let currentAuthStorage: AuthStorage | undefined;
   let currentContext: ExtensionContext | undefined;
 
   // Listen for config changes at runtime
@@ -81,10 +79,7 @@ export default async function (pi: ExtensionAPI) {
   }
 
   function requestQuotas(): void {
-    if (!currentAuthStorage) return;
-    pi.events.emit(NEURALWATT_QUOTAS_REQUEST_EVENT, {
-      authStorage: currentAuthStorage,
-    });
+    pi.events.emit(NEURALWATT_QUOTAS_REQUEST_EVENT, undefined);
   }
 
   pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data: unknown) => {
@@ -93,7 +88,7 @@ export default async function (pi: ExtensionAPI) {
     const { quotas } = data as NeuralwattQuotasUpdatedPayload;
     emitUsage(quotas);
 
-    if (currentContext?.hasUI) {
+    if (currentContext) {
       currentContext.ui.setStatus(
         "neuralwatt-usage",
         formatStatus(quotas, currentContext.ui.theme),
@@ -107,13 +102,11 @@ export default async function (pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     currentProvider = ctx.model?.provider;
-    currentAuthStorage = ctx.modelRegistry.authStorage;
     currentContext = ctx;
   });
 
   pi.on("model_select", async (_event, ctx) => {
     currentProvider = ctx.model?.provider;
-    currentAuthStorage = ctx.modelRegistry.authStorage;
     currentContext = ctx;
 
     if (subCoreReady && isActive() && enabled) {
@@ -121,15 +114,8 @@ export default async function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("session_before_switch", (_event, ctx) => {
-    currentProvider = ctx.model?.provider;
-    currentAuthStorage = ctx.modelRegistry.authStorage;
-    currentContext = ctx;
-  });
-
   pi.on("session_shutdown", () => {
     currentProvider = undefined;
-    currentAuthStorage = undefined;
     currentContext = undefined;
   });
 

@@ -1,8 +1,6 @@
-import type { AuthStorage } from "@earendil-works/pi-coding-agent";
 import { parseQuotaHeaders } from "../../src/events";
 import { fetchQuotas } from "../../src/lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
-import { getNeuralwattApiKey } from "../_shared/auth";
 
 export function buildQuotasFromHeaders(
   headers: Record<string, string>,
@@ -44,12 +42,8 @@ export function buildQuotasFromHeaders(
 }
 
 export async function fetchRequestedQuotas(
-  data: unknown,
+  apiKey: string | undefined,
 ): Promise<NeuralwattQuotas | undefined> {
-  if (!data || typeof data !== "object") return;
-  const { authStorage } = data as { authStorage?: AuthStorage };
-  if (!authStorage) return;
-  const apiKey = await getNeuralwattApiKey(authStorage);
   if (!apiKey) return;
   const result = await fetchQuotas(apiKey);
   if (!result.success) return;

@@ -138,6 +138,7 @@ thinkingLevelMap: {
   medium: "medium",
   high: "high",
   xhigh: null,
+  max: null,
 },
 ```
 
@@ -150,8 +151,25 @@ thinkingLevelMap: {
   medium: "medium",
   high: null,
   xhigh: null,
+  max: null,
 },
 ```
+
+For models that expose a top `max` provider tier above `high` without a distinct `xhigh` (e.g. GLM-5.2, which natively supports `high` and `max` reasoning efforts), map Pi's `max` level to the provider's `max` value and leave `xhigh` as an unsupported hole. Pi introduced the `max` thinking level in 0.80.6:
+
+```ts
+thinkingLevelMap: {
+  off: "none",
+  minimal: null,
+  low: null,
+  medium: null,
+  high: "high",
+  xhigh: null,
+  max: "max",
+},
+```
+
+Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a non-null provider value when the model actually distinguishes a top reasoning tier.
 
 ## Decision rules
 

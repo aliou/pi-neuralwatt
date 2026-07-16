@@ -4,6 +4,9 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 // Pricing, capabilities, and limits are sourced from the API metadata fields.
 export const NEURALWATT_MODELS: ProviderModelConfig[] = [
   // GLM-5.2 - ZhipuAI
+  // Native reasoning tiers: off (none), high, max. Exposes Pi's `max` level
+  // (introduced in Pi 0.80.6) for GLM's top tier; `xhigh` is an unsupported
+  // hole between `high` and `max`.
   {
     id: "glm-5.2",
     name: "GLM-5.2",
@@ -23,7 +26,8 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       low: null,
       medium: null,
       high: "high",
-      xhigh: "max",
+      xhigh: null,
+      max: "max",
     },
     compat: {
       supportsDeveloperRole: false,
@@ -70,7 +74,8 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       low: null,
       medium: null,
       high: "high",
-      xhigh: "max",
+      xhigh: null,
+      max: "max",
     },
     compat: {
       supportsDeveloperRole: false,
@@ -283,7 +288,8 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       low: null,
       medium: null,
       high: "high",
-      xhigh: "max",
+      xhigh: null,
+      max: "max",
     },
     compat: {
       supportsDeveloperRole: false,
@@ -366,7 +372,8 @@ export const NEURALWATT_MODELS: ProviderModelConfig[] = [
       low: null,
       medium: null,
       high: "high",
-      xhigh: "max",
+      xhigh: null,
+      max: "max",
     },
     compat: {
       supportsDeveloperRole: false,

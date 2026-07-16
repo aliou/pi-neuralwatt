@@ -320,4 +320,21 @@ describe("Neuralwatt models", () => {
       expect(model.thinkingLevelMap).toHaveProperty("xhigh");
     }
   });
+
+  it("should expose the Pi `max` thinking level on GLM reasoning models", () => {
+    // GLM-5.2 natively supports `high` and `max` reasoning efforts. Pi's `max`
+    // level (introduced in 0.80.6) maps to GLM's top tier; `xhigh` is an
+    // unsupported hole between `high` and `max`.
+    const glmModels = NEURALWATT_MODELS.filter((m) =>
+      m.id.startsWith("glm-5.2"),
+    ).filter((m) => m.reasoning);
+
+    expect(glmModels.length).toBeGreaterThan(0);
+    for (const model of glmModels) {
+      expect(model.thinkingLevelMap).toHaveProperty("max");
+      expect(model.thinkingLevelMap?.max).toBe("max");
+      expect(model.thinkingLevelMap?.xhigh).toBeNull();
+      expect(model.thinkingLevelMap?.high).toBe("high");
+    }
+  });
 });

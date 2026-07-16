@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.9.0
+
+### Minor Changes
+
+- ad515e8: Update to Pi 0.80.8 provider authentication and refreshable model catalogs. Cache the complete Neuralwatt catalog through Pi's model store and preserve stale hidden models when refresh fails.
+
 ## 0.8.1
 
 ### Patch Changes

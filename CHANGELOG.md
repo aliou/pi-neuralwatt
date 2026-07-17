@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.10.1
+
+### Patch Changes
+
+- 935def8: Add the API-omitted Gemma 4 31B model to hidden-model discovery.
+
 ## 0.10.0
 
 ### Minor Changes

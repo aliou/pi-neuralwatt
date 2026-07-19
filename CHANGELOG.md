@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.10.2
+
+### Patch Changes
+
+- ad8c81b: Expose Gemma 4 31B in the public Neuralwatt model catalog.
+
 ## 0.10.1
 
 ### Patch Changes

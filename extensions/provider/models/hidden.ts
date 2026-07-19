@@ -6,41 +6,7 @@ import { NEURALWATT_MODELS } from "./public-models";
 // Hidden aliases that work for authorized accounts but are omitted from the
 // authenticated /v1/models response. Keep these gated by includeHiddenModels.
 // Move an entry to public-models.ts once Neuralwatt advertises it publicly.
-export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // Gemma 4 31B - Google's dense multimodal model, served from NVIDIA's
-  // NVFP4 checkpoint. `gemma-4-31b` is the only accepted Neuralwatt alias;
-  // responses identify the backing model as nvidia/Gemma-4-31B-IT-NVFP4.
-  {
-    id: "gemma-4-31b",
-    name: "Gemma 4 31B",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.14,
-      output: 0.4,
-      cacheRead: 0.035,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 131072,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-      thinkingFormat: "chat-template",
-      chatTemplateKwargs: {
-        enable_thinking: { $var: "thinking.enabled" },
-      },
-    },
-  },
-];
+export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [];
 
 // Per-ID overrides for known hidden models. The authenticated /v1/models endpoint
 // exposes pricing and capabilities, but some Pi-specific behavior (thinking levels,

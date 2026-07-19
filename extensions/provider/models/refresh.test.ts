@@ -6,7 +6,6 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
-import { HIDDEN_NEURALWATT_MODELS } from "./hidden";
 import { refreshNeuralwattModels } from "./refresh";
 
 const hiddenModel: ProviderModelConfig = {
@@ -51,30 +50,6 @@ function createContext(options?: {
 }
 
 describe("refreshNeuralwattModels", () => {
-  it("defines the API-omitted Gemma runtime contract", () => {
-    const gemma = HIDDEN_NEURALWATT_MODELS.find(
-      (model) => model.id === "gemma-4-31b",
-    );
-
-    expect(gemma).toMatchObject({
-      name: "Gemma 4 31B",
-      reasoning: true,
-      input: ["text", "image"],
-      cost: { input: 0.14, output: 0.4, cacheRead: 0.035, cacheWrite: 0 },
-      contextWindow: 262128,
-      maxTokens: 131072,
-      thinkingLevelMap: { medium: "medium" },
-      compat: {
-        supportsDeveloperRole: false,
-        maxTokensField: "max_tokens",
-        thinkingFormat: "chat-template",
-        chatTemplateKwargs: {
-          enable_thinking: { $var: "thinking.enabled" },
-        },
-      },
-    });
-  });
-
   it("restores cached hidden models with current public models offline", async () => {
     const { context, writes } = createContext({
       allowNetwork: false,
@@ -110,23 +85,6 @@ describe("refreshNeuralwattModels", () => {
     );
   });
 
-  it("persists hardcoded hidden models omitted from discovery", async () => {
-    const { context, writes } = createContext();
-
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeHiddenModels: true,
-      loadHidden: async () => [],
-    });
-
-    for (const hidden of HIDDEN_NEURALWATT_MODELS) {
-      expect(models.some((model) => model.id === hidden.id)).toBe(true);
-      expect(writes[0]?.models.some((model) => model.id === hidden.id)).toBe(
-        true,
-      );
-    }
-  });
-
   it("purges hidden models when discovery is disabled", async () => {
     const { context, writes } = createContext({
       stored: { models: [storedModel(hiddenModel)], checkedAt: 1 },
@@ -138,9 +96,6 @@ describe("refreshNeuralwattModels", () => {
     });
 
     expect(models.some((model) => model.id === hiddenModel.id)).toBe(false);
-    for (const hidden of HIDDEN_NEURALWATT_MODELS) {
-      expect(models.some((model) => model.id === hidden.id)).toBe(false);
-    }
     expect(writes[0]?.models).toHaveLength(models.length);
     expect(writes[0]?.models.some((model) => model.id === hiddenModel.id)).toBe(
       false,

@@ -3,6 +3,25 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 // Public models returned by https://api.neuralwatt.com/v1/models (unauthenticated view).
 // Pricing, capabilities, and limits are sourced from the API metadata fields.
 export const NEURALWATT_MODELS: ProviderModelConfig[] = [
+  // Gemma 4 31B - Google, served from NVIDIA's NVFP4 checkpoint
+  {
+    id: "gemma-4-31b",
+    name: "Gemma 4 31B",
+    reasoning: false,
+    input: ["text", "image"],
+    cost: {
+      input: 0.144,
+      output: 0.42,
+      cacheRead: 0.036,
+      cacheWrite: 0,
+    },
+    contextWindow: 262128,
+    maxTokens: 16384,
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+    },
+  },
   // GLM-5.2 - ZhipuAI
   // Native reasoning tiers: off (none), high, max. Exposes Pi's `max` level
   // (introduced in Pi 0.80.6) for GLM's top tier; `xhigh` is an unsupported

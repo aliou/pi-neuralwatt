@@ -255,6 +255,23 @@ describe("Neuralwatt models", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("should expose Gemma 4 31B with its public API metadata", () => {
+    expect(
+      NEURALWATT_MODELS.find((model) => model.id === "gemma-4-31b"),
+    ).toMatchObject({
+      name: "Gemma 4 31B",
+      reasoning: false,
+      input: ["text", "image"],
+      cost: { input: 0.144, output: 0.42, cacheRead: 0.036, cacheWrite: 0 },
+      contextWindow: 262128,
+      maxTokens: 16384,
+      compat: {
+        supportsDeveloperRole: false,
+        maxTokensField: "max_tokens",
+      },
+    });
+  });
+
   it("should mirror reasoning config for flex variants", () => {
     const byId = new Map(NEURALWATT_MODELS.map((m) => [m.id, m]));
 

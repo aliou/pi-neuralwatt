@@ -91,7 +91,15 @@ Two sources of quota data:
 
 ### Subscription vs credits
 
-When a subscription is active, energy is the primary billing method. Credits are on-demand top-up only. The quota warnings system respects this: it only warns about credits when there is no active subscription. When subscribed, only energy warnings are shown.
+When a subscription is active, energy (kWh) is the primary billing method. Credits are on-demand top-up only. The quota warnings progress through the billing stages, each with its own alert key so a later stage suppresses the earlier one instead of re-reporting a depleted pool:
+
+- Subscribed, not in overage — warn on subscription energy (kWh remaining).
+- Subscribed, in overage with an overage cap — warn about overage cap progress. Overage cost is derived from kWh usage (`kwh_used - kwh_included`) at the subscribed rate of $5/kWh; remaining cap and % are computed against `limits.overage_limit_usd`. `subscription.in_overage` is a pure on/off flag with no spent counter, so progress is computed rather than read from the API. Credits are not warned here because a cap means they are never reached.
+- Subscribed, in overage with no cap — warn on balance credits (overage draws down the balance directly at $5/kWh).
+- No subscription with an overage cap — warn on overage cap progress. All kWh are billable at the unsubscribed rate of $10/kWh, computed from `usage.current_month.energy_kwh`.
+- No subscription with no cap — warn on credits.
+
+Usage totals (monthly/lifetime cost in USD) are deliberately not used as a threshold basis — they are not directly tied to the subscription's kWh quota.
 
 ### Quota tabs
 

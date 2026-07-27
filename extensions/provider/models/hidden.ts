@@ -6,7 +6,40 @@ import { NEURALWATT_MODELS } from "./public-models";
 // Hidden aliases that work for authorized accounts but are omitted from the
 // authenticated /v1/models response. Keep these gated by includeHiddenModels.
 // Move an entry to public-models.ts once Neuralwatt advertises it publicly.
-export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [];
+export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [
+  // DeepSeek V4 Flash Canary - early-access 284B/13B-active MoE served on B200s.
+  // Neuralwatt omits it from the authenticated catalog. Context and runtime
+  // capabilities were verified directly; pricing follows DeepSeek's upstream
+  // rates until Neuralwatt publishes model metadata.
+  {
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash (Canary)",
+    reasoning: true,
+    input: ["text", "image"],
+    cost: {
+      input: 0.14,
+      output: 0.28,
+      cacheRead: 0.0028,
+      cacheWrite: 0,
+    },
+    contextWindow: 1_000_000,
+    maxTokens: 384_000,
+    thinkingLevelMap: {
+      off: "none",
+      minimal: "low",
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: null,
+      max: "max",
+    },
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
+    },
+  },
+];
 
 // Per-ID overrides for known hidden models. The authenticated /v1/models endpoint
 // exposes pricing and capabilities, but some Pi-specific behavior (thinking levels,

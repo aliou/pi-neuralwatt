@@ -6,6 +6,8 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
+import { HIDDEN_NEURALWATT_MODELS } from "./hidden";
+import { NEURALWATT_MODELS } from "./public-models";
 import { refreshNeuralwattModels } from "./refresh";
 
 const hiddenModel: ProviderModelConfig = {
@@ -17,6 +19,14 @@ const hiddenModel: ProviderModelConfig = {
   contextWindow: 128_000,
   maxTokens: 8_192,
 };
+
+const deepseekV4Flash = HIDDEN_NEURALWATT_MODELS.find(
+  (model) => model.id === "deepseek-v4-flash",
+);
+
+if (!deepseekV4Flash) {
+  throw new Error("deepseek-v4-flash hidden model fixture is missing");
+}
 
 function storedModel(model: ProviderModelConfig): Model<Api> {
   return {
@@ -50,6 +60,88 @@ function createContext(options?: {
 }
 
 describe("refreshNeuralwattModels", () => {
+  it("persists hardcoded hidden models when discovery is empty", async () => {
+    const { context, writes } = createContext();
+
+    const models = await refreshNeuralwattModels(context, {
+      includeLegacyModelIds: false,
+      includeHiddenModels: true,
+      loadHidden: async () => [],
+    });
+
+    expect(models).toContainEqual(deepseekV4Flash);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.models).toContainEqual(storedModel(deepseekV4Flash));
+  });
+
+  it("preserves the DeepSeek V4 Flash runtime configuration", async () => {
+    const { context } = createContext();
+
+    const models = await refreshNeuralwattModels(context, {
+      includeLegacyModelIds: false,
+      includeHiddenModels: true,
+      loadHidden: async () => [],
+    });
+
+    expect(models.find((model) => model.id === "deepseek-v4-flash")).toEqual({
+      id: "deepseek-v4-flash",
+      name: "DeepSeek V4 Flash (Canary)",
+      reasoning: true,
+      input: ["text", "image"],
+      cost: {
+        input: 0.14,
+        output: 0.28,
+        cacheRead: 0.0028,
+        cacheWrite: 0,
+      },
+      contextWindow: 1_000_000,
+      maxTokens: 384_000,
+      thinkingLevelMap: {
+        off: "none",
+        minimal: "low",
+        low: "low",
+        medium: "medium",
+        high: "high",
+        xhigh: null,
+        max: "max",
+      },
+      compat: {
+        supportsDeveloperRole: false,
+        maxTokensField: "max_tokens",
+        requiresReasoningContentOnAssistantMessages: true,
+      },
+    });
+  });
+
+  it("omits hardcoded hidden models when discovery is disabled", async () => {
+    const { context } = createContext();
+
+    const models = await refreshNeuralwattModels(context, {
+      includeLegacyModelIds: false,
+      includeHiddenModels: false,
+    });
+
+    expect(models.some((model) => model.id === deepseekV4Flash.id)).toBe(false);
+  });
+
+  it("keeps public models authoritative on hidden ID collisions", async () => {
+    const { context } = createContext();
+    const publicModel = NEURALWATT_MODELS[0];
+    if (!publicModel) throw new Error("public model fixture is missing");
+
+    const models = await refreshNeuralwattModels(context, {
+      includeLegacyModelIds: false,
+      includeHiddenModels: true,
+      loadHidden: async () => [
+        { ...hiddenModel, id: publicModel.id, name: "Hidden collision" },
+      ],
+    });
+
+    expect(models.filter((model) => model.id === publicModel.id)).toEqual([
+      publicModel,
+    ]);
+  });
+
   it("restores cached hidden models with current public models offline", async () => {
     const { context, writes } = createContext({
       allowNetwork: false,

@@ -1,5 +1,12 @@
 # @aliou/pi-extension-template
 
+## 0.10.4
+
+### Patch Changes
+
+- 576fdde: Add the early-access DeepSeek V4 Flash model to the hidden catalog and refresh
+  the public Neuralwatt model metadata.
+
 ## 0.10.3
 
 ### Patch Changes

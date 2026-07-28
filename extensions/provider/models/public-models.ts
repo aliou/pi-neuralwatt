@@ -3,23 +3,33 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 // Public models returned by https://api.neuralwatt.com/v1/models (unauthenticated view).
 // Pricing, capabilities, and limits are sourced from the API metadata fields.
 export const NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // Gemma 4 31B - NVIDIA NVFP4 checkpoint
+  // DeepSeek V4 Flash - DeepSeek
   {
-    id: "nvidia/Gemma-4-31B-IT-NVFP4",
-    name: "Gemma 4 31B (NVFP4)",
-    reasoning: false,
-    input: ["text", "image"],
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    reasoning: true,
+    input: ["text"],
     cost: {
-      input: 0.144,
-      output: 0.42,
-      cacheRead: 0.036,
+      input: 0.104,
+      output: 0.207,
+      cacheRead: 0.026,
       cacheWrite: 0,
     },
-    contextWindow: 262128,
-    maxTokens: 16384,
+    contextWindow: 1048560,
+    maxTokens: 65536,
+    thinkingLevelMap: {
+      off: "none",
+      minimal: "low",
+      low: "low",
+      medium: "medium",
+      high: "high",
+      xhigh: null,
+      max: "max",
+    },
     compat: {
       supportsDeveloperRole: false,
       maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
     },
   },
   // Gemma 4 31B - Google, served from NVIDIA's NVFP4 checkpoint

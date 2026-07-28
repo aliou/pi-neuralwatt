@@ -255,6 +255,24 @@ describe("Neuralwatt models", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("should expose DeepSeek V4 Flash with its public API metadata", () => {
+    expect(
+      NEURALWATT_MODELS.find((model) => model.id === "deepseek-v4-flash"),
+    ).toMatchObject({
+      name: "DeepSeek V4 Flash",
+      reasoning: true,
+      input: ["text"],
+      cost: { input: 0.104, output: 0.207, cacheRead: 0.026, cacheWrite: 0 },
+      contextWindow: 1048560,
+      maxTokens: 65536,
+      compat: {
+        supportsDeveloperRole: false,
+        maxTokensField: "max_tokens",
+        requiresReasoningContentOnAssistantMessages: true,
+      },
+    });
+  });
+
   it("should expose Gemma 4 31B with its public API metadata", () => {
     expect(
       NEURALWATT_MODELS.find((model) => model.id === "gemma-4-31b"),

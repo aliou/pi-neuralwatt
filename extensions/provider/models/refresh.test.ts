@@ -20,12 +20,10 @@ const hiddenModel: ProviderModelConfig = {
   maxTokens: 8_192,
 };
 
-const deepseekV4Flash = HIDDEN_NEURALWATT_MODELS.find(
-  (model) => model.id === "deepseek-v4-flash",
-);
+const kimiK3 = HIDDEN_NEURALWATT_MODELS.find((model) => model.id === "kimi-k3");
 
-if (!deepseekV4Flash) {
-  throw new Error("deepseek-v4-flash hidden model fixture is missing");
+if (!kimiK3) {
+  throw new Error("kimi-k3 hidden model fixture is missing");
 }
 
 function storedModel(model: ProviderModelConfig): Model<Api> {
@@ -69,12 +67,12 @@ describe("refreshNeuralwattModels", () => {
       loadHidden: async () => [],
     });
 
-    expect(models).toContainEqual(deepseekV4Flash);
+    expect(models).toContainEqual(kimiK3);
     expect(writes).toHaveLength(1);
-    expect(writes[0]?.models).toContainEqual(storedModel(deepseekV4Flash));
+    expect(writes[0]?.models).toContainEqual(storedModel(kimiK3));
   });
 
-  it("preserves the DeepSeek V4 Flash runtime configuration", async () => {
+  it("preserves the Kimi K3 runtime configuration", async () => {
     const { context } = createContext();
 
     const models = await refreshNeuralwattModels(context, {
@@ -83,27 +81,25 @@ describe("refreshNeuralwattModels", () => {
       loadHidden: async () => [],
     });
 
-    expect(models.find((model) => model.id === "deepseek-v4-flash")).toEqual({
-      id: "deepseek-v4-flash",
-      name: "DeepSeek V4 Flash (Canary)",
+    expect(models.find((model) => model.id === "kimi-k3")).toEqual({
+      id: "kimi-k3",
+      name: "Kimi K3",
       reasoning: true,
       input: ["text", "image"],
       cost: {
-        input: 0.14,
-        output: 0.28,
-        cacheRead: 0.0028,
+        input: 3,
+        output: 15,
+        cacheRead: 0.3,
         cacheWrite: 0,
       },
-      contextWindow: 1_000_000,
-      maxTokens: 384_000,
+      contextWindow: 1048560,
+      maxTokens: 65536,
       thinkingLevelMap: {
-        off: "none",
-        minimal: "low",
-        low: "low",
+        minimal: null,
+        low: null,
         medium: "medium",
-        high: "high",
+        high: null,
         xhigh: null,
-        max: "max",
       },
       compat: {
         supportsDeveloperRole: false,
@@ -121,7 +117,7 @@ describe("refreshNeuralwattModels", () => {
       includeHiddenModels: false,
     });
 
-    expect(models.some((model) => model.id === deepseekV4Flash.id)).toBe(false);
+    expect(models.some((model) => model.id === kimiK3.id)).toBe(false);
   });
 
   it("keeps public models authoritative on hidden ID collisions", async () => {

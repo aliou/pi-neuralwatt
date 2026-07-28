@@ -3,35 +3,32 @@ import { fetchNeuralwattModels } from "../../../src/lib/neuralwatt-api";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import { NEURALWATT_MODELS } from "./public-models";
 
-// Hidden aliases that work for authorized accounts but are omitted from the
-// authenticated /v1/models response. Keep these gated by includeHiddenModels.
+// Hidden models available to authorized accounts but omitted from the public
+// /v1/models response. Keep these gated by includeHiddenModels and hardcode
+// early-access entries so they remain available from the offline catalog.
 // Move an entry to public-models.ts once Neuralwatt advertises it publicly.
 export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // DeepSeek V4 Flash Canary - early-access 284B/13B-active MoE served on B200s.
-  // Neuralwatt omits it from the authenticated catalog. Context and runtime
-  // capabilities were verified directly; pricing follows DeepSeek's upstream
-  // rates until Neuralwatt publishes model metadata.
+  // Kimi K3 - early-access MoonshotAI multimodal MoE.
+  // Metadata is sourced from Neuralwatt's authenticated model catalog.
   {
-    id: "deepseek-v4-flash",
-    name: "DeepSeek V4 Flash (Canary)",
+    id: "kimi-k3",
+    name: "Kimi K3",
     reasoning: true,
     input: ["text", "image"],
     cost: {
-      input: 0.14,
-      output: 0.28,
-      cacheRead: 0.0028,
+      input: 3,
+      output: 15,
+      cacheRead: 0.3,
       cacheWrite: 0,
     },
-    contextWindow: 1_000_000,
-    maxTokens: 384_000,
+    contextWindow: 1048560,
+    maxTokens: 65536,
     thinkingLevelMap: {
-      off: "none",
-      minimal: "low",
-      low: "low",
+      minimal: null,
+      low: null,
       medium: "medium",
-      high: "high",
+      high: null,
       xhigh: null,
-      max: "max",
     },
     compat: {
       supportsDeveloperRole: false,

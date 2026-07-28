@@ -3,11 +3,27 @@ import { copyFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { Migration } from "@aliou/pi-utils-settings";
 import packageJson from "../../../package.json";
-import type { NeuralwattConfig, PreviousNeuralwattConfig } from "../types";
+import type { NeuralwattConfig } from "../types";
 
-type MigrationConfig = PreviousNeuralwattConfig | NeuralwattConfig;
+/** The original flat config, replaced by per-feature sections. */
+interface FlatNeuralwattConfig {
+  /** Show the quota command (/neuralwatt:quota). */
+  quotaCommand?: boolean;
 
-type FlatConfigKey = keyof Omit<PreviousNeuralwattConfig, "$schema">;
+  /** Show quota warnings when credits or energy are low. */
+  quotaWarnings?: boolean;
+
+  /** Show usage in the sub-bar / status bar. */
+  subBarIntegration?: boolean;
+
+  /** Include legacy Neuralwatt model IDs in the model picker. */
+  includeLegacyModelIds?: boolean;
+
+  /** Renamed to `provider.includeEarlyAccessModels` by migration 03. */
+  includeHiddenModels?: boolean;
+}
+
+type FlatConfigKey = keyof FlatNeuralwattConfig;
 type MutableConfigRecord = Record<string, unknown>;
 
 const FLAT_CONFIG_KEYS = [
@@ -34,9 +50,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-function isPreviousConfig(
-  config: MigrationConfig,
-): config is PreviousNeuralwattConfig {
+function isPreviousConfig(config: NeuralwattConfig): boolean {
   const record = config as MutableConfigRecord;
   return FLAT_CONFIG_KEYS.some((key) => typeof record[key] === "boolean");
 }
@@ -64,16 +78,15 @@ export async function backupConfig(filePath: string): Promise<void> {
   }
 }
 
-export const flatToNestedConfigMigration: Migration<MigrationConfig> = {
+export const flatToNestedConfigMigration: Migration<NeuralwattConfig> = {
   name: "flat-to-nested-config",
   shouldRun: isPreviousConfig,
   message: FLAT_CONFIG_MIGRATION_MESSAGE,
   run: async (config, filePath) => {
     await backupConfig(filePath);
 
-    const previous = config as PreviousNeuralwattConfig;
-    const nestedConfig = config as NeuralwattConfig;
-    const record = previous as MutableConfigRecord;
+    const nestedConfig = config;
+    const record = config as unknown as MutableConfigRecord;
     const nested: NeuralwattConfig = {
       provider: {
         ...(isObject(nestedConfig.provider) ? nestedConfig.provider : {}),
@@ -100,14 +113,18 @@ export const flatToNestedConfigMigration: Migration<MigrationConfig> = {
       };
     }
 
-    const includeHiddenModels = booleanValue(record, "includeHiddenModels");
+    // Flat configs predate the rename, so they still use `includeHiddenModels`.
+    const includeEarlyAccessModels = booleanValue(
+      record,
+      "includeHiddenModels",
+    );
     if (
-      nested.provider?.includeHiddenModels === undefined &&
-      includeHiddenModels !== undefined
+      nested.provider?.includeEarlyAccessModels === undefined &&
+      includeEarlyAccessModels !== undefined
     ) {
       nested.provider = {
         ...nested.provider,
-        includeHiddenModels,
+        includeEarlyAccessModels,
       };
     }
 

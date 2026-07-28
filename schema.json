@@ -31,8 +31,8 @@
     "NeuralwattProviderConfig": {
       "additionalProperties": false,
       "properties": {
-        "includeHiddenModels": {
-          "description": "Include hidden Neuralwatt models discovered via the authenticated API.",
+        "includeEarlyAccessModels": {
+          "description": "Include early-access Neuralwatt models discovered via the authenticated API.",
           "type": "boolean"
         },
         "includeLegacyModelIds": {

@@ -61,8 +61,8 @@ function registerNeuralwattProvider(
       refreshNeuralwattModels(context, {
         includeLegacyModelIds:
           configLoader.getConfig().provider.includeLegacyModelIds,
-        includeHiddenModels:
-          configLoader.getConfig().provider.includeHiddenModels,
+        includeEarlyAccessModels:
+          configLoader.getConfig().provider.includeEarlyAccessModels,
       }),
   };
 
@@ -113,8 +113,8 @@ export default async function (pi: ExtensionAPI) {
     if (
       next.includeLegacyModelIds ===
         registeredProviderSettings.includeLegacyModelIds &&
-      next.includeHiddenModels ===
-        registeredProviderSettings.includeHiddenModels
+      next.includeEarlyAccessModels ===
+        registeredProviderSettings.includeEarlyAccessModels
     ) {
       return;
     }

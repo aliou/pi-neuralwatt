@@ -1,29 +1,9 @@
-export interface PreviousNeuralwattConfig {
-  /** $schema URL for editor autocomplete. */
-  $schema?: string;
-
-  /** Show the quota command (/neuralwatt:quota). */
-  quotaCommand?: boolean;
-
-  /** Show quota warnings when credits or energy are low. */
-  quotaWarnings?: boolean;
-
-  /** Show usage in the sub-bar / status bar. */
-  subBarIntegration?: boolean;
-
-  /** Include legacy Neuralwatt model IDs in the model picker. */
-  includeLegacyModelIds?: boolean;
-
-  /** Include hidden Neuralwatt models discovered via the authenticated API. */
-  includeHiddenModels?: boolean;
-}
-
 export interface NeuralwattProviderConfig {
   /** Include legacy Neuralwatt model IDs in the model picker. */
   includeLegacyModelIds?: boolean;
 
-  /** Include hidden Neuralwatt models discovered via the authenticated API. */
-  includeHiddenModels?: boolean;
+  /** Include early-access Neuralwatt models discovered via the authenticated API. */
+  includeEarlyAccessModels?: boolean;
 }
 
 export interface NeuralwattQuotaCommandConfig {
@@ -58,12 +38,10 @@ export interface NeuralwattConfig {
   subBarIntegration?: NeuralwattSubBarIntegrationConfig;
 }
 
-export type NeuralwattRawConfig = PreviousNeuralwattConfig | NeuralwattConfig;
-
 export interface ResolvedNeuralwattConfig {
   provider: {
     includeLegacyModelIds: boolean;
-    includeHiddenModels: boolean;
+    includeEarlyAccessModels: boolean;
   };
   quotaCommand: {
     enabled: boolean;

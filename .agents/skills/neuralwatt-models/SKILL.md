@@ -1,6 +1,6 @@
 ---
 name: neuralwatt-models
-description: Update public or hidden model metadata for the pi-neuralwatt extension. Use when adding or refreshing entries in extensions/provider/models/public-models.ts or extensions/provider/models/hidden.ts, checking Neuralwatt model availability, or syncing hardcoded models with the live Neuralwatt API.
+description: Update public or early-access model metadata for the pi-neuralwatt extension. Use when adding or refreshing entries in extensions/provider/models/public-models.ts or extensions/provider/models/early-access.ts, checking Neuralwatt model availability, or syncing hardcoded models with the live Neuralwatt API.
 ---
 
 # Update Neuralwatt models
@@ -12,7 +12,7 @@ shared pricing, modalities, and `thinkingLevelMap`; each variant (`-fast`,
 `-flex`, `-short`, ...) only declares `id`, `name`, `contextWindow`,
 `maxOutputTokens`, `reasoning`, and any override. `buildNeuralwattModel` in
 `extensions/provider/models/build.ts` turns those into `ProviderModelConfig`
-values and is shared with hidden model discovery, so the compat defaults and the
+values and is shared with early-access model discovery, so the compat defaults and the
 `maxTokens` rule live in exactly one place. Add variants to the existing family
 rather than copying a full model literal.
 
@@ -199,11 +199,11 @@ Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a
 - Do not add `compat` fields beyond current repo conventions unless live behavior requires it.
 - Do not ask the user which models to update unless there is a true ambiguity you cannot resolve.
 
-## Adding hidden models
+## Adding early-access models
 
 Use this workflow when a model is available only to authenticated accounts or direct inference requests.
 
-### Choose the hidden model path
+### Choose the early-access model path
 
 First compare these two requests using the same credential:
 
@@ -212,12 +212,12 @@ First compare these two requests using the same credential:
 
 Handle the result as follows:
 
-- If the authenticated catalog includes the model, dynamic discovery in `extensions/provider/models/hidden.ts` should load it. Add an override only when Pi-specific behavior is missing or incorrect.
-- If chat completions accepts the model but the authenticated catalog omits it, add a fully specified entry to `HIDDEN_NEURALWATT_MODELS` in `extensions/provider/models/hidden.ts`.
+- If the authenticated catalog includes the model, dynamic discovery in `extensions/provider/models/early-access.ts` should load it. Add an override only when Pi-specific behavior is missing or incorrect.
+- If chat completions accepts the model but the authenticated catalog omits it, add a fully specified entry to `EARLY_ACCESS_NEURALWATT_MODELS` in `extensions/provider/models/early-access.ts`.
 - If chat completions rejects the model, do not add it. Test likely aliases before concluding that it is unavailable.
-- Never place an API-omitted model in `NEURALWATT_MODELS`. Public definitions are validated against the public catalog and are exposed regardless of `provider.includeHiddenModels`.
+- Never place an API-omitted model in `NEURALWATT_MODELS`. Public definitions are validated against the public catalog and are exposed regardless of `provider.includeEarlyAccessModels`.
 
-`refreshNeuralwattModels` merges hardcoded hidden models with cached and dynamically discovered models for online and offline startup. Public and legacy baseline definitions take precedence over early-access entries. Keep hardcoded early-access IDs unique, and remove or graduate an entry when Neuralwatt starts advertising it publicly.
+`refreshNeuralwattModels` merges hardcoded early-access models with cached and dynamically discovered models for online and offline startup. Public and legacy baseline definitions take precedence over early-access entries. Keep hardcoded early-access IDs unique, and remove or graduate an entry when Neuralwatt starts advertising it publicly.
 
 ### Probe runtime behavior
 
@@ -272,15 +272,15 @@ Document uncertainty in the implementation comment when pricing remains inferred
 
 Read and update:
 
-- `extensions/provider/models/hidden.ts`
+- `extensions/provider/models/early-access.ts`
 - `extensions/provider/models/refresh.ts`
 - `extensions/provider/models/refresh.test.ts`
-- `extensions/provider/models/index.ts` when a new hidden model collection must be exported
+- `extensions/provider/models/index.ts` when a new early-access model collection must be exported
 
 Add tests that prove:
 
-1. The hardcoded hidden model appears and is persisted when `includeHiddenModels` is enabled, even when discovery returns an empty list.
-2. The model is absent when `includeHiddenModels` is disabled.
+1. The hardcoded early-access model appears and is persisted when `includeEarlyAccessModels` is enabled, even when discovery returns an empty list.
+2. The model is absent when `includeEarlyAccessModels` is disabled.
 3. The exact runtime-critical config is preserved: modalities, reasoning mapping, compat fields, context, output limit, and costs.
 4. Public models retain precedence on ID collisions.
 
@@ -292,7 +292,7 @@ pnpm lint
 pnpm test
 ```
 
-Create a patch changeset for the package and stage only the hidden model implementation, tests, and changeset.
+Create a patch changeset for the package and stage only the early-access model implementation, tests, and changeset.
 
 ## Required runtime checks
 
@@ -386,7 +386,7 @@ When done, summarize:
 Use these exact paths in this repo:
 
 - `extensions/provider/models/public-models.ts`
-- `extensions/provider/models/hidden.ts`
+- `extensions/provider/models/early-access.ts`
 - `extensions/provider/models/refresh.ts`
 - `extensions/provider/models/refresh.test.ts`
 - `extensions/provider/models.test.ts`

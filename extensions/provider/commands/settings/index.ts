@@ -7,7 +7,6 @@ import type { SettingItem } from "@earendil-works/pi-tui";
 import {
   configLoader,
   type NeuralwattConfig,
-  type NeuralwattRawConfig,
   type ResolvedNeuralwattConfig,
 } from "../../../../src/config";
 import {
@@ -50,51 +49,11 @@ function featureRow(
   };
 }
 
-function optionalFeatureValue(value: unknown): boolean | undefined {
-  if (typeof value === "boolean") return value;
-  if (value && typeof value === "object") {
-    const enabled = (value as { enabled?: boolean }).enabled;
-    if (typeof enabled === "boolean") return enabled;
-  }
-  return undefined;
-}
-
-function featureValue(value: unknown, fallback: boolean): boolean {
-  return optionalFeatureValue(value) ?? fallback;
-}
-
-function toNestedConfig(config: NeuralwattRawConfig): NeuralwattConfig {
-  const provider = "provider" in config ? config.provider : undefined;
-
-  return {
-    provider: {
-      ...(provider ?? {}),
-      includeLegacyModelIds:
-        provider?.includeLegacyModelIds ??
-        ("includeLegacyModelIds" in config
-          ? config.includeLegacyModelIds
-          : undefined),
-      includeHiddenModels:
-        provider?.includeHiddenModels ??
-        ("includeHiddenModels" in config
-          ? config.includeHiddenModels
-          : undefined),
-    },
-    quotaCommand: {
-      ...(typeof config.quotaCommand === "object" ? config.quotaCommand : {}),
-      enabled: optionalFeatureValue(config.quotaCommand),
-    },
-    quotaWarnings: {
-      ...(typeof config.quotaWarnings === "object" ? config.quotaWarnings : {}),
-      enabled: optionalFeatureValue(config.quotaWarnings),
-    },
-    subBarIntegration: {
-      ...(typeof config.subBarIntegration === "object"
-        ? config.subBarIntegration
-        : {}),
-      enabled: optionalFeatureValue(config.subBarIntegration),
-    },
-  };
+function featureValue(
+  section: { enabled?: boolean } | undefined,
+  fallback: boolean,
+): boolean {
+  return section?.enabled ?? fallback;
 }
 
 export function registerNeuralwattSettings(
@@ -103,7 +62,7 @@ export function registerNeuralwattSettings(
 ): void {
   const { getLoadedFeatures } = options;
 
-  registerSettingsCommand<NeuralwattRawConfig, ResolvedNeuralwattConfig>(pi, {
+  registerSettingsCommand<NeuralwattConfig, ResolvedNeuralwattConfig>(pi, {
     commandName: "neuralwatt:settings",
     title: "Neuralwatt Settings",
     configStore: configLoader,
@@ -154,30 +113,20 @@ export function registerNeuralwattSettings(
               description:
                 "Include deprecated Neuralwatt model IDs as aliases in the model picker",
               currentValue:
-                ((tabConfig &&
-                  "provider" in tabConfig &&
-                  tabConfig.provider?.includeLegacyModelIds) ??
-                (tabConfig &&
-                  "includeLegacyModelIds" in tabConfig &&
-                  tabConfig.includeLegacyModelIds) ??
+                (tabConfig?.provider?.includeLegacyModelIds ??
                 resolved.provider.includeLegacyModelIds)
                   ? "include"
                   : "ignore",
               values: ["include", "ignore"],
             },
             {
-              id: "includeHiddenModels",
-              label: "Hidden models",
+              id: "includeEarlyAccessModels",
+              label: "Early access models",
               description:
-                "Include Neuralwatt models that are accessible via API key but not advertised in the public model list",
+                "Include pre-release Neuralwatt models that your API key can reach but that are not yet in the public model list",
               currentValue:
-                ((tabConfig &&
-                  "provider" in tabConfig &&
-                  tabConfig.provider?.includeHiddenModels) ??
-                (tabConfig &&
-                  "includeHiddenModels" in tabConfig &&
-                  tabConfig.includeHiddenModels) ??
-                resolved.provider.includeHiddenModels)
+                (tabConfig?.provider?.includeEarlyAccessModels ??
+                resolved.provider.includeEarlyAccessModels)
                   ? "include"
                   : "ignore",
               values: ["include", "ignore"],
@@ -190,23 +139,21 @@ export function registerNeuralwattSettings(
       // Non-feature toggles are handled first so they are not blocked by the
       // loaded-features guard (they are managed directly by the provider).
       if (id === "includeLegacyModelIds") {
-        const nestedConfig = toNestedConfig(config);
         return {
-          ...nestedConfig,
+          ...config,
           provider: {
-            ...nestedConfig.provider,
+            ...config.provider,
             includeLegacyModelIds: newValue === "include",
           },
         };
       }
 
-      if (id === "includeHiddenModels") {
-        const nestedConfig = toNestedConfig(config);
+      if (id === "includeEarlyAccessModels") {
         return {
-          ...nestedConfig,
+          ...config,
           provider: {
-            ...nestedConfig.provider,
-            includeHiddenModels: newValue === "include",
+            ...config.provider,
+            includeEarlyAccessModels: newValue === "include",
           },
         };
       }
@@ -219,21 +166,18 @@ export function registerNeuralwattSettings(
       switch (id) {
         case "quotaCommand":
           return {
-            ...toNestedConfig(config),
-            quotaCommand: { ...toNestedConfig(config).quotaCommand, enabled },
+            ...config,
+            quotaCommand: { ...config.quotaCommand, enabled },
           };
         case "quotaWarnings":
           return {
-            ...toNestedConfig(config),
-            quotaWarnings: { ...toNestedConfig(config).quotaWarnings, enabled },
+            ...config,
+            quotaWarnings: { ...config.quotaWarnings, enabled },
           };
         case "subBarIntegration":
           return {
-            ...toNestedConfig(config),
-            subBarIntegration: {
-              ...toNestedConfig(config).subBarIntegration,
-              enabled,
-            },
+            ...config,
+            subBarIntegration: { ...config.subBarIntegration, enabled },
           };
         default:
           return null;

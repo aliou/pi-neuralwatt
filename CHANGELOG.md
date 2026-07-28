@@ -1,5 +1,13 @@
 # @aliou/pi-extension-template
 
+## 0.10.5
+
+### Patch Changes
+
+- f167e39: Add Kimi K3 to the hidden catalog, move DeepSeek V4 Flash to the public catalog
+  with Neuralwatt's published metadata, and retain Gemma 4 31B's former model ID
+  as a legacy alias.
+
 ## 0.10.4
 
 ### Patch Changes

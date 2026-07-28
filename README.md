@@ -78,7 +78,7 @@ Configure features with `/neuralwatt:settings`:
 - **Quota warnings** — Enable/disable low quota notifications
 - **Sub-bar integration** — Show/hide usage in status bar
 - **Legacy model IDs** — Include deprecated model aliases
-- **Hidden models** — Include models available only to the configured API key
+- **Early access models** — Include pre-release models available only to the configured API key
 
 The provider itself cannot be disabled — it is always loaded.
 
@@ -86,7 +86,7 @@ Configuration uses nested per-feature sections. Existing flat config files are m
 
 ### Model Refresh
 
-Neuralwatt registers its public models without network access. When hidden models are enabled, opening `/model` refreshes the authenticated catalog in the background. `pi update --models` forces an immediate refresh.
+Neuralwatt registers its public models without network access. When early-access models are enabled, opening `/model` refreshes the authenticated catalog in the background. `pi update --models` forces an immediate refresh.
 
 Pi stores the complete effective Neuralwatt catalog in `~/.pi/agent/models-store.json` for offline startup. Current hardcoded public and legacy definitions remain authoritative when cached models are restored.
 

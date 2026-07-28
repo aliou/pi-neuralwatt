@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  EARLY_ACCESS_NEURALWATT_MODELS,
   getNeuralwattModels,
-  HIDDEN_NEURALWATT_MODELS,
   LEGACY_NEURALWATT_MODEL_IDS,
   NEURALWATT_MODELS,
 } from "./models";
@@ -270,7 +270,10 @@ describe("Neuralwatt models", () => {
   });
 
   it("should never allow more output tokens than context", () => {
-    for (const model of [...NEURALWATT_MODELS, ...HIDDEN_NEURALWATT_MODELS]) {
+    for (const model of [
+      ...NEURALWATT_MODELS,
+      ...EARLY_ACCESS_NEURALWATT_MODELS,
+    ]) {
       expect(model.maxTokens, model.id).toBeGreaterThan(0);
       expect(model.maxTokens, model.id).toBeLessThanOrEqual(
         model.contextWindow,
@@ -278,9 +281,9 @@ describe("Neuralwatt models", () => {
     }
   });
 
-  it("should keep hidden model IDs out of the public catalog", () => {
+  it("should keep early-access model IDs out of the public catalog", () => {
     const publicIds = new Set(NEURALWATT_MODELS.map((m) => m.id));
-    for (const model of HIDDEN_NEURALWATT_MODELS) {
+    for (const model of EARLY_ACCESS_NEURALWATT_MODELS) {
       expect(publicIds.has(model.id), model.id).toBe(false);
     }
   });

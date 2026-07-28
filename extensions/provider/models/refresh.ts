@@ -5,7 +5,10 @@ import type {
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
-import { HIDDEN_NEURALWATT_MODELS, loadHiddenModels } from "./hidden";
+import {
+  EARLY_ACCESS_NEURALWATT_MODELS,
+  loadEarlyAccessModels,
+} from "./early-access";
 import { buildLegacyNeuralwattModels } from "./legacy";
 import { NEURALWATT_MODELS } from "./public-models";
 
@@ -15,8 +18,8 @@ const API = "openai-completions" as const;
 
 export interface RefreshNeuralwattModelsOptions {
   includeLegacyModelIds: boolean;
-  includeHiddenModels: boolean;
-  loadHidden?: typeof loadHiddenModels;
+  includeEarlyAccessModels: boolean;
+  loadEarlyAccess?: typeof loadEarlyAccessModels;
 }
 
 function configuredModels(
@@ -59,31 +62,31 @@ function toProviderModel(model: Model<Api>): ProviderModelConfig {
   };
 }
 
-function dedupeHiddenModels(
-  hiddenModels: ProviderModelConfig[],
+function dedupeEarlyAccessModels(
+  earlyAccessModels: ProviderModelConfig[],
   baselineModels: ProviderModelConfig[],
 ): ProviderModelConfig[] {
   const baselineIds = new Set(baselineModels.map((model) => model.id));
-  return hiddenModels.filter((model) => !baselineIds.has(model.id));
+  return earlyAccessModels.filter((model) => !baselineIds.has(model.id));
 }
 
-function configuredHiddenModels(
+function configuredEarlyAccessModels(
   discoveredModels: ProviderModelConfig[],
   baselineModels: ProviderModelConfig[],
 ): ProviderModelConfig[] {
   const hardcodedIds = new Set(
-    HIDDEN_NEURALWATT_MODELS.map((model) => model.id),
+    EARLY_ACCESS_NEURALWATT_MODELS.map((model) => model.id),
   );
-  return dedupeHiddenModels(
+  return dedupeEarlyAccessModels(
     [
-      ...HIDDEN_NEURALWATT_MODELS,
+      ...EARLY_ACCESS_NEURALWATT_MODELS,
       ...discoveredModels.filter((model) => !hardcodedIds.has(model.id)),
     ],
     baselineModels,
   );
 }
 
-function cachedHiddenModels(
+function cachedEarlyAccessModels(
   stored: ModelsStoreEntry | undefined,
 ): ProviderModelConfig[] {
   if (!stored) return [];
@@ -115,16 +118,16 @@ export async function refreshNeuralwattModels(
   const baseline = configuredModels(options.includeLegacyModelIds);
   const stored = await context.store.read();
 
-  if (!options.includeHiddenModels) {
+  if (!options.includeEarlyAccessModels) {
     await persistModels(context, baseline);
     return baseline;
   }
 
-  const cachedHidden = configuredHiddenModels(
-    cachedHiddenModels(stored),
+  const cachedEarlyAccess = configuredEarlyAccessModels(
+    cachedEarlyAccessModels(stored),
     baseline,
   );
-  const cachedCatalog = [...baseline, ...cachedHidden];
+  const cachedCatalog = [...baseline, ...cachedEarlyAccess];
 
   if (!context.allowNetwork || context.signal?.aborted) {
     return cachedCatalog;
@@ -134,16 +137,19 @@ export async function refreshNeuralwattModels(
     context.credential?.type === "api_key" ? context.credential.key : undefined;
   if (!apiKey) return cachedCatalog;
 
-  const hidden = await (options.loadHidden ?? loadHiddenModels)(
+  const earlyAccess = await (options.loadEarlyAccess ?? loadEarlyAccessModels)(
     apiKey,
     context.signal,
   );
   if (context.signal?.aborted) return cachedCatalog;
-  if (!hidden) {
+  if (!earlyAccess) {
     throw new Error("Neuralwatt model catalog refresh failed");
   }
 
-  const catalog = [...baseline, ...configuredHiddenModels(hidden, baseline)];
+  const catalog = [
+    ...baseline,
+    ...configuredEarlyAccessModels(earlyAccess, baseline),
+  ];
   await persistModels(context, catalog);
   return catalog;
 }

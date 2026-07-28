@@ -4,11 +4,12 @@ import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import { buildNeuralwattModel, resolveMaxTokens } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
 
-// Hidden models available to authorized accounts but omitted from the public
-// /v1/models response. Keep these gated by includeHiddenModels and hardcode
-// early-access entries so they remain available from the offline catalog.
+// Pre-release models. Neuralwatt ships these to authorized accounts before they
+// reach the public /v1/models response; most go public eventually. Keep them
+// gated by includeEarlyAccessModels and hardcode entries so they remain
+// available from the offline catalog.
 // Move an entry to public-models.ts once Neuralwatt advertises it publicly.
-export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [
+export const EARLY_ACCESS_NEURALWATT_MODELS: ProviderModelConfig[] = [
   // Kimi K3 - early-access MoonshotAI multimodal MoE.
   // Metadata is sourced from Neuralwatt's authenticated model catalog.
   buildNeuralwattModel(
@@ -33,18 +34,20 @@ export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [
   ),
 ];
 
-// Per-ID overrides for known hidden models. The authenticated /v1/models endpoint
-// exposes pricing and capabilities, but some Pi-specific behavior
+// Per-ID overrides for known early-access models. The authenticated /v1/models
+// endpoint exposes pricing and capabilities, but some Pi-specific behavior
 // (thinking levels, compat flags) has to be supplied by hand.
-// Previously hidden models that have since gone public now live in public-models.ts.
-const HIDDEN_MODEL_OVERRIDES: Partial<
+// Models that have since gone public now live in public-models.ts.
+const EARLY_ACCESS_MODEL_OVERRIDES: Partial<
   Record<string, Partial<ProviderModelConfig>>
 > = {};
 
-function buildHiddenModel(apiModel: NeuralwattApiModel): ProviderModelConfig {
+function buildEarlyAccessModel(
+  apiModel: NeuralwattApiModel,
+): ProviderModelConfig {
   const meta = apiModel.metadata;
   const reasoning = meta?.capabilities.reasoning ?? false;
-  const override = HIDDEN_MODEL_OVERRIDES[apiModel.id];
+  const override = EARLY_ACCESS_MODEL_OVERRIDES[apiModel.id];
 
   const compat: NonNullable<ProviderModelConfig["compat"]> = {
     supportsDeveloperRole: false,
@@ -87,13 +90,13 @@ function buildHiddenModel(apiModel: NeuralwattApiModel): ProviderModelConfig {
   }
 
   if (override) {
-    return applyHiddenOverride(model, override);
+    return applyEarlyAccessOverride(model, override);
   }
 
   return model;
 }
 
-function applyHiddenOverride(
+function applyEarlyAccessOverride(
   model: ProviderModelConfig,
   override: Partial<ProviderModelConfig>,
 ): ProviderModelConfig {
@@ -120,14 +123,14 @@ function applyHiddenOverride(
 }
 
 /**
- * Load hidden models from the authenticated /v1/models endpoint.
+ * Load early-access models from the authenticated /v1/models endpoint.
  *
- * Hidden models are any models returned by the API that are not already
+ * Early-access models are any models returned by the API that are not already
  * part of the public hardcoded list. If the API key is missing or the request
  * fails, an `undefined` distinguishes an unavailable/failed request from a
  * successful empty list, allowing refresh callers to preserve stale cache.
  */
-export async function loadHiddenModels(
+export async function loadEarlyAccessModels(
   apiKey: string,
   signal?: AbortSignal,
 ): Promise<ProviderModelConfig[] | undefined> {
@@ -144,5 +147,5 @@ export async function loadHiddenModels(
         !model.metadata?.deprecated && !model.metadata?.pricing.pricing_tbd,
     )
     .filter((model) => !publicIds.has(model.id))
-    .map(buildHiddenModel);
+    .map(buildEarlyAccessModel);
 }

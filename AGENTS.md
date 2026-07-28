@@ -115,7 +115,7 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
 - **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
 - **Legacy model IDs** (`provider.includeLegacyModelIds`) - Include deprecated model aliases
-- **Hidden models** (`provider.includeHiddenModels`) - Include hidden models
+- **Early access models** (`provider.includeEarlyAccessModels`) - Include early-access models
 
 The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
@@ -127,15 +127,15 @@ Public models are declared as a family/variant table. A family holds the default
 
 Variants combine independent modifiers, not a fixed list: `-short` (smaller context, bounded output), `-fast` (reasoning disabled), and `-flex` (Flex tier). GLM-5.2 alone ships `glm-5.2`, `-fast`, `-flex`, `-short`, `-short-fast`, `-short-flex`, and `-short-fast-flex`. A variant may differ from its family in more than limits: override `cost` for a variant priced differently, or set `costMultiplier` for a proportional change such as the Flex discount.
 
-`buildNeuralwattModel` in `build.ts` applies the compat defaults and the limit rule `maxTokens = metadata.limits.max_output_tokens ?? max_model_len`; hidden model discovery uses the same builder. `extensions/provider/models.test.ts` diffs the definitions against the live catalog and skips when the API is unreachable.
+`buildNeuralwattModel` in `build.ts` applies the compat defaults and the limit rule `maxTokens = metadata.limits.max_output_tokens ?? max_model_len`; early-access model discovery uses the same builder. `extensions/provider/models.test.ts` diffs the definitions against the live catalog and skips when the API is unreachable.
 
 ### Flex variants
 
 `-flex` models are the [Flex tier](https://portal.neuralwatt.com/docs/guides/flex-tier): same model, limits, and prompt cache as the standard variant, but admitted when there is spare capacity. They are billed at 65% of standard (35% off), applied through `costMultiplier` on the variant. The discount only applies to streaming requests; a non-streaming request to a `-flex` model falls back to the standard tier and standard price, and reports `service_tier: "standard"`. Flex models are not in the public `/v1/models` response, so the drift test skips them.
 
-### Hidden models
+### Early access models
 
-Some Neuralwatt models are pre-release: reachable with an authenticated API key but not yet part of the public `/v1/models` list. They are not secret, and most go public eventually. Enabling the `provider.includeHiddenModels` setting makes them available.
+Some Neuralwatt models are pre-release: reachable with an authenticated API key but not yet part of the public `/v1/models` list. They are not secret, and most go public eventually. Enabling the `provider.includeEarlyAccessModels` setting makes them available.
 
 The setting was called `provider.includeHiddenModels` before 0.11. Migration `03-rename-hidden-to-early-access` rewrites it on load.
 
@@ -146,9 +146,9 @@ The provider implements Pi's `refreshModels(context)` API. Pi supplies the resol
 The refresh flow is:
 
 1. Register hardcoded public models and configured legacy aliases synchronously.
-2. During offline startup, restore dynamic hidden models from Pi's provider-scoped cache.
-3. During network refresh, fetch authenticated `/v1/models`, combine hidden models with current public and legacy definitions, and persist the complete effective catalog through `context.store`.
-4. Preserve the stale catalog when a network refresh fails. A successful empty result purges removed hidden models.
+2. During offline startup, restore dynamic early-access models from Pi's provider-scoped cache.
+3. During network refresh, fetch authenticated `/v1/models`, combine early-access models with current public and legacy definitions, and persist the complete effective catalog through `context.store`.
+4. Preserve the stale catalog when a network refresh fails. A successful empty result purges removed early-access models.
 
 Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public and legacy definitions in source remain authoritative over cached copies.
 

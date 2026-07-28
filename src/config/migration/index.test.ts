@@ -5,12 +5,12 @@ import { ConfigLoader } from "@aliou/pi-utils-settings";
 import { afterEach, describe, expect, it } from "vitest";
 import packageJson from "../../../package.json";
 import { DEFAULT_CONFIG } from "../defaults";
-import type {
-  NeuralwattConfig,
-  NeuralwattRawConfig,
-  ResolvedNeuralwattConfig,
-} from "../types";
-import { backupConfig, flatToNestedConfigMigration } from "./index";
+import type { NeuralwattConfig, ResolvedNeuralwattConfig } from "../types";
+import {
+  backupConfig,
+  flatToNestedConfigMigration,
+  renameHiddenToEarlyAccessMigration,
+} from "./index";
 
 const tempDirs: string[] = [];
 
@@ -27,7 +27,7 @@ async function runFlatMigration(
 ): Promise<NeuralwattConfig> {
   const { filePath } = await tempConfigFile();
   return flatToNestedConfigMigration.run(
-    config as NeuralwattRawConfig,
+    config as NeuralwattConfig,
     filePath,
   ) as Promise<NeuralwattConfig>;
 }
@@ -36,6 +36,51 @@ afterEach(async () => {
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true })),
   );
+});
+
+describe("renameHiddenToEarlyAccessMigration", () => {
+  const run = async (config: Record<string, unknown>) =>
+    (await renameHiddenToEarlyAccessMigration.run(
+      config as NeuralwattConfig,
+      "neuralwatt.json",
+    )) as NeuralwattConfig;
+
+  it("runs only when the pre-rename key is present", () => {
+    const shouldRun = (config: Record<string, unknown>) =>
+      renameHiddenToEarlyAccessMigration.shouldRun(config as NeuralwattConfig);
+
+    expect(shouldRun({ provider: { includeHiddenModels: true } })).toBe(true);
+    expect(shouldRun({ provider: { includeEarlyAccessModels: true } })).toBe(
+      false,
+    );
+    expect(shouldRun({ quotaCommand: { enabled: true } })).toBe(false);
+    expect(shouldRun({ includeHiddenModels: true })).toBe(false);
+  });
+
+  it("renames the key and keeps other settings", async () => {
+    const migrated = await run({
+      provider: { includeHiddenModels: true, includeLegacyModelIds: true },
+      quotaCommand: { enabled: false },
+    });
+
+    expect(migrated).toEqual({
+      provider: {
+        includeEarlyAccessModels: true,
+        includeLegacyModelIds: true,
+      },
+      quotaCommand: { enabled: false },
+    });
+  });
+
+  it("keeps an existing new key and drops the old one", async () => {
+    const migrated = await run({
+      provider: { includeHiddenModels: true, includeEarlyAccessModels: false },
+    });
+
+    expect(migrated).toEqual({
+      provider: { includeEarlyAccessModels: false },
+    });
+  });
 });
 
 describe("flatToNestedConfigMigration", () => {
@@ -51,7 +96,7 @@ describe("flatToNestedConfigMigration", () => {
     expect(migrated).toEqual({
       provider: {
         includeLegacyModelIds: true,
-        includeHiddenModels: true,
+        includeEarlyAccessModels: true,
       },
       quotaCommand: { enabled: false },
       quotaWarnings: { enabled: true },
@@ -63,13 +108,13 @@ describe("flatToNestedConfigMigration", () => {
     const mixed = {
       quotaWarnings: false,
       includeHiddenModels: false,
-      provider: { includeHiddenModels: true },
+      provider: { includeEarlyAccessModels: true },
       quotaCommand: { enabled: true },
     } as Record<string, unknown>;
     const migrated = await runFlatMigration(mixed);
 
     expect(migrated).toEqual({
-      provider: { includeHiddenModels: true },
+      provider: { includeEarlyAccessModels: true },
       quotaCommand: { enabled: true },
       quotaWarnings: { enabled: false },
       subBarIntegration: {},
@@ -79,7 +124,7 @@ describe("flatToNestedConfigMigration", () => {
   it("creates a backup next to the migrated config", async () => {
     const { dir, filePath } = await tempConfigFile();
     await flatToNestedConfigMigration.run(
-      { quotaCommand: false } as unknown as NeuralwattRawConfig,
+      { quotaCommand: false } as unknown as NeuralwattConfig,
       filePath,
     );
 
@@ -111,7 +156,7 @@ describe("flatToNestedConfigMigration", () => {
 
     await expect(
       flatToNestedConfigMigration.run(
-        { quotaCommand: false } as NeuralwattRawConfig,
+        { quotaCommand: false } as unknown as NeuralwattConfig,
         join(dir, "missing.json"),
       ),
     ).rejects.toThrow();
@@ -132,7 +177,7 @@ describe("flatToNestedConfigMigration", () => {
     try {
       process.chdir(dir);
       const loader = new ConfigLoader<
-        NeuralwattRawConfig,
+        NeuralwattConfig,
         ResolvedNeuralwattConfig
       >("neuralwatt", DEFAULT_CONFIG, {
         scopes: ["local"],

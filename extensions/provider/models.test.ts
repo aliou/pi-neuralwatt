@@ -5,6 +5,7 @@ import {
   LEGACY_NEURALWATT_MODEL_IDS,
   NEURALWATT_MODELS,
 } from "./models";
+import { FLEX_COST_MULTIPLIER } from "./models/build";
 
 interface ApiModelMetadata {
   display_name: string;
@@ -342,6 +343,32 @@ describe("Neuralwatt models", () => {
     expect(byId.get("kimi-k2.7-code-flex")?.thinkingLevelMap).toEqual(
       byId.get("kimi-k2.7-code")?.thinkingLevelMap,
     );
+  });
+
+  it("should price flex variants with the flex multiplier", () => {
+    const byId = new Map(NEURALWATT_MODELS.map((m) => [m.id, m]));
+    const pairs: [string, string][] = [
+      ["glm-5.2-flex", "glm-5.2"],
+      ["glm-5.2-short-flex", "glm-5.2-short"],
+      ["glm-5.2-short-fast-flex", "glm-5.2-short-fast"],
+      ["kimi-k2.6-flex", "kimi-k2.6"],
+      ["kimi-k2.7-code-flex", "kimi-k2.7-code"],
+    ];
+
+    for (const [flexId, standardId] of pairs) {
+      const flex = byId.get(flexId);
+      const standard = byId.get(standardId);
+      expect(flex, flexId).toBeDefined();
+      expect(standard, standardId).toBeDefined();
+      if (!flex || !standard) continue;
+
+      for (const field of ["input", "output", "cacheRead"] as const) {
+        expect(flex.cost[field], `${flexId}.cost.${field}`).toBeCloseTo(
+          standard.cost[field] * FLEX_COST_MULTIPLIER,
+          6,
+        );
+      }
+    }
   });
 
   it("should only include legacy model IDs when enabled", () => {

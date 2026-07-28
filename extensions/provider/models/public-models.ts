@@ -1,6 +1,7 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
   buildNeuralwattFamily,
+  FLEX_COST_MULTIPLIER,
   type NeuralwattModelFamily,
   type NeuralwattVariantSpec,
   type ThinkingLevelMap,
@@ -138,6 +139,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
       {
         id: "glm-5.2-short",
@@ -159,6 +161,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 199984,
         maxOutputTokens: 32000,
         reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
       {
         id: "glm-5.2-short-fast-flex",
@@ -166,6 +169,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 199984,
         maxOutputTokens: 32000,
         reasoning: false,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],
@@ -192,6 +196,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 262128,
         maxOutputTokens: null,
         reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],
@@ -218,6 +223,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 262128,
         maxOutputTokens: null,
         reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],
@@ -261,8 +267,11 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
   ],
 ];
 
-// `-flex` variants are not advertised by the public /v1/models response; the
-// drift check in models.test.ts tolerates them instead of failing on them.
+// `-flex` variants are the Flex tier: same model, context window, output cap,
+// and prompt cache as the standard variant, admitted on spare capacity.
+// /v1/models does not advertise them (not even to an authenticated key), so they
+// stay hardcoded here and the drift check in models.test.ts skips them.
+// https://portal.neuralwatt.com/docs/guides/flex-tier
 
 export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(
   ([family, variants]) => buildNeuralwattFamily(family, variants),

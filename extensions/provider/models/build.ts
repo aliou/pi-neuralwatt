@@ -4,6 +4,15 @@ export type ThinkingLevelMap = NonNullable<
   ProviderModelConfig["thinkingLevelMap"]
 >;
 
+/**
+ * Flex tier is billed at 65% of standard pricing (35% off) when the request
+ * streams. A non-streaming request to a `-flex` model silently falls back to
+ * the standard tier and the standard price.
+ *
+ * https://portal.neuralwatt.com/docs/guides/flex-tier
+ */
+export const FLEX_COST_MULTIPLIER = 0.65;
+
 export interface NeuralwattCost {
   input: number;
   output: number;
@@ -33,6 +42,11 @@ export interface NeuralwattVariantSpec {
   maxOutputTokens: number | null;
   reasoning: boolean;
   cost?: Partial<NeuralwattCost>;
+  /**
+   * Multiplier applied to the family cost, e.g. the Flex tier discount.
+   * Applied after any per-variant `cost` override.
+   */
+  costMultiplier?: number;
   vision?: boolean;
   thinkingLevelMap?: ThinkingLevelMap;
 }
@@ -62,15 +76,19 @@ export function buildNeuralwattModel(
     compat.requiresReasoningContentOnAssistantMessages = true;
   }
 
+  const multiplier = variant.costMultiplier ?? 1;
+  const scale = (value: number): number =>
+    multiplier === 1 ? value : Number((value * multiplier).toFixed(6));
+
   const model: ProviderModelConfig = {
     id: variant.id,
     name: variant.name,
     reasoning: variant.reasoning,
     input: vision ? ["text", "image"] : ["text"],
     cost: {
-      input: variant.cost?.input ?? family.cost.input,
-      output: variant.cost?.output ?? family.cost.output,
-      cacheRead: variant.cost?.cacheRead ?? family.cost.cacheRead,
+      input: scale(variant.cost?.input ?? family.cost.input),
+      output: scale(variant.cost?.output ?? family.cost.output),
+      cacheRead: scale(variant.cost?.cacheRead ?? family.cost.cacheRead),
       cacheWrite: 0,
     },
     contextWindow: variant.contextWindow,

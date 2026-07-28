@@ -125,6 +125,13 @@ From `metadata`:
 - `deprecated` -> skip model if true
 - `pricing_tbd` -> skip model if true
 
+Flex variants (`-flex`) are the same model, context window, and output cap as the
+standard variant, admitted on spare capacity. They are billed at a 0.65 multiplier
+(35% off) when the request streams, so declare them with
+`costMultiplier: FLEX_COST_MULTIPLIER` rather than copying prices. A non-streaming
+request to a `-flex` model silently falls back to standard tier and standard price.
+See https://portal.neuralwatt.com/docs/guides/flex-tier.
+
 Use portal data or existing conventions for:
 - `fast` (derived from `owned_by === "neuralwatt"` or `-fast` suffix)
 - comments above each model

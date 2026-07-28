@@ -93,7 +93,7 @@ describe("refreshNeuralwattModels", () => {
         cacheWrite: 0,
       },
       contextWindow: 1048560,
-      maxTokens: 65536,
+      maxTokens: 1048560,
       thinkingLevelMap: {
         minimal: null,
         low: null,

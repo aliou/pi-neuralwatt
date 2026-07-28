@@ -1,6 +1,7 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { fetchNeuralwattModels } from "../../../src/lib/neuralwatt-api";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
+import { buildNeuralwattModel, resolveMaxTokens } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
 
 // Hidden models available to authorized accounts but omitted from the public
@@ -10,37 +11,31 @@ import { NEURALWATT_MODELS } from "./public-models";
 export const HIDDEN_NEURALWATT_MODELS: ProviderModelConfig[] = [
   // Kimi K3 - early-access MoonshotAI multimodal MoE.
   // Metadata is sourced from Neuralwatt's authenticated model catalog.
-  {
-    id: "kimi-k3",
-    name: "Kimi K3",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 3,
-      output: 15,
-      cacheRead: 0.3,
-      cacheWrite: 0,
+  buildNeuralwattModel(
+    {
+      cost: { input: 3, output: 15, cacheRead: 0.3 },
+      vision: true,
+      thinkingLevelMap: {
+        minimal: null,
+        low: null,
+        medium: "medium",
+        high: null,
+        xhigh: null,
+      },
     },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
+    {
+      id: "kimi-k3",
+      name: "Kimi K3",
+      contextWindow: 1048560,
+      maxOutputTokens: null,
+      reasoning: true,
     },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
+  ),
 ];
 
 // Per-ID overrides for known hidden models. The authenticated /v1/models endpoint
-// exposes pricing and capabilities, but some Pi-specific behavior (thinking levels,
-// compat flags) has to be supplied by hand.
+// exposes pricing and capabilities, but some Pi-specific behavior
+// (thinking levels, compat flags) has to be supplied by hand.
 // Previously hidden models that have since gone public now live in public-models.ts.
 const HIDDEN_MODEL_OVERRIDES: Partial<
   Record<string, Partial<ProviderModelConfig>>
@@ -74,7 +69,10 @@ function buildHiddenModel(apiModel: NeuralwattApiModel): ProviderModelConfig {
       cacheWrite: meta?.pricing.cached_output_per_million ?? 0,
     },
     contextWindow: apiModel.max_model_len,
-    maxTokens: meta?.limits.max_output_tokens ?? 65536,
+    maxTokens: resolveMaxTokens(
+      meta?.limits.max_output_tokens,
+      apiModel.max_model_len,
+    ),
     compat,
   };
 
@@ -124,10 +122,10 @@ function applyHiddenOverride(
 /**
  * Load hidden models from the authenticated /v1/models endpoint.
  *
- * Hidden models are any models returned by the API that are not already part of
- * the public hardcoded list. If the API key is missing or the request fails, an
- * `undefined` distinguishes an unavailable/failed request from a successful
- * empty hidden-model list, allowing refresh callers to preserve stale cache.
+ * Hidden models are any models returned by the API that are not already
+ * part of the public hardcoded list. If the API key is missing or the request
+ * fails, an `undefined` distinguishes an unavailable/failed request from a
+ * successful empty list, allowing refresh callers to preserve stale cache.
  */
 export async function loadHiddenModels(
   apiKey: string,

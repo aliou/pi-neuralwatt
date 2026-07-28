@@ -1,451 +1,269 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import {
+  buildNeuralwattFamily,
+  type NeuralwattModelFamily,
+  type NeuralwattVariantSpec,
+  type ThinkingLevelMap,
+} from "./build";
 
-// Public models returned by https://api.neuralwatt.com/v1/models (unauthenticated view).
-// Pricing, capabilities, and limits are sourced from the API metadata fields.
-export const NEURALWATT_MODELS: ProviderModelConfig[] = [
-  // DeepSeek V4 Flash - DeepSeek
-  {
-    id: "deepseek-v4-flash",
-    name: "DeepSeek V4 Flash",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 0.104,
-      output: 0.207,
-      cacheRead: 0.026,
-      cacheWrite: 0,
-    },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      off: "none",
-      minimal: "low",
-      low: "low",
-      medium: "medium",
-      high: "high",
-      xhigh: null,
-      max: "max",
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
+// Public models returned by https://api.neuralwatt.com/v1/models.
+// Pricing, capabilities, and limits are sourced from the API metadata fields;
+// `maxTokens` is `metadata.limits.max_output_tokens ?? max_model_len`.
+//
+// Models are declared per family so every variant (`-fast`, `-flex`, `-short`)
+// inherits the family's pricing, modalities, and thinking levels. See
+// `models.test.ts` for the drift check against the live catalog.
+
+// GLM natively supports `high` and `max` reasoning efforts. `xhigh` is an
+// unsupported hole between them. Pi added the `max` level in 0.80.6.
+const GLM_THINKING: ThinkingLevelMap = {
+  off: "none",
+  minimal: null,
+  low: null,
+  medium: null,
+  high: "high",
+  xhigh: null,
+  max: "max",
+};
+
+// Binary thinking control: expose a single known-good Pi level.
+const BINARY_THINKING: ThinkingLevelMap = {
+  minimal: null,
+  low: null,
+  medium: "medium",
+  high: null,
+  xhigh: null,
+};
+
+const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
+  cost: { input: 0.104, output: 0.207, cacheRead: 0.026 },
+  vision: false,
+  thinkingLevelMap: {
+    off: "none",
+    minimal: "low",
+    low: "low",
+    medium: "medium",
+    high: "high",
+    xhigh: null,
+    max: "max",
   },
-  // Gemma 4 31B - Google, served from NVIDIA's NVFP4 checkpoint
-  {
-    id: "gemma-4-31b",
-    name: "Gemma 4 31B",
-    reasoning: false,
-    input: ["text", "image"],
-    cost: {
-      input: 0.144,
-      output: 0.42,
-      cacheRead: 0.036,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 16384,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // GLM-5.2 - ZhipuAI
-  // Native reasoning tiers: off (none), high, max. Exposes Pi's `max` level
-  // (introduced in Pi 0.80.6) for GLM's top tier; `xhigh` is an unsupported
-  // hole between `high` and `max`.
-  {
-    id: "glm-5.2",
-    name: "GLM-5.2",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      off: "none",
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: null,
-      max: "max",
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // GLM-5.2 Fast - ZhipuAI
-  {
-    id: "glm-5.2-fast",
-    name: "GLM-5.2 Fast",
-    reasoning: false,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // GLM-5.2 Short - ZhipuAI (200K context, bounded reasoning budget)
-  {
-    id: "glm-5.2-short",
-    name: "GLM-5.2 Short",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 199984,
-    maxTokens: 32000,
-    thinkingLevelMap: {
-      off: "none",
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: null,
-      max: "max",
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // GLM-5.2 Short Fast - ZhipuAI (200K context, reasoning disabled)
-  {
-    id: "glm-5.2-short-fast",
-    name: "GLM-5.2 Short Fast",
-    reasoning: false,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 199984,
-    maxTokens: 32000,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // Kimi K2.6 - MoonshotAI
-  {
-    id: "kimi-k2.6",
-    name: "Kimi K2.6",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.69,
-      output: 3.22,
-      cacheRead: 0.1725,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Kimi K2.6 Fast - MoonshotAI
-  {
-    id: "kimi-k2.6-fast",
-    name: "Kimi K2.6 Fast",
-    reasoning: false,
-    input: ["text", "image"],
-    cost: {
-      input: 0.69,
-      output: 3.22,
-      cacheRead: 0.1725,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // Qwen3.5 397B - Qwen
-  {
-    id: "qwen3.5-397b",
-    name: "Qwen3.5 397B",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 0.69,
-      output: 4.14,
-      cacheRead: 0.1725,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Qwen3.5 397B Fast - Qwen
-  {
-    id: "qwen3.5-397b-fast",
-    name: "Qwen3.5 397B Fast",
-    reasoning: false,
-    input: ["text"],
-    cost: {
-      input: 0.69,
-      output: 4.14,
-      cacheRead: 0.1725,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // Qwen3.6 35B - Qwen
-  {
-    id: "qwen3.6-35b",
-    name: "Qwen3.6 35B",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.29,
-      output: 1.15,
-      cacheRead: 0.0725,
-      cacheWrite: 0,
-    },
-    contextWindow: 131056,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Kimi K2.7 Code - MoonshotAI
-  {
-    id: "kimi-k2.7-code",
-    name: "Kimi K2.7 Code",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.95,
-      output: 4.0,
-      cacheRead: 0.2375,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      off: null,
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // GLM-5.2 Short Fast Flex - ZhipuAI (flex variant, reasoning disabled)
-  {
-    id: "glm-5.2-short-fast-flex",
-    name: "GLM-5.2 (short, fast, flex)",
-    reasoning: false,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 199984,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
-  // GLM-5.2 Short Flex - ZhipuAI (flex variant)
-  {
-    id: "glm-5.2-short-flex",
-    name: "GLM-5.2 (short, flex)",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 199984,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      off: "none",
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: null,
-      max: "max",
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Kimi K2.6 Flex - MoonshotAI (flex variant)
-  {
-    id: "kimi-k2.6-flex",
-    name: "Kimi K2.6 (flex)",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.69,
-      output: 3.22,
-      cacheRead: 0.1725,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Kimi K2.7 Code Flex - MoonshotAI (flex variant)
-  {
-    id: "kimi-k2.7-code-flex",
-    name: "Kimi K2.7 Code (flex)",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: {
-      input: 0.95,
-      output: 4.0,
-      cacheRead: 0.2375,
-      cacheWrite: 0,
-    },
-    contextWindow: 262128,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      off: null,
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // GLM-5.2 Flex - ZhipuAI (flex variant)
-  {
-    id: "glm-5.2-flex",
-    name: "GLM-5.2 (flex)",
-    reasoning: true,
-    input: ["text"],
-    cost: {
-      input: 1.45,
-      output: 4.5,
-      cacheRead: 0.3625,
-      cacheWrite: 0,
-    },
-    contextWindow: 1048560,
-    maxTokens: 65536,
-    thinkingLevelMap: {
-      off: "none",
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: null,
-      max: "max",
-    },
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-      requiresReasoningContentOnAssistantMessages: true,
-    },
-  },
-  // Qwen3.6 35B Fast - Qwen
-  {
-    id: "qwen3.6-35b-fast",
-    name: "Qwen3.6 35B Fast",
-    reasoning: false,
-    input: ["text", "image"],
-    cost: {
-      input: 0.29,
-      output: 1.15,
-      cacheRead: 0.0725,
-      cacheWrite: 0,
-    },
-    contextWindow: 131056,
-    maxTokens: 65536,
-    compat: {
-      supportsDeveloperRole: false,
-      maxTokensField: "max_tokens",
-    },
-  },
+};
+
+// Google, served from NVIDIA's NVFP4 checkpoint.
+const GEMMA_4: NeuralwattModelFamily = {
+  cost: { input: 0.144, output: 0.42, cacheRead: 0.036 },
+  vision: true,
+};
+
+// ZhipuAI.
+const GLM_5_2: NeuralwattModelFamily = {
+  cost: { input: 1.45, output: 4.5, cacheRead: 0.3625 },
+  vision: false,
+  thinkingLevelMap: GLM_THINKING,
+};
+
+// MoonshotAI.
+const KIMI_K2_6: NeuralwattModelFamily = {
+  cost: { input: 0.69, output: 3.22, cacheRead: 0.1725 },
+  vision: true,
+  thinkingLevelMap: BINARY_THINKING,
+};
+
+// MoonshotAI.
+const KIMI_K2_7_CODE: NeuralwattModelFamily = {
+  cost: { input: 0.95, output: 4.0, cacheRead: 0.2375 },
+  vision: true,
+  thinkingLevelMap: { off: null, ...BINARY_THINKING },
+};
+
+// Qwen.
+const QWEN_3_5_397B: NeuralwattModelFamily = {
+  cost: { input: 0.69, output: 4.14, cacheRead: 0.1725 },
+  vision: false,
+  thinkingLevelMap: BINARY_THINKING,
+};
+
+// Qwen.
+const QWEN_3_6_35B: NeuralwattModelFamily = {
+  cost: { input: 0.29, output: 1.15, cacheRead: 0.0725 },
+  vision: true,
+  thinkingLevelMap: BINARY_THINKING,
+};
+
+const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
+  [
+    DEEPSEEK_V4_FLASH,
+    [
+      {
+        id: "deepseek-v4-flash",
+        name: "DeepSeek V4 Flash",
+        contextWindow: 1048560,
+        maxOutputTokens: 65536,
+        reasoning: true,
+      },
+    ],
+  ],
+  [
+    GEMMA_4,
+    [
+      {
+        id: "gemma-4-31b",
+        name: "Gemma 4 31B",
+        contextWindow: 262128,
+        maxOutputTokens: 16384,
+        reasoning: false,
+      },
+    ],
+  ],
+  [
+    GLM_5_2,
+    [
+      {
+        id: "glm-5.2",
+        name: "GLM-5.2",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "glm-5.2-fast",
+        name: "GLM-5.2 Fast",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: false,
+      },
+      {
+        id: "glm-5.2-flex",
+        name: "GLM-5.2 (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "glm-5.2-short",
+        name: "GLM-5.2 Short",
+        contextWindow: 199984,
+        maxOutputTokens: 32000,
+        reasoning: true,
+      },
+      {
+        id: "glm-5.2-short-fast",
+        name: "GLM-5.2 Short Fast",
+        contextWindow: 199984,
+        maxOutputTokens: 32000,
+        reasoning: false,
+      },
+      {
+        id: "glm-5.2-short-flex",
+        name: "GLM-5.2 (short, flex)",
+        contextWindow: 199984,
+        maxOutputTokens: 32000,
+        reasoning: true,
+      },
+      {
+        id: "glm-5.2-short-fast-flex",
+        name: "GLM-5.2 (short, fast, flex)",
+        contextWindow: 199984,
+        maxOutputTokens: 32000,
+        reasoning: false,
+      },
+    ],
+  ],
+  [
+    KIMI_K2_6,
+    [
+      {
+        id: "kimi-k2.6",
+        name: "Kimi K2.6",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "kimi-k2.6-fast",
+        name: "Kimi K2.6 Fast",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: false,
+      },
+      {
+        id: "kimi-k2.6-flex",
+        name: "Kimi K2.6 (flex)",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+    ],
+  ],
+  [
+    KIMI_K2_7_CODE,
+    [
+      {
+        id: "kimi-k2.7-code",
+        name: "Kimi K2.7 Code",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "kimi-k2.7-code-fast",
+        name: "Kimi K2.7 Code Fast",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: false,
+      },
+      {
+        id: "kimi-k2.7-code-flex",
+        name: "Kimi K2.7 Code (flex)",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+    ],
+  ],
+  [
+    QWEN_3_5_397B,
+    [
+      {
+        id: "qwen3.5-397b",
+        name: "Qwen3.5 397B",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "qwen3.5-397b-fast",
+        name: "Qwen3.5 397B Fast",
+        contextWindow: 262128,
+        maxOutputTokens: null,
+        reasoning: false,
+      },
+    ],
+  ],
+  [
+    QWEN_3_6_35B,
+    [
+      {
+        id: "qwen3.6-35b",
+        name: "Qwen3.6 35B",
+        contextWindow: 131056,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "qwen3.6-35b-fast",
+        name: "Qwen3.6 35B Fast",
+        contextWindow: 131056,
+        maxOutputTokens: null,
+        reasoning: false,
+      },
+    ],
+  ],
 ];
+
+// `-flex` variants are not advertised by the public /v1/models response; the
+// drift check in models.test.ts tolerates them instead of failing on them.
+
+export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(
+  ([family, variants]) => buildNeuralwattFamily(family, variants),
+);

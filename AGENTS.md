@@ -125,9 +125,13 @@ The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definition
 
 Public models are declared as a family/variant table. A family holds the defaults its variants share (pricing, modalities, `thinkingLevelMap`); each variant declares its id, name, context window, `maxOutputTokens`, and `reasoning`, plus any override.
 
-Variants combine independent modifiers, not a fixed list: `-short` (smaller context, bounded output), `-fast` (reasoning disabled), and `-flex` (Flex tier). GLM-5.2 alone ships `glm-5.2`, `-fast`, `-flex`, `-short`, `-short-fast`, `-short-flex`, and `-short-fast-flex`. A variant may differ from its family in more than limits: override `cost` when it is priced differently.
+Variants combine independent modifiers, not a fixed list: `-short` (smaller context, bounded output), `-fast` (reasoning disabled), and `-flex` (Flex tier). GLM-5.2 alone ships `glm-5.2`, `-fast`, `-flex`, `-short`, `-short-fast`, `-short-flex`, and `-short-fast-flex`. A variant may differ from its family in more than limits: override `cost` for a variant priced differently, or set `costMultiplier` for a proportional change such as the Flex discount.
 
 `buildNeuralwattModel` in `build.ts` applies the compat defaults and the limit rule `maxTokens = metadata.limits.max_output_tokens ?? max_model_len`; hidden model discovery uses the same builder. `extensions/provider/models.test.ts` diffs the definitions against the live catalog and skips when the API is unreachable.
+
+### Flex variants
+
+`-flex` models are the [Flex tier](https://portal.neuralwatt.com/docs/guides/flex-tier): same model, limits, and prompt cache as the standard variant, but admitted when there is spare capacity. They are billed at 65% of standard (35% off), applied through `costMultiplier` on the variant. The discount only applies to streaming requests; a non-streaming request to a `-flex` model falls back to the standard tier and standard price, and reports `service_tier: "standard"`. Flex models are not in the public `/v1/models` response, so the drift test skips them.
 
 ### Hidden models
 

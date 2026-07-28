@@ -27,9 +27,10 @@ extensions/
     commands/settings/index.ts          # /neuralwatt:settings command
     models/
       index.ts                          # Re-exports + getNeuralwattModels helper
-      public-models.ts                  # Hardcoded public model definitions
+      build.ts                          # Shared model builder (compat defaults, maxTokens rule)
+      public-models.ts                  # Public model family/variant table
       legacy.ts                         # Phased-out model ID aliases
-      hidden.ts                         # Hidden-model discovery from authenticated /v1/models
+      early-access.ts                   # Early-access model discovery from authenticated /v1/models
       refresh.ts                        # Pi-managed dynamic catalog refresh and cache
   command-quotas/
     index.ts                            # Extension entry (checks config, registers command)
@@ -114,7 +115,7 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
 - **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
 - **Legacy model IDs** (`provider.includeLegacyModelIds`) - Include deprecated model aliases
-- **Hidden models** (`provider.includeHiddenModels`) - Include authenticated hidden models
+- **Hidden models** (`provider.includeHiddenModels`) - Include hidden models
 
 The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
@@ -122,9 +123,19 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models.
 
+Public models are declared as a family/variant table. A family holds the defaults its variants share (pricing, modalities, `thinkingLevelMap`); each variant declares its id, name, context window, `maxOutputTokens`, and `reasoning`, plus any override.
+
+Variants combine independent modifiers, not a fixed list: `-short` (smaller context, bounded output), `-fast` (reasoning disabled), and `-flex` (Flex tier). GLM-5.2 alone ships `glm-5.2`, `-fast`, `-flex`, `-short`, `-short-fast`, `-short-flex`, and `-short-fast-flex`. A variant may differ from its family in more than limits: override `cost` when it is priced differently.
+
+`buildNeuralwattModel` in `build.ts` applies the compat defaults and the limit rule `maxTokens = metadata.limits.max_output_tokens ?? max_model_len`; hidden model discovery uses the same builder. `extensions/provider/models.test.ts` diffs the definitions against the live catalog and skips when the API is unreachable.
+
 ### Hidden models
 
-Some Neuralwatt models are accessible via the authenticated API key but not part of the public list. Enabling the `provider.includeHiddenModels` setting makes them available.
+Some Neuralwatt models are pre-release: reachable with an authenticated API key but not yet part of the public `/v1/models` list. They are not secret, and most go public eventually. Enabling the `provider.includeHiddenModels` setting makes them available.
+
+The setting was called `provider.includeHiddenModels` before 0.11. Migration `03-rename-hidden-to-early-access` rewrites it on load.
+
+The config loader reads the file, runs migrations, and hands the rest of the code the current `NeuralwattConfig` shape only. Each migration declares the superseded shape it needs inside its own file. Do not widen loader, settings, or extension types to accept old shapes.
 
 The provider implements Pi's `refreshModels(context)` API. Pi supplies the resolved credential, abort signal, network policy, and provider-scoped model store. Opening `/model` refreshes the catalog in the background; `pi update --models` forces a refresh.
 
@@ -141,5 +152,5 @@ Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public and legacy
 
 1. Check the Neuralwatt API (`https://api.neuralwatt.com/v1/models`) for current model list
 2. Compare against hardcoded definitions in `extensions/provider/models/public-models.ts`
-3. Add missing models, update changed fields (context windows, pricing, capabilities)
+3. Add missing models to the matching family, update changed fields (context windows, pricing, capabilities)
 4. Run `pnpm test` to validate

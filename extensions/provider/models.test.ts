@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getNeuralwattModels,
+  HIDDEN_NEURALWATT_MODELS,
   LEGACY_NEURALWATT_MODEL_IDS,
   NEURALWATT_MODELS,
 } from "./models";
@@ -64,13 +65,23 @@ function isFlexModelId(id: string): boolean {
   return id.endsWith("-flex");
 }
 
-async function fetchApiModels(): Promise<ApiModel[]> {
-  const response = await fetch("https://api.neuralwatt.com/v1/models", {
-    headers: {
-      Referer: "https://github.com/aliou/pi-neuralwatt",
-      "X-Title": "npm:@aliou/pi-neuralwatt",
-    },
-  });
+/**
+ * Returns undefined only when the network is unavailable, so offline runs skip.
+ * An HTTP error is a real contract failure and still fails the test.
+ */
+async function fetchApiModels(): Promise<ApiModel[] | undefined> {
+  let response: Response;
+  try {
+    response = await fetch("https://api.neuralwatt.com/v1/models", {
+      signal: AbortSignal.timeout(15_000),
+      headers: {
+        Referer: "https://github.com/aliou/pi-neuralwatt",
+        "X-Title": "npm:@aliou/pi-neuralwatt",
+      },
+    });
+  } catch {
+    return undefined;
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -191,17 +202,17 @@ function compareModels(
       }
     }
 
-    // Check maxTokens when API provides it
-    if (
-      meta?.limits.max_output_tokens !== null &&
-      meta?.limits.max_output_tokens !== undefined
-    ) {
-      if (meta.limits.max_output_tokens !== hardcoded.maxTokens) {
+    // Check maxTokens. A null `max_output_tokens` means the API imposes no
+    // separate output cap, so output is bounded by the context window.
+    if (meta) {
+      const expectedMaxTokens =
+        meta.limits.max_output_tokens ?? apiModel.max_model_len;
+      if (expectedMaxTokens !== hardcoded.maxTokens) {
         discrepancies.push({
           model: hardcoded.id,
           field: "maxTokens",
           hardcoded: hardcoded.maxTokens,
-          api: meta.limits.max_output_tokens,
+          api: expectedMaxTokens,
         });
       }
     }
@@ -224,8 +235,15 @@ function compareModels(
 }
 
 describe("Neuralwatt models", () => {
-  it("should match API model definitions", { timeout: 30000 }, async () => {
+  it("should match API model definitions", {
+    timeout: 30000,
+  }, async (context) => {
     const apiModels = await fetchApiModels();
+    if (!apiModels) {
+      context.skip("Neuralwatt model catalog unreachable");
+      return;
+    }
+
     const discrepancies = compareModels(apiModels, NEURALWATT_MODELS);
 
     if (discrepancies.length > 0) {
@@ -248,6 +266,22 @@ describe("Neuralwatt models", () => {
     }
 
     expect(discrepancies).toHaveLength(0);
+  });
+
+  it("should never allow more output tokens than context", () => {
+    for (const model of [...NEURALWATT_MODELS, ...HIDDEN_NEURALWATT_MODELS]) {
+      expect(model.maxTokens, model.id).toBeGreaterThan(0);
+      expect(model.maxTokens, model.id).toBeLessThanOrEqual(
+        model.contextWindow,
+      );
+    }
+  });
+
+  it("should keep hidden model IDs out of the public catalog", () => {
+    const publicIds = new Set(NEURALWATT_MODELS.map((m) => m.id));
+    for (const model of HIDDEN_NEURALWATT_MODELS) {
+      expect(publicIds.has(model.id), model.id).toBe(false);
+    }
   });
 
   it("should have unique model IDs", () => {

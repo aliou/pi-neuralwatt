@@ -7,6 +7,15 @@ description: Update public or hidden model metadata for the pi-neuralwatt extens
 
 Update `extensions/provider/models/public-models.ts` from live Neuralwatt data, not guesswork.
 
+`public-models.ts` is a declarative family/variant table. Each family holds the
+shared pricing, modalities, and `thinkingLevelMap`; each variant (`-fast`,
+`-flex`, `-short`, ...) only declares `id`, `name`, `contextWindow`,
+`maxOutputTokens`, `reasoning`, and any override. `buildNeuralwattModel` in
+`extensions/provider/models/build.ts` turns those into `ProviderModelConfig`
+values and is shared with hidden model discovery, so the compat defaults and the
+`maxTokens` rule live in exactly one place. Add variants to the existing family
+rather than copying a full model literal.
+
 ## Default behavior
 
 Take initiative.
@@ -109,7 +118,7 @@ From `metadata.capabilities`:
 - `developer_role` -> confirm `supportsDeveloperRole: false`
 
 From `metadata.limits`:
-- `max_output_tokens` -> `maxTokens` (null = use default 65536)
+- `max_output_tokens` -> `maxTokens` (null = use `max_model_len`, i.e. the full context window; never invent a cap)
 
 From `metadata`:
 - `display_name` -> `name`
@@ -178,7 +187,7 @@ Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a
 - Remove models only when they are truly gone from Neuralwatt, not because of a temporary fetch issue.
 - Set `contextWindow` from `max_model_len` on the Neuralwatt endpoint.
 - Keep pricing from the portal or existing pricing when the portal has not changed.
-- Keep `maxTokens` from the portal, runtime evidence, or existing conventions when the API does not expose it.
+- Set `maxTokens` to `metadata.limits.max_output_tokens ?? max_model_len`. Use `resolveMaxTokens` in `extensions/provider/models/build.ts`; do not hardcode a fallback.
 - Keep `reasoning`, `input`, and `fast` from portal/runtime evidence or existing conventions when the API does not expose them.
 - Do not add `compat` fields beyond current repo conventions unless live behavior requires it.
 - Do not ask the user which models to update unless there is a true ambiguity you cannot resolve.
@@ -187,7 +196,7 @@ Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a
 
 Use this workflow when a model is available only to authenticated accounts or direct inference requests.
 
-### Choose the hidden-model path
+### Choose the hidden model path
 
 First compare these two requests using the same credential:
 
@@ -201,7 +210,7 @@ Handle the result as follows:
 - If chat completions rejects the model, do not add it. Test likely aliases before concluding that it is unavailable.
 - Never place an API-omitted model in `NEURALWATT_MODELS`. Public definitions are validated against the public catalog and are exposed regardless of `provider.includeHiddenModels`.
 
-`refreshNeuralwattModels` merges hardcoded hidden models with cached and dynamically discovered models for online and offline startup. Public and legacy baseline definitions take precedence over hidden entries. Keep hardcoded hidden IDs unique, and remove or graduate an entry when Neuralwatt starts advertising it publicly.
+`refreshNeuralwattModels` merges hardcoded hidden models with cached and dynamically discovered models for online and offline startup. Public and legacy baseline definitions take precedence over early-access entries. Keep hardcoded early-access IDs unique, and remove or graduate an entry when Neuralwatt starts advertising it publicly.
 
 ### Probe runtime behavior
 
@@ -259,7 +268,7 @@ Read and update:
 - `extensions/provider/models/hidden.ts`
 - `extensions/provider/models/refresh.ts`
 - `extensions/provider/models/refresh.test.ts`
-- `extensions/provider/models/index.ts` when a new hidden-model collection must be exported
+- `extensions/provider/models/index.ts` when a new hidden model collection must be exported
 
 Add tests that prove:
 
@@ -276,7 +285,7 @@ pnpm lint
 pnpm test
 ```
 
-Create a patch changeset for the package and stage only the hidden-model implementation, tests, and changeset.
+Create a patch changeset for the package and stage only the hidden model implementation, tests, and changeset.
 
 ## Required runtime checks
 

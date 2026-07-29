@@ -1,5 +1,40 @@
 # @aliou/pi-extension-template
 
+## 0.10.6
+
+### Patch Changes
+
+- c553f63: Price `-flex` models at the Flex tier discount.
+
+  Flex variants were priced like their standard counterparts. They are billed at
+  65% of standard (35% off), so cost estimates were overstated by more than a
+  third. Note that the discount only applies to streaming requests: a
+  non-streaming request to a `-flex` model falls back to the standard tier and the
+  standard price.
+
+- ba8d520: Correct model output limits and restructure the model catalog.
+
+  `maxTokens` now mirrors the API rule `metadata.limits.max_output_tokens ?? max_model_len`
+  instead of defaulting to 65536. This raises the output cap on `glm-5.2`,
+  `glm-5.2-fast`, `glm-5.2-flex`, `kimi-k2.6{,-fast,-flex}`, `kimi-k2.7-code{,-flex}`,
+  `qwen3.5-397b{,-fast}`, `qwen3.6-35b{,-fast}`, and early-access `kimi-k3`; it lowers
+  `glm-5.2-short-flex` and `glm-5.2-short-fast-flex` to their real 32000 cap.
+
+  Flex variants now cost 65% of their standard counterpart, matching the documented
+  35% Flex tier discount.
+
+  Adds `kimi-k2.7-code-fast`. Public models are now declared as a family/variant
+  table built by a shared builder that early-access model discovery reuses, and the drift
+  test enforces the `maxTokens` rule and skips when the API is unreachable.
+
+- 620ce1c: Rename "hidden models" to "early access models".
+
+  These models are not hidden, they are pre-release: Neuralwatt ships them to
+  authorized accounts first and most go public later.
+
+  `provider.includeHiddenModels` is now `provider.includeEarlyAccessModels`.
+  Existing configs are rewritten on load.
+
 ## 0.10.5
 
 ### Patch Changes

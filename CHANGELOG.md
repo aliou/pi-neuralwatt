@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.11.0
+
+### Minor Changes
+
+- 4d10d48: Add a separate alias model ID setting for active creator-scoped Neuralwatt model IDs.
+
 ## 0.10.6
 
 ### Patch Changes

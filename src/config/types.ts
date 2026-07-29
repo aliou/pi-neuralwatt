@@ -2,6 +2,9 @@ export interface NeuralwattProviderConfig {
   /** Include legacy Neuralwatt model IDs in the model picker. */
   includeLegacyModelIds?: boolean;
 
+  /** Include alternate creator-scoped Neuralwatt model IDs in the model picker. */
+  includeAliasedModelIds?: boolean;
+
   /** Include early-access Neuralwatt models discovered via the authenticated API. */
   includeEarlyAccessModels?: boolean;
 }
@@ -41,6 +44,7 @@ export interface NeuralwattConfig {
 export interface ResolvedNeuralwattConfig {
   provider: {
     includeLegacyModelIds: boolean;
+    includeAliasedModelIds: boolean;
     includeEarlyAccessModels: boolean;
   };
   quotaCommand: {

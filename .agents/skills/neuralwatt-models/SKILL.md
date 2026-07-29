@@ -24,12 +24,13 @@ Do not start by asking which model to update. First detect drift, then update wh
 
 1. Fetch live model data from `https://api.neuralwatt.com/v1/models`.
 2. Read the current hardcoded definitions in `extensions/provider/models/public-models.ts`.
-3. Check Neuralwatt portal pages for pricing and capabilities when model additions or pricing/capability changes are needed.
-4. Reconcile the differences.
-5. Edit `extensions/provider/models/public-models.ts`.
-6. Run the relevant tests.
-7. Create a changeset when model metadata changed.
-8. Commit only the relevant files.
+3. For each added base model, verify the active creator-scoped alias when one exists.
+4. Check Neuralwatt portal pages for pricing and capabilities when model additions or pricing/capability changes are needed.
+5. Reconcile the differences.
+6. Edit `extensions/provider/models/public-models.ts` and `extensions/provider/models/aliases.ts` when applicable.
+7. Run the relevant tests.
+8. Create a changeset when model metadata changed.
+9. Commit only the relevant files.
 
 Only ask the user if there is a real blocker, such as an unreachable source, missing credentials for runtime validation, or conflicting evidence you cannot resolve.
 
@@ -54,6 +55,7 @@ Use these in order:
 Read:
 
 - `extensions/provider/models/public-models.ts`
+- `extensions/provider/models/aliases.ts`
 - `extensions/provider/models.test.ts`
 
 Use the current file shape and comments as the formatting baseline.
@@ -82,12 +84,25 @@ Useful narrow query:
 curl -s https://api.neuralwatt.com/v1/models \
   | jq '.data[] | select(.id==$id) | {
       id,
+      metadata: {provider: .metadata.provider, huggingface_id: .metadata.huggingface_id},
       owned_by,
       max_model_len
     }' --arg id 'provider/model-id'
 ```
 
-### 3) Check portal data when needed
+### 3) Verify active aliases
+
+Active creator-scoped IDs belong in `extensions/provider/models/aliases.ts`.
+Deprecated IDs that point at replacement models belong in
+`extensions/provider/models/legacy.ts`.
+
+When adding a base model, inspect `metadata.huggingface_id` from the
+authenticated Neuralwatt models endpoint when possible. Confirm the alias with a
+minimal `chat/completions` request and require a successful response for that
+exact model ID. Do not add aliases for `-short`, `-fast`, or `-flex` variants
+unless Neuralwatt explicitly exposes them.
+
+### 4) Check portal data when needed
 
 For pricing and capabilities, check:
 

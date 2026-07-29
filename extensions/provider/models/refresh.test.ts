@@ -65,6 +65,7 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: true,
       loadEarlyAccess: async () => [],
     });
@@ -79,6 +80,7 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: true,
       loadEarlyAccess: async () => [],
     });
@@ -116,10 +118,29 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: false,
     });
 
     expect(models.some((model) => model.id === kimiK3.id)).toBe(false);
+  });
+
+  it("includes aliases for active models when enabled", async () => {
+    const { context, writes } = createContext();
+
+    const models = await refreshNeuralwattModels(context, {
+      includeLegacyModelIds: false,
+      includeAliasedModelIds: true,
+      includeEarlyAccessModels: true,
+      loadEarlyAccess: async () => [],
+    });
+
+    expect(models.some((model) => model.id === "zai-org/GLM-5.2-FP8")).toBe(
+      true,
+    );
+    expect(
+      writes[0]?.models.some((model) => model.id === "zai-org/GLM-5.2-FP8"),
+    ).toBe(true);
   });
 
   it("keeps public models authoritative on early-access ID collisions", async () => {
@@ -129,6 +150,7 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: true,
       loadEarlyAccess: async () => [
         {
@@ -152,6 +174,7 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: true,
     });
 
@@ -165,6 +188,7 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: true,
       loadEarlyAccess: async () => [earlyAccessModel],
     });
@@ -186,6 +210,7 @@ describe("refreshNeuralwattModels", () => {
 
     const models = await refreshNeuralwattModels(context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: false,
     });
 
@@ -205,6 +230,7 @@ describe("refreshNeuralwattModels", () => {
     await expect(
       refreshNeuralwattModels(context, {
         includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
         includeEarlyAccessModels: true,
         loadEarlyAccess: async () => undefined,
       }),
@@ -214,6 +240,7 @@ describe("refreshNeuralwattModels", () => {
     const offline = createContext({ allowNetwork: false, stored });
     const models = await refreshNeuralwattModels(offline.context, {
       includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
       includeEarlyAccessModels: true,
     });
     expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(true);

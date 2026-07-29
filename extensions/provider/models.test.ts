@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALIAS_MODEL_MAP,
+  ALIAS_NEURALWATT_MODEL_IDS,
   EARLY_ACCESS_NEURALWATT_MODELS,
   getNeuralwattModels,
   LEGACY_NEURALWATT_MODEL_IDS,
@@ -383,6 +385,37 @@ describe("Neuralwatt models", () => {
     for (const legacyId of LEGACY_NEURALWATT_MODEL_IDS) {
       expect(defaultIds.has(legacyId)).toBe(false);
       expect(legacyIds.has(legacyId)).toBe(true);
+    }
+  });
+
+  it("should only include alias model IDs when enabled", () => {
+    const defaultIds = new Set(getNeuralwattModels().map((m) => m.id));
+    const aliasIds = new Set(
+      getNeuralwattModels({ includeAliasedModelIds: true }).map((m) => m.id),
+    );
+
+    for (const aliasId of ALIAS_NEURALWATT_MODEL_IDS) {
+      expect(defaultIds.has(aliasId)).toBe(false);
+      expect(aliasIds.has(aliasId)).toBe(true);
+    }
+  });
+
+  it("should only point alias model IDs at active models", () => {
+    const activeIds = new Set([
+      ...NEURALWATT_MODELS.map((model) => model.id),
+      ...EARLY_ACCESS_NEURALWATT_MODELS.map((model) => model.id),
+    ]);
+
+    for (const [aliasId, canonicalId] of Object.entries(ALIAS_MODEL_MAP)) {
+      expect(activeIds.has(canonicalId)).toBe(true);
+      expect(LEGACY_NEURALWATT_MODEL_IDS.has(canonicalId)).toBe(false);
+      expect(LEGACY_NEURALWATT_MODEL_IDS.has(aliasId)).toBe(false);
+    }
+  });
+
+  it("should keep alias and legacy model ID sets separate", () => {
+    for (const aliasId of ALIAS_NEURALWATT_MODEL_IDS) {
+      expect(LEGACY_NEURALWATT_MODEL_IDS.has(aliasId)).toBe(false);
     }
   });
 

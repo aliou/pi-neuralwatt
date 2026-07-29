@@ -8,6 +8,7 @@ import { DEFAULT_CONFIG } from "../defaults";
 import type { NeuralwattConfig, ResolvedNeuralwattConfig } from "../types";
 import {
   backupConfig,
+  enableAliasesForLegacyUsersMigration,
   flatToNestedConfigMigration,
   renameHiddenToEarlyAccessMigration,
 } from "./index";
@@ -79,6 +80,48 @@ describe("renameHiddenToEarlyAccessMigration", () => {
 
     expect(migrated).toEqual({
       provider: { includeEarlyAccessModels: false },
+    });
+  });
+});
+
+describe("enableAliasesForLegacyUsersMigration", () => {
+  const run = async (config: Record<string, unknown>) =>
+    (await enableAliasesForLegacyUsersMigration.run(
+      config as NeuralwattConfig,
+      "neuralwatt.json",
+    )) as NeuralwattConfig;
+
+  it("runs only for legacy users without an explicit aliases setting", () => {
+    const shouldRun = (config: Record<string, unknown>) =>
+      enableAliasesForLegacyUsersMigration.shouldRun(
+        config as NeuralwattConfig,
+      );
+
+    expect(shouldRun({ provider: { includeLegacyModelIds: true } })).toBe(true);
+    expect(
+      shouldRun({
+        provider: {
+          includeLegacyModelIds: true,
+          includeAliasedModelIds: false,
+        },
+      }),
+    ).toBe(false);
+    expect(shouldRun({ provider: { includeLegacyModelIds: false } })).toBe(
+      false,
+    );
+  });
+
+  it("enables aliases for configs with legacy model IDs enabled", async () => {
+    const migrated = await run({
+      provider: { includeLegacyModelIds: true, includeEarlyAccessModels: true },
+    });
+
+    expect(migrated).toEqual({
+      provider: {
+        includeLegacyModelIds: true,
+        includeEarlyAccessModels: true,
+        includeAliasedModelIds: true,
+      },
     });
   });
 });

@@ -115,13 +115,14 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
 - **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
 - **Legacy model IDs** (`provider.includeLegacyModelIds`) - Include deprecated model aliases
+- **Alias model IDs** (`provider.includeAliasedModelIds`) - Include active creator-scoped model aliases
 - **Early access models** (`provider.includeEarlyAccessModels`) - Include early-access models
 
 The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
 ## Model loading
 
-The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models.
+The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models. Active creator-scoped aliases live in `extensions/provider/models/aliases.ts`; deprecated replacement IDs live in `extensions/provider/models/legacy.ts`.
 
 Public models are declared as a family/variant table. A family holds the defaults its variants share (pricing, modalities, `thinkingLevelMap`); each variant declares its id, name, context window, `maxOutputTokens`, and `reasoning`, plus any override.
 
@@ -145,12 +146,12 @@ The provider implements Pi's `refreshModels(context)` API. Pi supplies the resol
 
 The refresh flow is:
 
-1. Register hardcoded public models and configured legacy aliases synchronously.
+1. Register hardcoded public models and configured legacy/active aliases synchronously.
 2. During offline startup, restore dynamic early-access models from Pi's provider-scoped cache.
-3. During network refresh, fetch authenticated `/v1/models`, combine early-access models with current public and legacy definitions, and persist the complete effective catalog through `context.store`.
+3. During network refresh, fetch authenticated `/v1/models`, combine early-access models with current public, legacy, and alias definitions, and persist the complete effective catalog through `context.store`.
 4. Preserve the stale catalog when a network refresh fails. A successful empty result purges removed early-access models.
 
-Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public and legacy definitions in source remain authoritative over cached copies.
+Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public, legacy, and alias definitions in source remain authoritative over cached copies.
 
 ## Updating Models
 

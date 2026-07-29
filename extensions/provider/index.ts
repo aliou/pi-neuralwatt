@@ -44,6 +44,7 @@ function registerNeuralwattProvider(
 
   const models = getNeuralwattModels({
     includeLegacyModelIds: providerConfig.includeLegacyModelIds,
+    includeAliasedModelIds: providerConfig.includeAliasedModelIds,
   });
 
   const config: Parameters<ExtensionAPI["registerProvider"]>[1] = {
@@ -61,6 +62,8 @@ function registerNeuralwattProvider(
       refreshNeuralwattModels(context, {
         includeLegacyModelIds:
           configLoader.getConfig().provider.includeLegacyModelIds,
+        includeAliasedModelIds:
+          configLoader.getConfig().provider.includeAliasedModelIds,
         includeEarlyAccessModels:
           configLoader.getConfig().provider.includeEarlyAccessModels,
       }),
@@ -113,6 +116,8 @@ export default async function (pi: ExtensionAPI) {
     if (
       next.includeLegacyModelIds ===
         registeredProviderSettings.includeLegacyModelIds &&
+      next.includeAliasedModelIds ===
+        registeredProviderSettings.includeAliasedModelIds &&
       next.includeEarlyAccessModels ===
         registeredProviderSettings.includeEarlyAccessModels
     ) {

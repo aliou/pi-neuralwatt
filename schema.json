@@ -31,6 +31,10 @@
     "NeuralwattProviderConfig": {
       "additionalProperties": false,
       "properties": {
+        "includeAliasedModelIds": {
+          "description": "Include alternate creator-scoped Neuralwatt model IDs in the model picker.",
+          "type": "boolean"
+        },
         "includeEarlyAccessModels": {
           "description": "Include early-access Neuralwatt models discovered via the authenticated API.",
           "type": "boolean"

@@ -120,6 +120,18 @@ export function registerNeuralwattSettings(
               values: ["include", "ignore"],
             },
             {
+              id: "includeAliasedModelIds",
+              label: "Alias model IDs",
+              description:
+                "Include active creator-scoped model IDs as aliases in the model picker",
+              currentValue:
+                (tabConfig?.provider?.includeAliasedModelIds ??
+                resolved.provider.includeAliasedModelIds)
+                  ? "include"
+                  : "ignore",
+              values: ["include", "ignore"],
+            },
+            {
               id: "includeEarlyAccessModels",
               label: "Early access models",
               description:
@@ -144,6 +156,16 @@ export function registerNeuralwattSettings(
           provider: {
             ...config.provider,
             includeLegacyModelIds: newValue === "include",
+          },
+        };
+      }
+
+      if (id === "includeAliasedModelIds") {
+        return {
+          ...config,
+          provider: {
+            ...config.provider,
+            includeAliasedModelIds: newValue === "include",
           },
         };
       }

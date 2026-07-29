@@ -3,6 +3,7 @@ import type { ResolvedNeuralwattConfig } from "./types";
 export const DEFAULT_CONFIG: ResolvedNeuralwattConfig = {
   provider: {
     includeLegacyModelIds: false,
+    includeAliasedModelIds: false,
     includeEarlyAccessModels: false,
   },
   quotaCommand: {

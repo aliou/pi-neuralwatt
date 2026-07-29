@@ -6,6 +6,10 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
+  ALIAS_NEURALWATT_MODEL_IDS,
+  buildAliasNeuralwattModels,
+} from "./aliases";
+import {
   EARLY_ACCESS_NEURALWATT_MODELS,
   loadEarlyAccessModels,
 } from "./early-access";
@@ -18,16 +22,28 @@ const API = "openai-completions" as const;
 
 export interface RefreshNeuralwattModelsOptions {
   includeLegacyModelIds: boolean;
+  includeAliasedModelIds: boolean;
   includeEarlyAccessModels: boolean;
   loadEarlyAccess?: typeof loadEarlyAccessModels;
 }
 
 function configuredModels(
   includeLegacyModelIds: boolean,
+  includeAliasedModelIds: boolean,
+  extraCanonicalModels: ProviderModelConfig[] = [],
 ): ProviderModelConfig[] {
-  return includeLegacyModelIds
-    ? [...NEURALWATT_MODELS, ...buildLegacyNeuralwattModels()]
-    : [...NEURALWATT_MODELS];
+  const canonicalModels = [...NEURALWATT_MODELS, ...extraCanonicalModels];
+  const models: ProviderModelConfig[] = [...canonicalModels];
+
+  if (includeLegacyModelIds) {
+    models.push(...buildLegacyNeuralwattModels());
+  }
+
+  if (includeAliasedModelIds) {
+    models.push(...buildAliasNeuralwattModels(canonicalModels));
+  }
+
+  return models;
 }
 
 function toStoredModel(model: ProviderModelConfig): Model<Api> {
@@ -91,11 +107,16 @@ function cachedEarlyAccessModels(
 ): ProviderModelConfig[] {
   if (!stored) return [];
 
-  const allStaticIds = new Set(configuredModels(true).map((model) => model.id));
+  const allStaticIds = new Set(
+    configuredModels(true, true).map((model) => model.id),
+  );
 
   return stored.models
     .filter(
-      (model) => model.provider === PROVIDER_ID && !allStaticIds.has(model.id),
+      (model) =>
+        model.provider === PROVIDER_ID &&
+        !allStaticIds.has(model.id) &&
+        !ALIAS_NEURALWATT_MODEL_IDS.has(model.id),
     )
     .map(toProviderModel);
 }
@@ -115,7 +136,10 @@ export async function refreshNeuralwattModels(
   context: RefreshModelsContext,
   options: RefreshNeuralwattModelsOptions,
 ): Promise<ProviderModelConfig[]> {
-  const baseline = configuredModels(options.includeLegacyModelIds);
+  const baseline = configuredModels(
+    options.includeLegacyModelIds,
+    options.includeAliasedModelIds,
+  );
   const stored = await context.store.read();
 
   if (!options.includeEarlyAccessModels) {
@@ -127,7 +151,11 @@ export async function refreshNeuralwattModels(
     cachedEarlyAccessModels(stored),
     baseline,
   );
-  const cachedCatalog = [...baseline, ...cachedEarlyAccess];
+  const cachedCatalog = configuredModels(
+    options.includeLegacyModelIds,
+    options.includeAliasedModelIds,
+    cachedEarlyAccess,
+  );
 
   if (!context.allowNetwork || context.signal?.aborted) {
     return cachedCatalog;
@@ -146,10 +174,11 @@ export async function refreshNeuralwattModels(
     throw new Error("Neuralwatt model catalog refresh failed");
   }
 
-  const catalog = [
-    ...baseline,
-    ...configuredEarlyAccessModels(earlyAccess, baseline),
-  ];
+  const catalog = configuredModels(
+    options.includeLegacyModelIds,
+    options.includeAliasedModelIds,
+    configuredEarlyAccessModels(earlyAccess, baseline),
+  );
   await persistModels(context, catalog);
   return catalog;
 }

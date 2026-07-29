@@ -78,6 +78,7 @@ Configure features with `/neuralwatt:settings`:
 - **Quota warnings** — Enable/disable low quota notifications
 - **Sub-bar integration** — Show/hide usage in status bar
 - **Legacy model IDs** — Include deprecated model aliases
+- **Alias model IDs** — Include active creator-scoped model aliases
 - **Early access models** — Include pre-release models available only to the configured API key
 
 The provider itself cannot be disabled — it is always loaded.

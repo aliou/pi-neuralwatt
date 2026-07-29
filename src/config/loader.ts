@@ -18,6 +18,9 @@ function normalizeResolvedConfig(
       includeLegacyModelIds:
         config.provider?.includeLegacyModelIds ??
         DEFAULT_CONFIG.provider.includeLegacyModelIds,
+      includeAliasedModelIds:
+        config.provider?.includeAliasedModelIds ??
+        DEFAULT_CONFIG.provider.includeAliasedModelIds,
       includeEarlyAccessModels:
         config.provider?.includeEarlyAccessModels ??
         DEFAULT_CONFIG.provider.includeEarlyAccessModels,

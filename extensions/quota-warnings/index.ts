@@ -17,7 +17,8 @@ export default async function (pi: ExtensionAPI) {
   await configLoader.load();
 
   let enabled = configLoader.getConfig().quotaWarnings.enabled;
-  let currentContext: ExtensionContext | undefined;
+  let currentProvider: string | undefined;
+  let unsubscribeQuotas: (() => void) | undefined;
 
   // Listen for config changes at runtime
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, (data: unknown) => {
@@ -29,32 +30,44 @@ export default async function (pi: ExtensionAPI) {
     }
   });
 
-  pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data: unknown) => {
+  // The quota handler runs on the shared event bus, so it must only touch a
+  // session ctx captured by a live session-scoped subscription: pi
+  // invalidates session-bound ctx after session replacement (newSession/
+  // fork/switchSession/reload), and dereferencing a stale ctx throws. We
+  // subscribe in session_start (capturing the fresh ctx in the closure) and
+  // unsubscribe in session_shutdown, before the ctx can go stale.
+  function handleQuotas(ctx: ExtensionContext, data: unknown): void {
     if (!enabled) return;
     if (!data || typeof data !== "object") return;
-    if (!currentContext) return;
-    if (currentContext.model?.provider !== "neuralwatt") return;
+    if (currentProvider !== "neuralwatt") return;
 
     const { quotas } = data as NeuralwattQuotasUpdatedPayload;
-    checkQuotas(currentContext, quotas);
-  });
+    checkQuotas(ctx, quotas);
+  }
 
   pi.on("session_start", async (_event, ctx) => {
-    currentContext = ctx;
-    if (ctx.model?.provider !== "neuralwatt") return;
+    unsubscribeQuotas?.();
+    currentProvider = ctx.model?.provider;
+    unsubscribeQuotas = pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data) =>
+      handleQuotas(ctx, data),
+    );
+
+    if (currentProvider !== "neuralwatt") return;
     clearAlertState();
   });
 
   pi.on("model_select", (_event, ctx) => {
-    currentContext = ctx;
+    currentProvider = ctx.model?.provider;
   });
 
   pi.on("session_before_switch", (_event, ctx) => {
-    currentContext = ctx;
+    currentProvider = ctx.model?.provider;
   });
 
   pi.on("session_shutdown", () => {
-    currentContext = undefined;
+    unsubscribeQuotas?.();
+    unsubscribeQuotas = undefined;
+    currentProvider = undefined;
     clearAlertState();
   });
 

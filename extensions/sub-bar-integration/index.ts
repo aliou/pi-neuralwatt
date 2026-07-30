@@ -57,7 +57,7 @@ export default async function (pi: ExtensionAPI) {
   let enabled = configLoader.getConfig().subBarIntegration.enabled;
   let subCoreReady = false;
   let currentProvider: string | undefined;
-  let currentContext: ExtensionContext | undefined;
+  let unsubscribeQuotas: (() => void) | undefined;
 
   // Listen for config changes at runtime
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, (data: unknown) => {
@@ -82,32 +82,35 @@ export default async function (pi: ExtensionAPI) {
     pi.events.emit(NEURALWATT_QUOTAS_REQUEST_EVENT, undefined);
   }
 
-  pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data: unknown) => {
+  // The quota handler runs on the shared event bus, so it must only touch a
+  // session ctx captured by a live session-scoped subscription: pi
+  // invalidates session-bound ctx after session replacement (newSession/
+  // fork/switchSession/reload), and dereferencing a stale ctx throws. We
+  // subscribe in session_start (capturing the fresh ctx in the closure) and
+  // unsubscribe in session_shutdown, before the ctx can go stale.
+  function handleQuotas(ctx: ExtensionContext, data: unknown): void {
     if (!isActive() || !subCoreReady || !enabled) return;
     if (!data || typeof data !== "object") return;
     const { quotas } = data as NeuralwattQuotasUpdatedPayload;
     emitUsage(quotas);
 
-    if (currentContext) {
-      currentContext.ui.setStatus(
-        "neuralwatt-usage",
-        formatStatus(quotas, currentContext.ui.theme),
-      );
-    }
-  });
+    ctx.ui.setStatus("neuralwatt-usage", formatStatus(quotas, ctx.ui.theme));
+  }
 
   pi.events.on("sub-core:ready", () => {
     subCoreReady = true;
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    unsubscribeQuotas?.();
     currentProvider = ctx.model?.provider;
-    currentContext = ctx;
+    unsubscribeQuotas = pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data) =>
+      handleQuotas(ctx, data),
+    );
   });
 
   pi.on("model_select", async (_event, ctx) => {
     currentProvider = ctx.model?.provider;
-    currentContext = ctx;
 
     if (subCoreReady && isActive() && enabled) {
       requestQuotas();
@@ -115,8 +118,9 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
+    unsubscribeQuotas?.();
+    unsubscribeQuotas = undefined;
     currentProvider = undefined;
-    currentContext = undefined;
   });
 
   pi.events.on(NEURALWATT_EXTENSIONS_REQUEST_EVENT, () => {

@@ -56,8 +56,6 @@ export default async function (pi: ExtensionAPI) {
 
   let enabled = configLoader.getConfig().subBarIntegration.enabled;
   let subCoreReady = false;
-  let currentProvider: string | undefined;
-  let currentContext: ExtensionContext | undefined;
 
   // Listen for config changes at runtime
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, (data: unknown) => {
@@ -65,8 +63,8 @@ export default async function (pi: ExtensionAPI) {
       .enabled;
   });
 
-  function isActive(): boolean {
-    return currentProvider === "neuralwatt";
+  function isActive(ctx: ExtensionContext): boolean {
+    return ctx.model?.provider === "neuralwatt";
   }
 
   function emitUsage(quotas: NeuralwattQuotas): void {
@@ -82,41 +80,45 @@ export default async function (pi: ExtensionAPI) {
     pi.events.emit(NEURALWATT_QUOTAS_REQUEST_EVENT, undefined);
   }
 
-  pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data: unknown) => {
-    if (!isActive() || !subCoreReady || !enabled) return;
-    if (!data || typeof data !== "object") return;
-    const { quotas } = data as NeuralwattQuotasUpdatedPayload;
-    emitUsage(quotas);
-
-    if (currentContext) {
-      currentContext.ui.setStatus(
-        "neuralwatt-usage",
-        formatStatus(quotas, currentContext.ui.theme),
-      );
-    }
-  });
-
   pi.events.on("sub-core:ready", () => {
     subCoreReady = true;
   });
 
+  // Subscription to quota updates is scoped to the session that owns `ctx`,
+  // so a captured ctx can never be dereferenced after session replacement.
+  let unsubscribeQuotas: (() => void) | undefined;
+
   pi.on("session_start", async (_event, ctx) => {
-    currentProvider = ctx.model?.provider;
-    currentContext = ctx;
+    // The previous session's listener (if any) is superseded first.
+    unsubscribeQuotas?.();
+    unsubscribeQuotas = pi.events.on(
+      NEURALWATT_QUOTAS_UPDATED_EVENT,
+      (data: unknown) => {
+        if (!isActive(ctx) || !subCoreReady || !enabled) return;
+        if (!data || typeof data !== "object") return;
+        const { quotas } = data as NeuralwattQuotasUpdatedPayload;
+        emitUsage(quotas);
+        ctx.ui.setStatus(
+          "neuralwatt-usage",
+          formatStatus(quotas, ctx.ui.theme),
+        );
+      },
+    );
+
+    if (subCoreReady && isActive(ctx) && enabled) {
+      requestQuotas();
+    }
   });
 
   pi.on("model_select", async (_event, ctx) => {
-    currentProvider = ctx.model?.provider;
-    currentContext = ctx;
-
-    if (subCoreReady && isActive() && enabled) {
+    if (subCoreReady && isActive(ctx) && enabled) {
       requestQuotas();
     }
   });
 
   pi.on("session_shutdown", () => {
-    currentProvider = undefined;
-    currentContext = undefined;
+    unsubscribeQuotas?.();
+    unsubscribeQuotas = undefined;
   });
 
   pi.events.on(NEURALWATT_EXTENSIONS_REQUEST_EVENT, () => {

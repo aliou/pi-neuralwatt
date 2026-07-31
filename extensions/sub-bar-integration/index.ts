@@ -19,6 +19,7 @@ import {
   percentEnergyRemaining,
 } from "../../src/utils/quota-bar";
 import { formatKwh, formatUsd } from "../../src/utils/quota-format";
+import { isStaleExtensionCtxError } from "../_shared/stale-ctx";
 import { toUsageSnapshot } from "./snapshot";
 
 function formatStatus(quotas: NeuralwattQuotas, theme: Theme): string {
@@ -84,26 +85,49 @@ export default async function (pi: ExtensionAPI) {
     subCoreReady = true;
   });
 
-  // Subscription to quota updates is scoped to the session that owns `ctx`,
-  // so a captured ctx can never be dereferenced after session replacement.
-  let unsubscribeQuotas: (() => void) | undefined;
+  // Each session registers its own listener on its own event bus. We track
+  // unsubs in a set rather than a single slot because in-process subagents
+  // (e.g. @gotgenes/pi-subagents) load the same extension module for a sibling
+  // session: a single shared variable would let the child's session_start
+  // clobber (and unsubscribe) the parent's still-live listener. Each session's
+  // bus is separate, so leaving the previous listener in place is safe; real
+  // session replacement fires session_shutdown (below) to clean up, and a
+  // subagent's listener self-cleans when its ctx goes stale (see the catch
+  // below — its dispose() does not emit session_shutdown).
+  const quotaUnsubs = new Set<() => void>();
+  function clearQuotaListeners(): void {
+    for (const unsub of quotaUnsubs) unsub();
+    quotaUnsubs.clear();
+  }
 
   pi.on("session_start", async (_event, ctx) => {
-    // The previous session's listener (if any) is superseded first.
-    unsubscribeQuotas?.();
-    unsubscribeQuotas = pi.events.on(
+    const unsub = pi.events.on(
       NEURALWATT_QUOTAS_UPDATED_EVENT,
       (data: unknown) => {
-        if (!isActive(ctx) || !subCoreReady || !enabled) return;
+        if (!subCoreReady || !enabled) return;
         if (!data || typeof data !== "object") return;
-        const { quotas } = data as NeuralwattQuotasUpdatedPayload;
-        emitUsage(quotas);
-        ctx.ui.setStatus(
-          "neuralwatt-usage",
-          formatStatus(quotas, ctx.ui.theme),
-        );
+        try {
+          if (!isActive(ctx)) return;
+          const { quotas } = data as NeuralwattQuotasUpdatedPayload;
+          emitUsage(quotas);
+          ctx.ui.setStatus(
+            "neuralwatt-usage",
+            formatStatus(quotas, ctx.ui.theme),
+          );
+        } catch (err) {
+          // ctx was invalidated (owning session disposed, e.g. an in-process
+          // subagent tearing down while its async SSE quota reader still drains).
+          // Stop listening on behalf of this dead session.
+          if (isStaleExtensionCtxError(err)) {
+            unsub();
+            quotaUnsubs.delete(unsub);
+          } else {
+            throw err;
+          }
+        }
       },
     );
+    quotaUnsubs.add(unsub);
 
     if (subCoreReady && isActive(ctx) && enabled) {
       requestQuotas();
@@ -117,8 +141,7 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
-    unsubscribeQuotas?.();
-    unsubscribeQuotas = undefined;
+    clearQuotaListeners();
   });
 
   pi.events.on(NEURALWATT_EXTENSIONS_REQUEST_EVENT, () => {

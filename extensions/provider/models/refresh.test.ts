@@ -99,11 +99,13 @@ describe("refreshNeuralwattModels", () => {
       contextWindow: 1048560,
       maxTokens: 1048560,
       thinkingLevelMap: {
+        off: null,
         minimal: null,
-        low: null,
-        medium: "medium",
-        high: null,
+        low: "low",
+        medium: null,
+        high: "high",
         xhigh: null,
+        max: "max",
       },
       compat: {
         supportsDeveloperRole: false,

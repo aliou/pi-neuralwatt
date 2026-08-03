@@ -11,17 +11,26 @@ import { NEURALWATT_MODELS } from "./public-models";
 // Move an entry to public-models.ts once Neuralwatt advertises it publicly.
 export const EARLY_ACCESS_NEURALWATT_MODELS: ProviderModelConfig[] = [
   // Kimi K3 - early-access MoonshotAI multimodal MoE.
-  // Metadata is sourced from Neuralwatt's authenticated model catalog.
+  // Metadata is sourced from Neuralwatt's authenticated model catalog,
+  // which reports `capabilities.reasoning_effort: true` for kimi-k3.
+  // K3 always reasons (thinking cannot be disabled) and supports the
+  // `reasoning_effort` values "low", "high", and "max", defaulting to "max"
+  // (https://platform.kimi.ai/docs/guide/use-reasoning-effort; verified
+  // against the Neuralwatt gateway). There is no "medium" tier upstream,
+  // so Pi's low/high/max map directly and `off`, `minimal`, `medium`, and
+  // `xhigh` are unsupported holes.
   buildNeuralwattModel(
     {
       cost: { input: 3, output: 15, cacheRead: 0.3 },
       vision: true,
       thinkingLevelMap: {
+        off: null,
         minimal: null,
-        low: null,
-        medium: "medium",
-        high: null,
+        low: "low",
+        medium: null,
+        high: "high",
         xhigh: null,
+        max: "max",
       },
     },
     {

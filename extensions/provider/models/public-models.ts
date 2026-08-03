@@ -39,11 +39,15 @@ const BINARY_THINKING: ThinkingLevelMap = {
 const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
   cost: { input: 0.14, output: 0.28, cacheRead: 0.028 },
   vision: false,
+  // DeepSeek V4 Flash accepts reasoning_effort low/high/max (default high);
+  // there is no "medium" tier, so Pi's low/high/max map directly and
+  // minimal/medium/xhigh are unsupported holes.
+  // https://api-docs.deepseek.com/guides/thinking_mode/
   thinkingLevelMap: {
     off: "none",
-    minimal: "low",
+    minimal: null,
     low: "low",
-    medium: "medium",
+    medium: null,
     high: "high",
     xhigh: null,
     max: "max",

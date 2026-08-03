@@ -1,5 +1,46 @@
 # @aliou/pi-extension-template
 
+## 0.11.1
+
+### Patch Changes
+
+- 96a75e8: Move the binary-thinking families (Kimi K2.6, Kimi K2.7 Code, Qwen3.5 397B,
+  Qwen3.6 35B) off the placeholder `medium` level. Moonshot documents no
+  `reasoning_effort` support for Kimi K2.x (thinking is a binary on/off
+  toggle, always-on for K2.7 Code), and Alibaba documents no
+  `reasoning_effort` field for Qwen3.5/3.6 (hybrid `enable_thinking` only).
+  The shared binary-thinking map now exposes a single `high` level, which
+  stands in for standard full thinking, instead of an arbitrary `medium`.
+  Not yet verified against the Neuralwatt gateway (no API key available).
+- 62d611e: Fix the DeepSeek V4 Flash thinking level map. The entry exposed Pi's
+  `minimal` and `medium` levels mapped to `low`/`medium`, but DeepSeek
+  documents V4 Flash as accepting only `low`, `high`, and `max`
+  `reasoning_effort` values (default `high`) — there is no `medium` tier.
+  Pi's `low`/`high`/`max` now map directly, `off` still disables thinking,
+  and `minimal`/`medium`/`xhigh` are unsupported holes. Not yet verified
+  against the Neuralwatt gateway (no API key available); the map follows the
+  official DeepSeek V4 thinking-mode docs.
+- 45e5d01: Sync model pricing with the live Neuralwatt catalog.
+
+  Cache-read prices dropped across families (glm-5.2 0.3625 -> 0.145,
+  kimi-k2.6 0.1725 -> 0.069, kimi-k2.7-code 0.2375 -> 0.095,
+  qwen3.5-397b 0.1725 -> 0.069, qwen3.6-35b 0.0725 -> 0.029, gemma-4-31b
+  0.036 -> 0.0144), and DeepSeek V4 Flash moved to public pricing
+  (input 0.104 -> 0.14, output 0.207 -> 0.28, cacheRead 0.026 -> 0.028).
+
+  The drift test now also recognizes creator-scoped alias IDs from
+  `aliases.ts`, so the live `deepseek-ai/DeepSeek-V4-Flash` entry no longer
+  fails the catalog check.
+
+- 45791ae: Fix the `kimi-k3` thinking level map. The early-access entry inherited the
+  generic "binary thinking" fallback (`medium` only), but Moonshot documents
+  K3 as always-reasoning with `reasoning_effort` values `low`, `high`, and
+  `max` (default `max`). Pi's `low`/`high`/`max` now map to the provider
+  values, and `off`, `minimal`, `medium`, and `xhigh` are unsupported holes.
+  Verified against the Neuralwatt gateway: the authenticated catalog reports
+  `capabilities.reasoning_effort: true` for `kimi-k3`, and requests with
+  `reasoning_effort` `low`/`high`/`max` succeed with reasoning traces.
+
 ## 0.11.0
 
 ### Minor Changes

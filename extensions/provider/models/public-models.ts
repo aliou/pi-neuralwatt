@@ -27,12 +27,14 @@ const GLM_THINKING: ThinkingLevelMap = {
   max: "max",
 };
 
-// Binary thinking control: expose a single known-good Pi level.
+// Binary thinking control (Kimi K2.x, Qwen3.x): no graded `reasoning_effort`
+// upstream, only a thinking on/off toggle. Expose a single known-good Pi
+// level; "high" stands in for standard full thinking.
 const BINARY_THINKING: ThinkingLevelMap = {
   minimal: null,
   low: null,
-  medium: "medium",
-  high: null,
+  medium: null,
+  high: "high",
   xhigh: null,
 };
 

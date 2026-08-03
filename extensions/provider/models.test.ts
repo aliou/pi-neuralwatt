@@ -473,4 +473,22 @@ describe("Neuralwatt models", () => {
       expect(model.thinkingLevelMap?.high).toBe("high");
     }
   });
+
+  it("should expose a single known-good thinking level on binary-thinking models", () => {
+    // Kimi K2.x and Qwen3.x expose no graded reasoning_effort upstream, only
+    // a binary thinking toggle. Keep the Pi surface to one level; "high"
+    // represents standard full thinking.
+    const binaryModels = NEURALWATT_MODELS.filter((model) =>
+      /^(kimi-k2\.|qwen3\.)/.test(model.id),
+    ).filter((model) => model.reasoning);
+
+    expect(binaryModels.length).toBeGreaterThan(0);
+    for (const model of binaryModels) {
+      expect(model.thinkingLevelMap?.minimal).toBeNull();
+      expect(model.thinkingLevelMap?.low).toBeNull();
+      expect(model.thinkingLevelMap?.medium).toBeNull();
+      expect(model.thinkingLevelMap?.high).toBe("high");
+      expect(model.thinkingLevelMap?.xhigh).toBeNull();
+    }
+  });
 });

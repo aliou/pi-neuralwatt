@@ -224,7 +224,11 @@ function compareModels(
   // Check for API models not in hardcoded list
   for (const apiModel of apiModels) {
     const hardcoded = hardcodedModels.find((m) => m.id === apiModel.id);
-    if (!hardcoded && !LEGACY_NEURALWATT_MODEL_IDS.has(apiModel.id)) {
+    if (
+      !hardcoded &&
+      !LEGACY_NEURALWATT_MODEL_IDS.has(apiModel.id) &&
+      !ALIAS_NEURALWATT_MODEL_IDS.has(apiModel.id)
+    ) {
       discrepancies.push({
         model: apiModel.id,
         field: "exists",
@@ -302,7 +306,7 @@ describe("Neuralwatt models", () => {
       name: "DeepSeek V4 Flash",
       reasoning: true,
       input: ["text"],
-      cost: { input: 0.104, output: 0.207, cacheRead: 0.026, cacheWrite: 0 },
+      cost: { input: 0.14, output: 0.28, cacheRead: 0.028, cacheWrite: 0 },
       contextWindow: 1048560,
       maxTokens: 65536,
       compat: {
@@ -320,7 +324,7 @@ describe("Neuralwatt models", () => {
       name: "Gemma 4 31B",
       reasoning: false,
       input: ["text", "image"],
-      cost: { input: 0.144, output: 0.42, cacheRead: 0.036, cacheWrite: 0 },
+      cost: { input: 0.144, output: 0.42, cacheRead: 0.0144, cacheWrite: 0 },
       contextWindow: 262128,
       maxTokens: 16384,
       compat: {

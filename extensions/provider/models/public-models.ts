@@ -37,7 +37,7 @@ const BINARY_THINKING: ThinkingLevelMap = {
 };
 
 const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
-  cost: { input: 0.104, output: 0.207, cacheRead: 0.026 },
+  cost: { input: 0.14, output: 0.28, cacheRead: 0.028 },
   vision: false,
   thinkingLevelMap: {
     off: "none",
@@ -52,41 +52,41 @@ const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
 
 // Google, served from NVIDIA's NVFP4 checkpoint.
 const GEMMA_4: NeuralwattModelFamily = {
-  cost: { input: 0.144, output: 0.42, cacheRead: 0.036 },
+  cost: { input: 0.144, output: 0.42, cacheRead: 0.0144 },
   vision: true,
 };
 
 // ZhipuAI.
 const GLM_5_2: NeuralwattModelFamily = {
-  cost: { input: 1.45, output: 4.5, cacheRead: 0.3625 },
+  cost: { input: 1.45, output: 4.5, cacheRead: 0.145 },
   vision: false,
   thinkingLevelMap: GLM_THINKING,
 };
 
 // MoonshotAI.
 const KIMI_K2_6: NeuralwattModelFamily = {
-  cost: { input: 0.69, output: 3.22, cacheRead: 0.1725 },
+  cost: { input: 0.69, output: 3.22, cacheRead: 0.069 },
   vision: true,
   thinkingLevelMap: BINARY_THINKING,
 };
 
 // MoonshotAI.
 const KIMI_K2_7_CODE: NeuralwattModelFamily = {
-  cost: { input: 0.95, output: 4.0, cacheRead: 0.2375 },
+  cost: { input: 0.95, output: 4.0, cacheRead: 0.095 },
   vision: true,
   thinkingLevelMap: { off: null, ...BINARY_THINKING },
 };
 
 // Qwen.
 const QWEN_3_5_397B: NeuralwattModelFamily = {
-  cost: { input: 0.69, output: 4.14, cacheRead: 0.1725 },
+  cost: { input: 0.69, output: 4.14, cacheRead: 0.069 },
   vision: false,
   thinkingLevelMap: BINARY_THINKING,
 };
 
 // Qwen.
 const QWEN_3_6_35B: NeuralwattModelFamily = {
-  cost: { input: 0.29, output: 1.15, cacheRead: 0.0725 },
+  cost: { input: 0.29, output: 1.15, cacheRead: 0.029 },
   vision: true,
   thinkingLevelMap: BINARY_THINKING,
 };

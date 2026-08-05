@@ -199,6 +199,13 @@ export default async function (pi: ExtensionAPI) {
     return { message: overflowMessage };
   });
 
+  // Inject the active Pi session id as a conversation id on every Neuralwatt
+  // request so the gateway can correlate requests within a session.
+  pi.on("before_provider_headers", (event, ctx) => {
+    if (ctx.model?.provider !== "neuralwatt") return;
+    event.headers["X-NW-Conversation-ID"] = ctx.sessionManager.getSessionId();
+  });
+
   pi.on("after_provider_response", (event, ctx) => {
     if (ctx.model?.provider !== "neuralwatt") return;
 

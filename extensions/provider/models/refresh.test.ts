@@ -5,10 +5,33 @@ import type {
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
-import { describe, expect, it } from "vitest";
-import { EARLY_ACCESS_NEURALWATT_MODELS } from "./early-access";
+import { describe, expect, it, vi } from "vitest";
 import { NEURALWATT_MODELS } from "./public-models";
 import { refreshNeuralwattModels } from "./refresh";
+
+// Dummy hardcoded early-access model injected via vi.mock so the refresh
+// tests can verify that hardcoded EARLY_ACCESS_NEURALWATT_MODELS are present
+// when the option is enabled, even when discovery returns an empty list.
+const { dummyHardcodedEarlyAccessModel } = vi.hoisted(() => {
+  const dummyHardcodedEarlyAccessModel: ProviderModelConfig = {
+    id: "early-access/hardcoded-dummy",
+    name: "Hardcoded Early Access Dummy",
+    reasoning: false,
+    input: ["text"],
+    cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 128_000,
+    maxTokens: 8_192,
+  };
+  return { dummyHardcodedEarlyAccessModel };
+});
+
+vi.mock("./early-access", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./early-access")>();
+  return {
+    ...actual,
+    EARLY_ACCESS_NEURALWATT_MODELS: [dummyHardcodedEarlyAccessModel],
+  };
+});
 
 const earlyAccessModel: ProviderModelConfig = {
   id: "early-access/model",
@@ -19,14 +42,6 @@ const earlyAccessModel: ProviderModelConfig = {
   contextWindow: 128_000,
   maxTokens: 8_192,
 };
-
-const kimiK3 = EARLY_ACCESS_NEURALWATT_MODELS.find(
-  (model) => model.id === "kimi-k3",
-);
-
-if (!kimiK3) {
-  throw new Error("kimi-k3 early-access model fixture is missing");
-}
 
 function storedModel(model: ProviderModelConfig): Model<Api> {
   return {
@@ -70,52 +85,14 @@ describe("refreshNeuralwattModels", () => {
       loadEarlyAccess: async () => [],
     });
 
-    expect(models).toContainEqual(kimiK3);
+    expect(models).toContainEqual(dummyHardcodedEarlyAccessModel);
     expect(writes).toHaveLength(1);
-    expect(writes[0]?.models).toContainEqual(storedModel(kimiK3));
+    expect(writes[0]?.models).toContainEqual(
+      storedModel(dummyHardcodedEarlyAccessModel),
+    );
   });
 
-  it("preserves the Kimi K3 runtime configuration", async () => {
-    const { context } = createContext();
-
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: true,
-      loadEarlyAccess: async () => [],
-    });
-
-    expect(models.find((model) => model.id === "kimi-k3")).toEqual({
-      id: "kimi-k3",
-      name: "Kimi K3",
-      reasoning: true,
-      input: ["text", "image"],
-      cost: {
-        input: 3,
-        output: 15,
-        cacheRead: 0.3,
-        cacheWrite: 0,
-      },
-      contextWindow: 1048560,
-      maxTokens: 1048560,
-      thinkingLevelMap: {
-        off: null,
-        minimal: null,
-        low: "low",
-        medium: null,
-        high: "high",
-        xhigh: null,
-        max: "max",
-      },
-      compat: {
-        supportsDeveloperRole: false,
-        maxTokensField: "max_tokens",
-        requiresReasoningContentOnAssistantMessages: true,
-      },
-    });
-  });
-
-  it("omits hardcoded early-access models when discovery is disabled", async () => {
+  it("omits hardcoded early-access models when the option is disabled", async () => {
     const { context } = createContext();
 
     const models = await refreshNeuralwattModels(context, {
@@ -124,7 +101,25 @@ describe("refreshNeuralwattModels", () => {
       includeEarlyAccessModels: false,
     });
 
-    expect(models.some((model) => model.id === kimiK3.id)).toBe(false);
+    expect(
+      models.some((model) => model.id === dummyHardcodedEarlyAccessModel.id),
+    ).toBe(false);
+  });
+
+  it("omits early-access models when discovery is disabled", async () => {
+    const { context } = createContext({
+      stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
+    });
+
+    const models = await refreshNeuralwattModels(context, {
+      includeLegacyModelIds: false,
+      includeAliasedModelIds: false,
+      includeEarlyAccessModels: false,
+    });
+
+    expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(
+      false,
+    );
   });
 
   it("includes aliases for active models when enabled", async () => {

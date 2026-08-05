@@ -1,5 +1,29 @@
 # @aliou/pi-extension-template
 
+## 0.11.2
+
+### Patch Changes
+
+- b6aabd5: Sync the model lineup with the latest Neuralwatt changes.
+
+  - **Kimi K3 is now public**: graduated from early-access to the public catalog
+    (still in preview with limited concurrency). Moved from `early-access.ts`
+    to `public-models.ts` with its `-fast` variant (thinking disabled shorthand).
+  - **Kimi K2.6 retired** (8/3): removed from public models, added to legacy
+    aliases redirecting to Kimi K2.7 Code.
+  - **Qwen 3.5 retired** (8/3): removed from public models, added to legacy
+    aliases redirecting to Qwen 3.6.
+  - **DeepSeek V4 Flash 0731 weights**: updated comment to note the new
+    checkpoint; no routing change needed (automatic).
+  - **Cache pricing at 10%**: already applied in the prior sync; DeepSeek V4
+    Flash remains the exception at 20% of input rate.
+  - **Flex drift test fix**: the API now advertises flex variants at standard
+    pricing (the 35% discount is billing-time only), so the drift test skips
+    price comparisons for flex models while still checking limits and
+    capabilities.
+
+- 117d234: Fix stale `ExtensionContext` crash in `quota-warnings` after session replacement. Both `quota-warnings` and `sub-bar-integration` captured the session ctx in a module-level variable and dereferenced it inside the shared-bus `neuralwatt:quotas:updated` handler; after `newSession`/`fork`/`switchSession`/`reload`, pi invalidates captured session-bound ctx and the deref threw. The quota subscription is now session-scoped: it subscribes in `session_start` (capturing the fresh ctx in the closure) and unsubscribes in `session_shutdown`, so the handler never runs with a stale ctx.
+
 ## 0.11.1
 
 ### Patch Changes

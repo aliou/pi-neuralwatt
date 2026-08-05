@@ -159,8 +159,11 @@ function compareModels(
       }
     }
 
-    // Check pricing
-    if (meta) {
+    // Check pricing. Flex variants are advertised by the API at standard
+    // pricing; the 35% Flex discount is a billing-time concept applied via
+    // costMultiplier in our hardcoded definitions, so skip price checks for
+    // them.
+    if (meta && !isFlexModelId(hardcoded.id)) {
       if (
         Math.abs(meta.pricing.input_per_million - hardcoded.cost.input) >
         epsilon
@@ -346,9 +349,6 @@ describe("Neuralwatt models", () => {
     expect(byId.get("glm-5.2-short-fast-flex")?.reasoning).toBe(
       byId.get("glm-5.2-short-fast")?.reasoning,
     );
-    expect(byId.get("kimi-k2.6-flex")?.thinkingLevelMap).toEqual(
-      byId.get("kimi-k2.6")?.thinkingLevelMap,
-    );
     expect(byId.get("kimi-k2.7-code-flex")?.thinkingLevelMap).toEqual(
       byId.get("kimi-k2.7-code")?.thinkingLevelMap,
     );
@@ -360,7 +360,6 @@ describe("Neuralwatt models", () => {
       ["glm-5.2-flex", "glm-5.2"],
       ["glm-5.2-short-flex", "glm-5.2-short"],
       ["glm-5.2-short-fast-flex", "glm-5.2-short-fast"],
-      ["kimi-k2.6-flex", "kimi-k2.6"],
       ["kimi-k2.7-code-flex", "kimi-k2.7-code"],
     ];
 
@@ -455,6 +454,37 @@ describe("Neuralwatt models", () => {
       expect(model.thinkingLevelMap).toHaveProperty("high");
       expect(model.thinkingLevelMap).toHaveProperty("xhigh");
     }
+  });
+
+  it("should expose Kimi K3 with its public API metadata", () => {
+    expect(
+      NEURALWATT_MODELS.find((model) => model.id === "kimi-k3"),
+    ).toMatchObject({
+      name: "Kimi K3",
+      reasoning: true,
+      input: ["text", "image"],
+      cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
+      contextWindow: 1048560,
+      maxTokens: 1048560,
+      compat: {
+        supportsDeveloperRole: false,
+        maxTokensField: "max_tokens",
+        requiresReasoningContentOnAssistantMessages: true,
+      },
+    });
+  });
+
+  it("should expose Kimi K3 Fast with thinking disabled", () => {
+    expect(
+      NEURALWATT_MODELS.find((model) => model.id === "kimi-k3-fast"),
+    ).toMatchObject({
+      name: "Kimi K3 Fast",
+      reasoning: false,
+      input: ["text", "image"],
+      cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
+      contextWindow: 1048560,
+      maxTokens: 1048560,
+    });
   });
 
   it("should expose the Pi `max` thinking level on GLM reasoning models", () => {

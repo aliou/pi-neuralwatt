@@ -6,9 +6,8 @@ import { NEURALWATT_MODELS } from "./public-models";
 export const ALIAS_MODEL_MAP = {
   "deepseek-ai/DeepSeek-V4-Flash": "deepseek-v4-flash",
   "zai-org/GLM-5.2-FP8": "glm-5.2",
-  "moonshotai/Kimi-K2.6": "kimi-k2.6",
   "moonshotai/Kimi-K2.7-Code": "kimi-k2.7-code",
-  "Qwen/Qwen3.5-397B-A17B-FP8": "qwen3.5-397b",
+  "moonshotai/Kimi-K3": "kimi-k3",
   "Qwen/Qwen3.6-35B-A3B": "qwen3.6-35b",
   "nvidia/Gemma-4-31B-IT-NVFP4": "gemma-4-31b",
 } as const;

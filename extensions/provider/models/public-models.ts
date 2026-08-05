@@ -69,11 +69,24 @@ const GLM_5_2: NeuralwattModelFamily = {
   thinkingLevelMap: GLM_THINKING,
 };
 
-// MoonshotAI.
-const KIMI_K2_6: NeuralwattModelFamily = {
-  cost: { input: 0.69, output: 3.22, cacheRead: 0.069 },
+// MoonshotAI. K3 is the largest open-weight model ever released, served in
+// preview with limited concurrency. K3 always reasons (thinking cannot be
+// disabled) and supports `reasoning_effort` values "low", "high", and "max"
+// (default "max"). There is no "medium" tier upstream, so Pi's low/high/max
+// map directly and `off`, `minimal`, `medium`, and `xhigh` are unsupported
+// holes. The `-fast` endpoint is a shorthand to set thinking to off.
+const KIMI_K3: NeuralwattModelFamily = {
+  cost: { input: 3, output: 15, cacheRead: 0.3 },
   vision: true,
-  thinkingLevelMap: BINARY_THINKING,
+  thinkingLevelMap: {
+    off: null,
+    minimal: null,
+    low: "low",
+    medium: null,
+    high: "high",
+    xhigh: null,
+    max: "max",
+  },
 };
 
 // MoonshotAI.
@@ -81,13 +94,6 @@ const KIMI_K2_7_CODE: NeuralwattModelFamily = {
   cost: { input: 0.95, output: 4.0, cacheRead: 0.095 },
   vision: true,
   thinkingLevelMap: { off: null, ...BINARY_THINKING },
-};
-
-// Qwen.
-const QWEN_3_5_397B: NeuralwattModelFamily = {
-  cost: { input: 0.69, output: 4.14, cacheRead: 0.069 },
-  vision: false,
-  thinkingLevelMap: BINARY_THINKING,
 };
 
 // Qwen.
@@ -180,29 +186,21 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
     ],
   ],
   [
-    KIMI_K2_6,
+    KIMI_K3,
     [
       {
-        id: "kimi-k2.6",
-        name: "Kimi K2.6",
-        contextWindow: 262128,
+        id: "kimi-k3",
+        name: "Kimi K3",
+        contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
       },
       {
-        id: "kimi-k2.6-fast",
-        name: "Kimi K2.6 Fast",
-        contextWindow: 262128,
+        id: "kimi-k3-fast",
+        name: "Kimi K3 Fast",
+        contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: false,
-      },
-      {
-        id: "kimi-k2.6-flex",
-        name: "Kimi K2.6 (flex)",
-        contextWindow: 262128,
-        maxOutputTokens: null,
-        reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],
@@ -234,25 +232,6 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
     ],
   ],
   [
-    QWEN_3_5_397B,
-    [
-      {
-        id: "qwen3.5-397b",
-        name: "Qwen3.5 397B",
-        contextWindow: 262128,
-        maxOutputTokens: null,
-        reasoning: true,
-      },
-      {
-        id: "qwen3.5-397b-fast",
-        name: "Qwen3.5 397B Fast",
-        contextWindow: 262128,
-        maxOutputTokens: null,
-        reasoning: false,
-      },
-    ],
-  ],
-  [
     QWEN_3_6_35B,
     [
       {
@@ -275,8 +254,9 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
 
 // `-flex` variants are the Flex tier: same model, context window, output cap,
 // and prompt cache as the standard variant, admitted on spare capacity.
-// /v1/models does not advertise them (not even to an authenticated key), so they
-// stay hardcoded here and the drift check in models.test.ts skips them.
+// The API now advertises flex variants but lists them at standard pricing;
+// the 35% Flex discount is a billing-time concept applied here via
+// `costMultiplier` rather than reflected in the catalog metadata.
 // https://portal.neuralwatt.com/docs/guides/flex-tier
 
 export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(

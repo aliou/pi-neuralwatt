@@ -8,7 +8,7 @@ A Pi extension that adds [Neuralwatt](https://portal.neuralwatt.com/auth/registe
 
 ### Get API Key
 
-Sign up at [neuralwatt.com](https://portal.neuralwatt.com/auth/register?ref=NW-ALIOU-Q7MF) to get an API key.
+Sign up [here](https://portal.neuralwatt.com/auth/register?ref=NW-ALIOU-Q7MF) to get an API key (referral link).
 
 ### Configure Credentials
 

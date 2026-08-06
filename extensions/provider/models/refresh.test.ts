@@ -63,13 +63,12 @@ function createContext(options?: {
   const context: RefreshModelsContext = {
     allowNetwork: options?.allowNetwork ?? true,
     credential: { type: "api_key", key: "test-key" },
-    store: {
-      read: async () => options?.stored,
-      write: async (entry) => {
-        writes.push(entry);
-      },
-      delete: async () => {},
+    stored: options?.stored,
+    publish: async (publication) => {
+      if (publication.persist) writes.push(publication.persist);
+      return true;
     },
+    signal: new AbortController().signal,
   };
   return { context, writes };
 }

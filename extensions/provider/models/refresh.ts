@@ -6,6 +6,10 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
+  persistModels,
+  readStoredModels,
+} from "../../../src/refresh-store-compat";
+import {
   ALIAS_NEURALWATT_MODEL_IDS,
   buildAliasNeuralwattModels,
 } from "./aliases";
@@ -121,11 +125,11 @@ function cachedEarlyAccessModels(
     .map(toProviderModel);
 }
 
-async function persistModels(
+function persistCatalog(
   context: RefreshModelsContext,
   models: ProviderModelConfig[],
-): Promise<void> {
-  await context.store.write({
+): Promise<boolean> {
+  return persistModels(context, {
     models: models.map(toStoredModel),
     checkedAt: Date.now(),
   });
@@ -140,10 +144,10 @@ export async function refreshNeuralwattModels(
     options.includeLegacyModelIds,
     options.includeAliasedModelIds,
   );
-  const stored = await context.store.read();
+  const stored = await readStoredModels(context);
 
   if (!options.includeEarlyAccessModels) {
-    await persistModels(context, baseline);
+    await persistCatalog(context, baseline);
     return baseline;
   }
 
@@ -179,6 +183,7 @@ export async function refreshNeuralwattModels(
     options.includeAliasedModelIds,
     configuredEarlyAccessModels(earlyAccess, baseline),
   );
-  await persistModels(context, catalog);
+  context.signal?.throwIfAborted();
+  await persistCatalog(context, catalog);
   return catalog;
 }

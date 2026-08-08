@@ -1,12 +1,11 @@
 {
-  "$ref": "#/definitions/NeuralwattConfig",
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/NeuralwattConfig",
   "definitions": {
     "NeuralwattConfig": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "$schema": {
-          "description": "$schema URL for editor autocomplete.",
           "type": "string"
         },
         "provider": {
@@ -24,57 +23,70 @@
         "subBarIntegration": {
           "$ref": "#/definitions/NeuralwattSubBarIntegrationConfig",
           "description": "Sub-bar/status-bar integration feature."
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\d{1,15}(\\.\\d{1,15})?(\\.\\d{1,15})?$"
+            }
+          ],
+          "description": "Config schema version, stamped by migrations. Current version: 0.12.0."
         }
       },
-      "type": "object"
+      "additionalProperties": false
     },
     "NeuralwattProviderConfig": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
+        "includeLegacyModelIds": {
+          "type": "boolean",
+          "description": "Include legacy Neuralwatt model IDs in the model picker."
+        },
         "includeAliasedModelIds": {
-          "description": "Include alternate creator-scoped Neuralwatt model IDs in the model picker.",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Include alternate creator-scoped Neuralwatt model IDs in the model picker."
         },
         "includeEarlyAccessModels": {
-          "description": "Include early-access Neuralwatt models discovered via the authenticated API.",
-          "type": "boolean"
-        },
-        "includeLegacyModelIds": {
-          "description": "Include legacy Neuralwatt model IDs in the model picker.",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Include early-access Neuralwatt models discovered via the authenticated API."
         }
       },
-      "type": "object"
+      "additionalProperties": false
     },
     "NeuralwattQuotaCommandConfig": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "enabled": {
-          "description": "Show the quota command (/neuralwatt:quota).",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Show the quota command (/neuralwatt:quota)."
         }
       },
-      "type": "object"
+      "additionalProperties": false
     },
     "NeuralwattQuotaWarningsConfig": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "enabled": {
-          "description": "Show quota warnings when credits or energy are low.",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Show quota warnings when credits or energy are low."
         }
       },
-      "type": "object"
+      "additionalProperties": false
     },
     "NeuralwattSubBarIntegrationConfig": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "enabled": {
-          "description": "Show usage in the sub-bar / status bar.",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Show usage in the sub-bar / status bar."
         }
       },
-      "type": "object"
+      "additionalProperties": false
     }
   }
 }

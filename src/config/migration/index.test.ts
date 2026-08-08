@@ -13,6 +13,13 @@ import {
   renameHiddenToEarlyAccessMigration,
 } from "./index";
 
+const migrationContext = Object.freeze({
+  filePath: "neuralwatt.json",
+  appliedMigrations: [],
+  fromVersion: "0.0.0",
+  toVersion: "0.11.0",
+});
+
 const tempDirs: string[] = [];
 
 async function tempConfigFile(): Promise<{ dir: string; filePath: string }> {
@@ -30,6 +37,7 @@ async function runFlatMigration(
   return flatToNestedConfigMigration.run(
     config as NeuralwattConfig,
     filePath,
+    migrationContext,
   ) as Promise<NeuralwattConfig>;
 }
 
@@ -44,11 +52,15 @@ describe("renameHiddenToEarlyAccessMigration", () => {
     (await renameHiddenToEarlyAccessMigration.run(
       config as NeuralwattConfig,
       "neuralwatt.json",
+      migrationContext,
     )) as NeuralwattConfig;
 
   it("runs only when the pre-rename key is present", () => {
     const shouldRun = (config: Record<string, unknown>) =>
-      renameHiddenToEarlyAccessMigration.shouldRun(config as NeuralwattConfig);
+      renameHiddenToEarlyAccessMigration.shouldRun?.(
+        config as NeuralwattConfig,
+        migrationContext,
+      );
 
     expect(shouldRun({ provider: { includeHiddenModels: true } })).toBe(true);
     expect(shouldRun({ provider: { includeEarlyAccessModels: true } })).toBe(
@@ -89,12 +101,14 @@ describe("enableAliasesForLegacyUsersMigration", () => {
     (await enableAliasesForLegacyUsersMigration.run(
       config as NeuralwattConfig,
       "neuralwatt.json",
+      migrationContext,
     )) as NeuralwattConfig;
 
   it("runs only for legacy users without an explicit aliases setting", () => {
     const shouldRun = (config: Record<string, unknown>) =>
-      enableAliasesForLegacyUsersMigration.shouldRun(
+      enableAliasesForLegacyUsersMigration.shouldRun?.(
         config as NeuralwattConfig,
+        migrationContext,
       );
 
     expect(shouldRun({ provider: { includeLegacyModelIds: true } })).toBe(true);
@@ -169,6 +183,7 @@ describe("flatToNestedConfigMigration", () => {
     await flatToNestedConfigMigration.run(
       { quotaCommand: false } as unknown as NeuralwattConfig,
       filePath,
+      migrationContext,
     );
 
     const backupPath = join(
@@ -201,6 +216,7 @@ describe("flatToNestedConfigMigration", () => {
       flatToNestedConfigMigration.run(
         { quotaCommand: false } as unknown as NeuralwattConfig,
         join(dir, "missing.json"),
+        migrationContext,
       ),
     ).rejects.toThrow();
   });

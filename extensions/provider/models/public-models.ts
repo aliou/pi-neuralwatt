@@ -114,6 +114,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         maxOutputTokens: 65536,
         reasoning: true,
       },
+      {
+        id: "deepseek-v4-flash-flex",
+        name: "DeepSeek V4 Flash (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: 65536,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
+      },
     ],
   ],
   [
@@ -215,11 +223,13 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         reasoning: true,
       },
       {
+        // K2.7 Code cannot disable thinking; the -fast variant caps the
+        // reasoning budget (~64 tokens) rather than turning it off.
         id: "kimi-k2.7-code-fast",
         name: "Kimi K2.7 Code Fast",
         contextWindow: 262128,
         maxOutputTokens: null,
-        reasoning: false,
+        reasoning: true,
       },
       {
         id: "kimi-k2.7-code-flex",

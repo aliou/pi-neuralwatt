@@ -361,6 +361,7 @@ describe("Neuralwatt models", () => {
       ["glm-5.2-short-flex", "glm-5.2-short"],
       ["glm-5.2-short-fast-flex", "glm-5.2-short-fast"],
       ["kimi-k2.7-code-flex", "kimi-k2.7-code"],
+      ["deepseek-v4-flash-flex", "deepseek-v4-flash"],
     ];
 
     for (const [flexId, standardId] of pairs) {

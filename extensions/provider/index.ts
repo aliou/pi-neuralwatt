@@ -1,21 +1,30 @@
 import { getApiProvider } from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
+  ExtensionContext,
   ModelRegistry,
+  ProviderModelConfig,
 } from "@earendil-works/pi-coding-agent";
 import { configLoader } from "../../src/config";
 import {
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
   NEURALWATT_EXTENSIONS_REQUEST_EVENT,
+  NEURALWATT_FLEX_UPDATED_EVENT,
   NEURALWATT_QUOTAS_REQUEST_EVENT,
   NEURALWATT_QUOTAS_UPDATED_EVENT,
   type NeuralwattFeatureId,
+  type NeuralwattFlexUpdatedPayload,
   type NeuralwattQuotasUpdatedPayload,
 } from "../../src/events";
+import {
+  getFlexSessionState,
+  resetFlexSessionState,
+} from "../../src/flex-session";
 import { fetchQuotas } from "../../src/lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
+import { registerFlexCommand } from "./commands/flex";
 import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import { getNeuralwattModels, refreshNeuralwattModels } from "./models";
@@ -29,11 +38,46 @@ import { updateQuotasFromSseComment } from "./sse-quotas";
 import { wrapNeuralwattStreamSimple } from "./stream-simple";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
+const FLEX_STATUS_KEY = "neuralwatt:flex";
+
+let flexModelIds = new Set<string>();
+let currentFlexCtx: ExtensionContext | undefined;
+let currentFlexModelId: string | undefined;
 
 function emitConfigUpdated(pi: ExtensionAPI): void {
   pi.events.emit(NEURALWATT_CONFIG_UPDATED_EVENT, {
     config: configLoader.getConfig(),
   });
+}
+
+function updateFlexModelIds(models: ProviderModelConfig[]): void {
+  flexModelIds = new Set(models.map((m) => m.id));
+}
+
+function modelSupportsFlex(modelId: string): boolean {
+  if (modelId.endsWith("-flex")) return true;
+  return flexModelIds.has(`${modelId}-flex`);
+}
+
+function updateFlexStatus(): void {
+  const ctx = currentFlexCtx;
+  if (!ctx?.hasUI) return;
+
+  const state = getFlexSessionState();
+  const provider = ctx.model?.provider;
+  const modelId = currentFlexModelId ?? ctx.model?.id;
+
+  const shouldShow =
+    state.enabled &&
+    provider === "neuralwatt" &&
+    modelId !== undefined &&
+    modelSupportsFlex(modelId);
+
+  if (shouldShow) {
+    ctx.ui.setStatus(FLEX_STATUS_KEY, ctx.ui.theme.fg("accent", "flex: on"));
+  } else {
+    ctx.ui.setStatus(FLEX_STATUS_KEY, undefined);
+  }
 }
 
 function registerNeuralwattProvider(
@@ -79,6 +123,7 @@ function registerNeuralwattProvider(
   }
 
   pi.registerProvider("neuralwatt", config);
+  updateFlexModelIds(config.models ?? []);
 }
 
 export default async function (pi: ExtensionAPI) {
@@ -111,6 +156,9 @@ export default async function (pi: ExtensionAPI) {
     getLoadedFeatures: () => loadedFeatures,
   });
 
+  // Register the per-session Flex tier command.
+  registerFlexCommand(pi);
+
   pi.events.on(NEURALWATT_CONFIG_UPDATED_EVENT, () => {
     const next = configLoader.getConfig().provider;
     if (
@@ -125,6 +173,24 @@ export default async function (pi: ExtensionAPI) {
     }
     registeredProviderSettings = { ...next };
     registerNeuralwattProvider(pi, handleSseQuota);
+  });
+
+  pi.on("model_select", async (_event, ctx) => {
+    currentFlexCtx = ctx;
+    currentFlexModelId = ctx.model?.id;
+    updateFlexStatus();
+  });
+
+  pi.on("session_before_switch", (_event, ctx) => {
+    currentFlexCtx = ctx;
+    currentFlexModelId = ctx.model?.id;
+    updateFlexStatus();
+  });
+
+  pi.events.on(NEURALWATT_FLEX_UPDATED_EVENT, (data: unknown) => {
+    const payload = data as NeuralwattFlexUpdatedPayload;
+    if (!payload || typeof payload !== "object") return;
+    updateFlexStatus();
   });
 
   let lastHeaderEmitAt = 0;
@@ -199,6 +265,18 @@ export default async function (pi: ExtensionAPI) {
     return { message: overflowMessage };
   });
 
+  pi.on("before_provider_request", (event, ctx) => {
+    if (ctx.model?.provider !== "neuralwatt") return;
+
+    const state = getFlexSessionState();
+    if (!state.enabled) return;
+
+    const payload = event.payload as Record<string, unknown> | undefined;
+    if (!payload || payload.service_tier !== undefined) return;
+
+    return { ...payload, service_tier: "flex" };
+  });
+
   pi.on("after_provider_response", (event, ctx) => {
     if (ctx.model?.provider !== "neuralwatt") return;
 
@@ -235,6 +313,10 @@ export default async function (pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     currentModelRegistry = ctx.modelRegistry;
+    resetFlexSessionState();
+    currentFlexCtx = ctx;
+    currentFlexModelId = ctx.model?.id;
+    updateFlexStatus();
     pendingRateLimitInfo = undefined;
     const messages = [...new Set(configLoader.drainMessages())];
     if (messages.length > 0) {
@@ -254,5 +336,7 @@ export default async function (pi: ExtensionAPI) {
 
   pi.on("session_shutdown", () => {
     currentModelRegistry = undefined;
+    currentFlexCtx = undefined;
+    currentFlexModelId = undefined;
   });
 }

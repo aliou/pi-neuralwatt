@@ -1,6 +1,11 @@
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  resetFlexSessionState,
+  setFlexEnabled,
+  setFlexTimeoutMs,
+} from "../../src/flex-session";
+import {
   type AnyStreamSimple,
   wrapNeuralwattStreamSimple,
 } from "./stream-simple";
@@ -36,6 +41,7 @@ async function collect(stream: AsyncIterable<unknown>): Promise<unknown[]> {
 afterEach(() => {
   globalThis.fetch = originalFetch;
   vi.restoreAllMocks();
+  resetFlexSessionState();
 });
 
 describe("wrapNeuralwattStreamSimple", () => {
@@ -154,5 +160,53 @@ describe("wrapNeuralwattStreamSimple", () => {
       ': energy {"energy_joules":360000}',
     );
     expect(globalThis.fetch).toBe(fetchMock);
+  });
+
+  it("extends timeout when flex mode is enabled", async () => {
+    setFlexEnabled(true);
+    setFlexTimeoutMs(30 * 60 * 1000);
+
+    const base: AnyStreamSimple = (_model, _context, options) => {
+      const stream = createAssistantMessageEventStream();
+      expect(options?.timeoutMs).toBe(30 * 60 * 1000);
+      queueMicrotask(() => stream.end());
+      return stream;
+    };
+
+    const wrapped = wrapNeuralwattStreamSimple(base, () => {});
+    await collect(wrapped({ id: "glm-5.2" } as never, {} as never));
+  });
+
+  it("extends timeout for -flex model IDs", async () => {
+    setFlexTimeoutMs(45 * 60 * 1000);
+
+    const base: AnyStreamSimple = (_model, _context, options) => {
+      const stream = createAssistantMessageEventStream();
+      expect(options?.timeoutMs).toBe(45 * 60 * 1000);
+      queueMicrotask(() => stream.end());
+      return stream;
+    };
+
+    const wrapped = wrapNeuralwattStreamSimple(base, () => {});
+    await collect(wrapped({ id: "glm-5.2-flex" } as never, {} as never));
+  });
+
+  it("does not reduce an already longer timeout", async () => {
+    setFlexEnabled(true);
+    setFlexTimeoutMs(30 * 60 * 1000);
+
+    const base: AnyStreamSimple = (_model, _context, options) => {
+      const stream = createAssistantMessageEventStream();
+      expect(options?.timeoutMs).toBe(60 * 60 * 1000);
+      queueMicrotask(() => stream.end());
+      return stream;
+    };
+
+    const wrapped = wrapNeuralwattStreamSimple(base, () => {});
+    await collect(
+      wrapped({ id: "glm-5.2" } as never, {} as never, {
+        timeoutMs: 60 * 60 * 1000,
+      }),
+    );
   });
 });

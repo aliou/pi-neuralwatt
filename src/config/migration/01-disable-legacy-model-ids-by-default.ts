@@ -29,6 +29,7 @@ function isPreviousConfigWithoutLegacyDefault(
 export const disableLegacyModelIdsByDefaultMigration: Migration<NeuralwattConfig> =
   {
     name: "disable-legacy-model-ids-by-default",
+    version: "0.8.0",
     shouldRun: isPreviousConfigWithoutLegacyDefault,
     message:
       "[neuralwatt] legacy model IDs (ids including the provider and the quantization) are disabled by default. You can enable them with /neuralwatt:settings.",

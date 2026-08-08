@@ -80,6 +80,7 @@ export async function backupConfig(filePath: string): Promise<void> {
 
 export const flatToNestedConfigMigration: Migration<NeuralwattConfig> = {
   name: "flat-to-nested-config",
+  version: "0.8.1",
   shouldRun: isPreviousConfig,
   message: FLAT_CONFIG_MIGRATION_MESSAGE,
   run: async (config, filePath) => {

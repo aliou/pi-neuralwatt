@@ -25,6 +25,7 @@ function previousProvider(
  */
 export const renameHiddenToEarlyAccessMigration: Migration<NeuralwattConfig> = {
   name: "rename-hidden-models-to-early-access",
+  version: "0.10.6",
   shouldRun: (config) =>
     previousProvider(config)?.includeHiddenModels !== undefined,
   message:

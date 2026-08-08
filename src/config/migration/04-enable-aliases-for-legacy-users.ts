@@ -25,6 +25,7 @@ function previousProvider(
 export const enableAliasesForLegacyUsersMigration: Migration<NeuralwattConfig> =
   {
     name: "enable-alias-model-ids-for-legacy-users",
+    version: "0.11.0",
     shouldRun: (config) => {
       const provider = previousProvider(config);
       return (

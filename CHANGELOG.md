@@ -1,5 +1,15 @@
 # @aliou/pi-extension-template
 
+## 0.12.0
+
+### Minor Changes
+
+- fbd1b1c: Adopt `@aliou/pi-utils-settings` 0.19.1 versioned migrations.
+
+  Bumps the dependency and adds semver `version` strings to all config migrations, leaving their content-based `shouldRun` gates intact. Switches schema generation to `pi-settings-schema`.
+
+- 32ba87a: Add an `X-NW-Conversation-ID` header (set to the active Pi session id) to every Neuralwatt request so the gateway can correlate requests within a session.
+
 ## 0.11.4
 
 ### Patch Changes

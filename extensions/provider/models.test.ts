@@ -325,7 +325,7 @@ describe("Neuralwatt models", () => {
       NEURALWATT_MODELS.find((model) => model.id === "gemma-4-31b"),
     ).toMatchObject({
       name: "Gemma 4 31B",
-      reasoning: false,
+      reasoning: true,
       input: ["text", "image"],
       cost: { input: 0.144, output: 0.42, cacheRead: 0.0144, cacheWrite: 0 },
       contextWindow: 262128,
@@ -333,6 +333,7 @@ describe("Neuralwatt models", () => {
       compat: {
         supportsDeveloperRole: false,
         maxTokensField: "max_tokens",
+        requiresReasoningContentOnAssistantMessages: true,
       },
     });
   });
@@ -352,6 +353,9 @@ describe("Neuralwatt models", () => {
     expect(byId.get("kimi-k2.7-code-flex")?.thinkingLevelMap).toEqual(
       byId.get("kimi-k2.7-code")?.thinkingLevelMap,
     );
+    expect(byId.get("kimi-k3-flex")?.thinkingLevelMap).toEqual(
+      byId.get("kimi-k3")?.thinkingLevelMap,
+    );
   });
 
   it("should price flex variants with the flex multiplier", () => {
@@ -362,6 +366,7 @@ describe("Neuralwatt models", () => {
       ["glm-5.2-short-fast-flex", "glm-5.2-short-fast"],
       ["kimi-k2.7-code-flex", "kimi-k2.7-code"],
       ["deepseek-v4-flash-flex", "deepseek-v4-flash"],
+      ["kimi-k3-flex", "kimi-k3"],
     ];
 
     for (const [flexId, standardId] of pairs) {

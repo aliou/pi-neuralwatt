@@ -56,10 +56,26 @@ const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
   },
 };
 
-// Google, served from NVIDIA's NVFP4 checkpoint.
+// Google, served from NVIDIA's NVFP4 checkpoint. Gemma 4's chat template
+// takes a boolean rather than an effort level, so it has a single reasoning
+// depth (`max`) plus thinking-off; every non-`none` value resolves to `max`.
+// It does not reason by default (`default_enabled: false`), but the model
+// can produce reasoning traces when asked. See
+// https://portal.neuralwatt.com/docs/api/chat-completions#reasoning-effort
+const GEMMA_4_THINKING: ThinkingLevelMap = {
+  off: "none",
+  minimal: null,
+  low: null,
+  medium: null,
+  high: null,
+  xhigh: null,
+  max: "max",
+};
+
 const GEMMA_4: NeuralwattModelFamily = {
   cost: { input: 0.144, output: 0.42, cacheRead: 0.0144 },
   vision: true,
+  thinkingLevelMap: GEMMA_4_THINKING,
 };
 
 // ZhipuAI.
@@ -132,7 +148,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         name: "Gemma 4 31B",
         contextWindow: 262128,
         maxOutputTokens: 16384,
-        reasoning: false,
+        reasoning: true,
       },
     ],
   ],
@@ -147,11 +163,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         reasoning: true,
       },
       {
+        // GLM-5.2 Fast pins thinking off by default, but keeps the parent's
+        // full reasoning contract (`high`/`max`/`none`): sending
+        // `reasoning_effort` re-enables thinking for that request.
         id: "glm-5.2-fast",
-        name: "GLM-5.2 Fast",
+        name: "GLM-5.2 (fast)",
         contextWindow: 1048560,
         maxOutputTokens: null,
-        reasoning: false,
+        reasoning: true,
       },
       {
         id: "glm-5.2-flex",
@@ -169,11 +188,13 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         reasoning: true,
       },
       {
+        // Short/fast: pins thinking off but keeps the parent reasoning
+        // contract, like glm-5.2-fast.
         id: "glm-5.2-short-fast",
-        name: "GLM-5.2 Short Fast",
+        name: "GLM-5.2 (short, fast)",
         contextWindow: 199984,
         maxOutputTokens: 32000,
-        reasoning: false,
+        reasoning: true,
       },
       {
         id: "glm-5.2-short-flex",
@@ -184,11 +205,13 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         costMultiplier: FLEX_COST_MULTIPLIER,
       },
       {
+        // Short/fast/flex: pins thinking off but keeps the parent reasoning
+        // contract, like glm-5.2-fast.
         id: "glm-5.2-short-fast-flex",
         name: "GLM-5.2 (short, fast, flex)",
         contextWindow: 199984,
         maxOutputTokens: 32000,
-        reasoning: false,
+        reasoning: true,
         costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
@@ -209,6 +232,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: false,
+      },
+      {
+        id: "kimi-k3-flex",
+        name: "Kimi K3 (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],

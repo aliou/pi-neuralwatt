@@ -69,8 +69,10 @@ const GLM_5_2: NeuralwattModelFamily = {
   thinkingLevelMap: GLM_THINKING,
 };
 
-// MoonshotAI. K3 is the largest open-weight model ever released, served in
-// preview with limited concurrency. K3 always reasons (thinking cannot be
+// MoonshotAI. K3 is the largest open-weight model ever released. It graduated
+// from preview to general availability with full tier concurrency in Cloud
+// Community Update #6 (2026-08-11); the `-flex` variant rides spare capacity
+// at the Flex tier discount. K3 always reasons (thinking cannot be
 // disabled) and supports `reasoning_effort` values "low", "high", and "max"
 // (default "max"). There is no "medium" tier upstream, so Pi's low/high/max
 // map directly and `off`, `minimal`, `medium`, and `xhigh` are unsupported
@@ -209,6 +211,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: false,
+      },
+      {
+        id: "kimi-k3-flex",
+        name: "Kimi K3 (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],

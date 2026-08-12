@@ -7,7 +7,32 @@ import {
   LEGACY_NEURALWATT_MODEL_IDS,
   NEURALWATT_MODELS,
 } from "./models";
-import { FLEX_COST_MULTIPLIER } from "./models/build";
+import {
+  buildThinkingLevelMap,
+  FLEX_COST_MULTIPLIER,
+  type NeuralwattReasoningMapSource,
+} from "./models/build";
+
+const REASONING_EFFORTS = [
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+] as const;
+
+type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+
+interface ApiModelReasoning {
+  default_enabled: boolean;
+  mandatory: boolean;
+  supported_efforts: ReasoningEffort[];
+  accepted_efforts?: ReasoningEffort[];
+  default_effort: ReasoningEffort;
+  effort_aliases?: Partial<Record<ReasoningEffort, ReasoningEffort>>;
+}
 
 interface ApiModelMetadata {
   display_name: string;
@@ -32,6 +57,7 @@ interface ApiModelMetadata {
     system_role: boolean;
     developer_role: boolean;
   };
+  reasoning?: ApiModelReasoning;
   limits: {
     max_context_length: number;
     max_output_tokens: number | null;
@@ -144,6 +170,33 @@ function compareModels(
         hardcoded: hardcoded.reasoning,
         api: meta.capabilities.reasoning,
       });
+    }
+
+    // Check the reasoning level map against the endpoint's reasoned contract.
+    // `buildThinkingLevelMap` is authoritative; the hardcoded snapshot must
+    // produce the same map the live `reasoning` block would. Skipped for
+    // non-reasoning models (no map) and flex variants (pricing-only).
+    if (meta && hardcoded.reasoning && !isFlexModelId(hardcoded.id)) {
+      const expected = buildThinkingLevelMap(meta.reasoning);
+      const actual = hardcoded.thinkingLevelMap;
+      for (const level of [
+        "off",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ] as const) {
+        if (actual?.[level] !== expected[level]) {
+          discrepancies.push({
+            model: hardcoded.id,
+            field: `thinkingLevelMap.${level}`,
+            hardcoded: actual?.[level] ?? null,
+            api: expected[level],
+          });
+        }
+      }
     }
 
     // Check vision / input
@@ -449,16 +502,27 @@ describe("Neuralwatt models", () => {
     }
   });
 
-  it("should have valid thinkingLevelMap for reasoning models", () => {
+  it("should have a complete thinkingLevelMap for reasoning models", () => {
     const reasoningModels = NEURALWATT_MODELS.filter((m) => m.reasoning);
+    const allLevels = [
+      "off",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ] as const;
 
     for (const model of reasoningModels) {
-      expect(model.thinkingLevelMap).toBeDefined();
-      expect(model.thinkingLevelMap).toHaveProperty("minimal");
-      expect(model.thinkingLevelMap).toHaveProperty("low");
-      expect(model.thinkingLevelMap).toHaveProperty("medium");
-      expect(model.thinkingLevelMap).toHaveProperty("high");
-      expect(model.thinkingLevelMap).toHaveProperty("xhigh");
+      expect(model.thinkingLevelMap, model.id).toBeDefined();
+      // Every key must be explicit: Pi treats absence (undefined) as enabled
+      // for non-xhigh/max levels, so a derived map must never leave holes.
+      for (const level of allLevels) {
+        expect(model.thinkingLevelMap, `${model.id}.${level}`).toHaveProperty(
+          level,
+        );
+      }
     }
   });
 
@@ -493,38 +557,159 @@ describe("Neuralwatt models", () => {
     });
   });
 
-  it("should expose the Pi `max` thinking level on GLM reasoning models", () => {
+  it("should derive GLM-5.2 reasoning levels from `max`, `high`, `none`", () => {
     // GLM-5.2 natively supports `high` and `max` reasoning efforts. Pi's `max`
-    // level (introduced in 0.80.6) maps to GLM's top tier; `xhigh` is an
-    // unsupported hole between `high` and `max`.
+    // level (0.80.6) maps to GLM's top tier; `xhigh` is an unsupported hole.
     const glmModels = NEURALWATT_MODELS.filter((m) =>
       m.id.startsWith("glm-5.2"),
     ).filter((m) => m.reasoning);
 
     expect(glmModels.length).toBeGreaterThan(0);
     for (const model of glmModels) {
-      expect(model.thinkingLevelMap).toHaveProperty("max");
-      expect(model.thinkingLevelMap?.max).toBe("max");
-      expect(model.thinkingLevelMap?.xhigh).toBeNull();
-      expect(model.thinkingLevelMap?.high).toBe("high");
+      expect(model.thinkingLevelMap).toEqual({
+        off: "none",
+        minimal: null,
+        low: null,
+        medium: null,
+        high: "high",
+        xhigh: null,
+        max: "max",
+      });
     }
   });
 
-  it("should expose a single known-good thinking level on binary-thinking models", () => {
-    // Kimi K2.x and Qwen3.x expose no graded reasoning_effort upstream, only
-    // a binary thinking toggle. Keep the Pi surface to one level; "high"
-    // represents standard full thinking.
-    const binaryModels = NEURALWATT_MODELS.filter((model) =>
-      /^(kimi-k2\.|qwen3\.)/.test(model.id),
-    ).filter((model) => model.reasoning);
+  it("should expose only the endpoint-advertised reasoning levels", () => {
+    // Each family's map is the identity map of its `supported_efforts`:
+    // present levels map to their own name, others are `null`, and `off` is
+    // `"none"` only when `mandatory` is false and `"none"` is supported.
+    expect(
+      NEURALWATT_MODELS.find((m) => m.id === "deepseek-v4-flash")
+        ?.thinkingLevelMap,
+    ).toEqual({
+      off: "none",
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: "max",
+    });
 
-    expect(binaryModels.length).toBeGreaterThan(0);
-    for (const model of binaryModels) {
-      expect(model.thinkingLevelMap?.minimal).toBeNull();
-      expect(model.thinkingLevelMap?.low).toBeNull();
-      expect(model.thinkingLevelMap?.medium).toBeNull();
-      expect(model.thinkingLevelMap?.high).toBe("high");
-      expect(model.thinkingLevelMap?.xhigh).toBeNull();
+    expect(
+      NEURALWATT_MODELS.find((m) => m.id === "gemma-4-31b")?.thinkingLevelMap,
+    ).toEqual({
+      off: "none",
+      minimal: null,
+      low: null,
+      medium: null,
+      high: null,
+      xhigh: null,
+      max: "max",
+    });
+
+    expect(
+      NEURALWATT_MODELS.find((m) => m.id === "kimi-k3")?.thinkingLevelMap,
+    ).toEqual({
+      off: "none",
+      minimal: null,
+      low: "low",
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: "max",
+    });
+
+    expect(
+      NEURALWATT_MODELS.find((m) => m.id === "qwen3.6-35b")?.thinkingLevelMap,
+    ).toEqual({
+      off: "none",
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: null,
+    });
+  });
+
+  it("should fall back to a high-only map when no reasoning block exists", () => {
+    // Kimi K2.7 Code's API metadata exposes no `reasoning` block, so the map
+    // is the conservative fallback: only `high` enabled, `off` disabled.
+    const k27 = NEURALWATT_MODELS.find((m) => m.id === "kimi-k2.7-code");
+    expect(k27?.reasoning).toBe(true);
+    expect(k27?.thinkingLevelMap).toEqual({
+      off: null,
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: null,
+    });
+  });
+});
+
+describe("buildThinkingLevelMap", () => {
+  const all = [
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+  ] as const;
+
+  it("enables every supported effort by identity and nulls the rest", () => {
+    const map = buildThinkingLevelMap({
+      supported_efforts: ["max", "high", "none"],
+      mandatory: false,
+    });
+    expect(map).toEqual({
+      off: "none",
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: "max",
+    });
+  });
+
+  it("maps `off` to `none` only when not mandatory", () => {
+    const notMandatory: NeuralwattReasoningMapSource = {
+      supported_efforts: ["high", "none"],
+      mandatory: false,
+    };
+    expect(buildThinkingLevelMap(notMandatory).off).toBe("none");
+
+    const mandatory: NeuralwattReasoningMapSource = {
+      supported_efforts: ["high", "none"],
+      mandatory: true,
+    };
+    expect(buildThinkingLevelMap(mandatory).off).toBeNull();
+  });
+
+  it("disables every level when supported_efforts is empty", () => {
+    const map = buildThinkingLevelMap({
+      supported_efforts: [],
+      mandatory: false,
+    } as NeuralwattReasoningMapSource);
+    for (const level of all) {
+      expect(map[level === "none" ? "off" : level]).toBeNull();
     }
+  });
+
+  it("falls back to high-only with off disabled when the reasoning block is missing", () => {
+    const map = buildThinkingLevelMap(undefined);
+    expect(map).toEqual({
+      off: null,
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: null,
+    });
   });
 });

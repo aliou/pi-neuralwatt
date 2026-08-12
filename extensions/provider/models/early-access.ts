@@ -1,7 +1,7 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { fetchNeuralwattModels } from "../../../src/lib/neuralwatt-api";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
-import { resolveMaxTokens } from "./build";
+import { buildThinkingLevelMap, resolveMaxTokens } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
 
 // Pre-release models. Neuralwatt ships these to authorized accounts before they
@@ -13,10 +13,16 @@ export const EARLY_ACCESS_NEURALWATT_MODELS: ProviderModelConfig[] = [];
 
 // Per-ID overrides for known early-access models. The authenticated /v1/models
 // endpoint exposes pricing and capabilities, but some Pi-specific behavior
-// (thinking levels, compat flags) has to be supplied by hand.
+// (compat flags, context window, max tokens) has to be supplied by hand.
+// Reasoning config is always derived from the endpoint's `reasoning` block via
+// `buildThinkingLevelMap`, so `reasoning` and `thinkingLevelMap` are not part
+// of the override shape.
 // Models that have since gone public now live in public-models.ts.
 const EARLY_ACCESS_MODEL_OVERRIDES: Partial<
-  Record<string, Partial<ProviderModelConfig>>
+  Record<
+    string,
+    Omit<Partial<ProviderModelConfig>, "reasoning" | "thinkingLevelMap">
+  >
 > = {};
 
 function buildEarlyAccessModel(
@@ -57,13 +63,10 @@ function buildEarlyAccessModel(
   };
 
   if (reasoning) {
-    model.thinkingLevelMap = override?.thinkingLevelMap ?? {
-      minimal: null,
-      low: null,
-      medium: "medium",
-      high: null,
-      xhigh: null,
-    };
+    // Reasoning levels come straight from the endpoint's `reasoning` block:
+    // `supported_efforts` (identity) and `mandatory` (gates `off`). A missing
+    // block falls back to a high-only map inside `buildThinkingLevelMap`.
+    model.thinkingLevelMap = buildThinkingLevelMap(meta?.reasoning);
   }
 
   if (override) {
@@ -80,11 +83,7 @@ function applyEarlyAccessOverride(
   const result: ProviderModelConfig = { ...model };
 
   if (override.name !== undefined) result.name = override.name;
-  if (override.reasoning !== undefined) result.reasoning = override.reasoning;
   if (override.input !== undefined) result.input = override.input;
-  if (override.thinkingLevelMap !== undefined) {
-    result.thinkingLevelMap = override.thinkingLevelMap;
-  }
   if (override.contextWindow !== undefined) {
     result.contextWindow = override.contextWindow;
   }
@@ -95,6 +94,9 @@ function applyEarlyAccessOverride(
   if (override.compat !== undefined) {
     result.compat = { ...model.compat, ...override.compat };
   }
+
+  // `reasoning` and `thinkingLevelMap` are intentionally not overridable:
+  // reasoning config is derived from the endpoint's `reasoning` block.
 
   return result;
 }

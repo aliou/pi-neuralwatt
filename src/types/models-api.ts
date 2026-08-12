@@ -18,6 +18,46 @@ export interface NeuralwattApiModelCapabilities {
   developer_role: boolean;
 }
 
+/**
+ * Reasoning effort values Neuralwatt accepts on the wire. Mirrors Pi's
+ * `ModelThinkingLevel` (minus `off`, which the API spells `"none"`).
+ */
+export type NeuralwattReasoningEffort =
+  | "none"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
+
+/**
+ * Per-model reasoning contract from `/v1/models`.
+ *
+ * `supported_efforts` is authoritative for which Pi thinking levels to expose:
+ * the Pi map is built by identity (a level is enabled iff it appears here),
+ * see `buildThinkingLevelMap` in `extensions/provider/models/build.ts`.
+ * `default_effort` and `effort_aliases` are typed for fidelity but are not
+ * consumed — Pi has no default-reasoning field and we expose native efforts
+ * rather than aliasing unsupported ones.
+ */
+export interface NeuralwattApiModelReasoning {
+  /** Whether the model reasons by default. */
+  default_enabled: boolean;
+  /** Whether reasoning cannot be turned off. Forces `off: null` in the map. */
+  mandatory: boolean;
+  /** Efforts the model truly supports; drives the Pi thinking level map. */
+  supported_efforts: NeuralwattReasoningEffort[];
+  /** Efforts the API accepts but aliases onto a supported one. Not consumed. */
+  accepted_efforts?: NeuralwattReasoningEffort[];
+  /** Server-side default. Not consumed; Pi has no default-reasoning field. */
+  default_effort: NeuralwattReasoningEffort;
+  /** Wire-level aliases from accepted to supported efforts. Not consumed. */
+  effort_aliases?: Partial<
+    Record<NeuralwattReasoningEffort, NeuralwattReasoningEffort>
+  >;
+}
+
 export interface NeuralwattApiModelLimits {
   max_context_length: number;
   max_output_tokens: number | null;
@@ -31,6 +71,7 @@ export interface NeuralwattApiModelMetadata {
   huggingface_id: string | null;
   pricing: NeuralwattApiModelPricing;
   capabilities: NeuralwattApiModelCapabilities;
+  reasoning?: NeuralwattApiModelReasoning;
   limits: NeuralwattApiModelLimits;
   deprecated: boolean;
   deprecated_message: string | null;

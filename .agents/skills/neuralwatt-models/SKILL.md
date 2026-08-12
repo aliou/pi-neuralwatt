@@ -130,6 +130,7 @@ From `metadata.capabilities`:
 - `vision` -> `input` (true = `["text", "image"]`, false = `["text"]`)
 - `reasoning` -> `reasoning`
 - `reasoning_effort` -> extra runtime evidence only; do not add legacy compat fields
+- `reasoning.supported_efforts` + `reasoning.mandatory` -> the Pi `thinkingLevelMap` via `buildThinkingLevelMap` (identity, no aliasing). `reasoning.default_effort` and `reasoning.effort_aliases` are typed but not consumed: Pi has no default-reasoning field, and unsupported levels map to `null` rather than being aliased.
 - `developer_role` -> confirm `supportsDeveloperRole: false`
 
 From `metadata.limits`:
@@ -160,47 +161,7 @@ compat: {
 }
 ```
 
-Reasoning models should assign `thinkingLevelMap` at the model level and keep compat minimal. Only expose multiple Pi thinking levels when official Neuralwatt docs or runtime evidence confirms distinct level support:
-
-```ts
-thinkingLevelMap: {
-  minimal: "low",
-  low: "low",
-  medium: "medium",
-  high: "high",
-  xhigh: null,
-  max: null,
-},
-```
-
-When a model only has a binary or ambiguous thinking control, expose one known-good Pi thinking level:
-
-```ts
-thinkingLevelMap: {
-  minimal: null,
-  low: null,
-  medium: "medium",
-  high: null,
-  xhigh: null,
-  max: null,
-},
-```
-
-For models that expose a top `max` provider tier above `high` without a distinct `xhigh` (e.g. GLM-5.2, which natively supports `high` and `max` reasoning efforts), map Pi's `max` level to the provider's `max` value and leave `xhigh` as an unsupported hole. Pi introduced the `max` thinking level in 0.80.6:
-
-```ts
-thinkingLevelMap: {
-  off: "none",
-  minimal: null,
-  low: null,
-  medium: null,
-  high: "high",
-  xhigh: null,
-  max: "max",
-},
-```
-
-Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a non-null provider value when the model actually distinguishes a top reasoning tier.
+Reasoning models should assign `thinkingLevelMap` at the model level and keep compat minimal. The map is **derived** from the endpoint's `metadata.reasoning.supported_efforts` via `buildThinkingLevelMap` in `extensions/provider/models/build.ts` (see below). Do not hand-write `thinkingLevelMap` literals on families or early-access overrides.
 
 ## Decision rules
 
@@ -210,6 +171,7 @@ Omitting `max` (or any extended level) marks it unsupported. Only set `max` to a
 - Set `contextWindow` from `max_model_len` on the Neuralwatt endpoint.
 - Keep pricing from the portal or existing pricing when the portal has not changed.
 - Set `maxTokens` to `metadata.limits.max_output_tokens ?? max_model_len`. Use `resolveMaxTokens` in `extensions/provider/models/build.ts`; do not hardcode a fallback.
+- Derive `thinkingLevelMap` from `metadata.reasoning` (`supported_efforts` + `mandatory`) via `buildThinkingLevelMap`. Families snapshot those two fields as `reasoningMetadata`; early-access models read the live `metadata.reasoning` block through the same helper. When the API exposes no `reasoning` block for a reasoning model, omit `reasoningMetadata` so the helper falls back to a high-only map with `off: null`. Never hand-write `thinkingLevelMap` literals or override them per early-access model.
 - Keep `reasoning`, `input`, and `fast` from portal/runtime evidence or existing conventions when the API does not expose them.
 - Do not add `compat` fields beyond current repo conventions unless live behavior requires it.
 - Do not ask the user which models to update unless there is a true ambiguity you cannot resolve.
@@ -247,18 +209,11 @@ An API-omitted model has no trustworthy catalog metadata, so verify each configu
 - Prompt caching by repeating a sufficiently long identical prefix and inspecting `usage.prompt_tokens_details.cached_tokens`.
 - Context and output limits from official model documentation, portal data, or bounded runtime tests.
 
-For binary thinking controlled through `chat_template_kwargs.enable_thinking`, use Pi's generic chat-template mapping rather than sending a fixed literal:
+For binary thinking controlled through `chat_template_kwargs.enable_thinking`, use Pi's generic chat-template mapping. Reasoning levels should still be expressed as a `reasoningMetadata` snapshot so `buildThinkingLevelMap` derives the map; do not hand-write `thinkingLevelMap` literals. For a binary-thinking model with no `supported_efforts` from the API, omit `reasoningMetadata` so the helper falls back to a high-only map with `off: null`:
 
 ```ts
 reasoning: true,
-thinkingLevelMap: {
-  minimal: null,
-  low: null,
-  medium: "medium",
-  high: null,
-  xhigh: null,
-  max: null,
-},
+// No reasoningMetadata: buildThinkingLevelMap falls back to high-only.
 compat: {
   supportsDeveloperRole: false,
   maxTokensField: "max_tokens",

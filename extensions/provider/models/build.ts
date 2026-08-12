@@ -1,4 +1,8 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import type {
+  NeuralwattApiModelReasoning,
+  NeuralwattReasoningEffort,
+} from "../../../src/types/models-api";
 
 export type ThinkingLevelMap = NonNullable<
   ProviderModelConfig["thinkingLevelMap"]
@@ -26,8 +30,11 @@ export interface NeuralwattCost {
 export interface NeuralwattModelFamily {
   cost: NeuralwattCost;
   vision: boolean;
-  /** Thinking levels used by reasoning variants of this family. */
-  thinkingLevelMap?: ThinkingLevelMap;
+  /**
+   * Reasoning contract snapshot from `/v1/models` for reasoning variants.
+   * `buildThinkingLevelMap` turns it into the Pi thinking level map.
+   */
+  reasoningMetadata?: NeuralwattReasoningMapSource;
 }
 
 export interface NeuralwattVariantSpec {
@@ -48,7 +55,54 @@ export interface NeuralwattVariantSpec {
    */
   costMultiplier?: number;
   vision?: boolean;
-  thinkingLevelMap?: ThinkingLevelMap;
+  /** Override the family reasoning contract for this variant. */
+  reasoningMetadata?: NeuralwattReasoningMapSource;
+}
+
+/**
+ * Subset of the API reasoning block needed to build the Pi thinking level map.
+ * Kept narrow so public snapshots stay small and offline-friendly.
+ */
+export type NeuralwattReasoningMapSource = Pick<
+  NeuralwattApiModelReasoning,
+  "supported_efforts" | "mandatory"
+>;
+
+/**
+ * Build the Pi thinking level map from the Neuralwatt reasoning contract.
+ *
+ * Pure identity mapping: a Pi level is enabled iff it appears in
+ * `supported_efforts` (mapped to its own name), `null` otherwise. `off` maps to
+ * `"none"` when the model permits disabling reasoning (`!mandatory` and
+ * `"none"` is supported).
+ *
+ * When the reasoning block is missing (e.g. Kimi K2.7 Code, whose API metadata
+ * exposes none), falls back to a conservative `high`-only map with `off: null`,
+ * matching the upstream binary thinking toggle.
+ *
+ * `default_effort` and `effort_aliases` are deliberately ignored: Pi has no
+ * default-reasoning field, and we expose native supported efforts rather than
+ * aliasing unsupported ones.
+ */
+export function buildThinkingLevelMap(
+  reasoning: NeuralwattReasoningMapSource | undefined,
+): ThinkingLevelMap {
+  // Conservative fallback for models whose API metadata has no reasoning
+  // block. Expose one known-good level and forbid disabling reasoning.
+  const supported = new Set<NeuralwattReasoningEffort>(
+    reasoning?.supported_efforts ?? ["high"],
+  );
+  const mandatory = reasoning?.mandatory ?? true;
+
+  return {
+    off: !mandatory && supported.has("none") ? "none" : null,
+    minimal: supported.has("minimal") ? "minimal" : null,
+    low: supported.has("low") ? "low" : null,
+    medium: supported.has("medium") ? "medium" : null,
+    high: supported.has("high") ? "high" : null,
+    xhigh: supported.has("xhigh") ? "xhigh" : null,
+    max: supported.has("max") ? "max" : null,
+  };
 }
 
 /**
@@ -97,15 +151,14 @@ export function buildNeuralwattModel(
   };
 
   if (variant.reasoning) {
-    const thinkingLevelMap =
-      variant.thinkingLevelMap ?? family.thinkingLevelMap;
-    if (!thinkingLevelMap) {
-      throw new Error(
-        `Missing thinkingLevelMap for reasoning model ${variant.id}`,
-      );
-    }
-    // Clone so variants never share a family map instance.
-    model.thinkingLevelMap = { ...thinkingLevelMap };
+    // Clone so variants never share a family map instance. The map is derived
+    // from the API reasoning contract; missing metadata falls back to a
+    // high-only map rather than throwing.
+    model.thinkingLevelMap = {
+      ...buildThinkingLevelMap(
+        variant.reasoningMetadata ?? family.reasoningMetadata,
+      ),
+    };
   }
 
   return model;

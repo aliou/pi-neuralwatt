@@ -124,7 +124,7 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models. Active creator-scoped aliases live in `extensions/provider/models/aliases.ts`; deprecated replacement IDs live in `extensions/provider/models/legacy.ts`.
 
-Public models are declared as a family/variant table. A family holds the defaults its variants share (pricing, modalities, `thinkingLevelMap`); each variant declares its id, name, context window, `maxOutputTokens`, and `reasoning`, plus any override.
+Public models are declared as a family/variant table. A family holds the defaults its variants share (pricing, modalities, `reasoningMetadata`); each variant declares its id, name, context window, `maxOutputTokens`, and `reasoning`, plus any override. `reasoningMetadata` snapshots the endpoint's `reasoning.supported_efforts` + `reasoning.mandatory`; `buildThinkingLevelMap` in `build.ts` turns it into the Pi `thinkingLevelMap` by identity (no aliasing). Early-access models read the live `metadata.reasoning` block through the same helper.
 
 Variants combine independent modifiers, not a fixed list: `-short` (smaller context, bounded output), `-fast` (reasoning disabled), and `-flex` (Flex tier). GLM-5.2 alone ships `glm-5.2`, `-fast`, `-flex`, `-short`, `-short-fast`, `-short-flex`, and `-short-fast-flex`. A variant may differ from its family in more than limits: override `cost` for a variant priced differently, or set `costMultiplier` for a proportional change such as the Flex discount.
 

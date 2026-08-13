@@ -77,12 +77,13 @@ describe("refreshNeuralwattModels", () => {
   it("persists hardcoded early-access models when discovery is empty", async () => {
     const { context, writes } = createContext();
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: true,
-      loadEarlyAccess: async () => [],
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: true,
+        loadEarlyAccess: async () => [],
+      })) ?? [];
 
     expect(models).toContainEqual(dummyHardcodedEarlyAccessModel);
     expect(writes).toHaveLength(1);
@@ -94,11 +95,12 @@ describe("refreshNeuralwattModels", () => {
   it("omits hardcoded early-access models when the option is disabled", async () => {
     const { context } = createContext();
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: false,
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: false,
+      })) ?? [];
 
     expect(
       models.some((model) => model.id === dummyHardcodedEarlyAccessModel.id),
@@ -110,11 +112,12 @@ describe("refreshNeuralwattModels", () => {
       stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
     });
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: false,
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: false,
+      })) ?? [];
 
     expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(
       false,
@@ -124,12 +127,13 @@ describe("refreshNeuralwattModels", () => {
   it("includes aliases for active models when enabled", async () => {
     const { context, writes } = createContext();
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: true,
-      includeEarlyAccessModels: true,
-      loadEarlyAccess: async () => [],
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: true,
+        includeEarlyAccessModels: true,
+        loadEarlyAccess: async () => [],
+      })) ?? [];
 
     expect(models.some((model) => model.id === "zai-org/GLM-5.2-FP8")).toBe(
       true,
@@ -144,18 +148,19 @@ describe("refreshNeuralwattModels", () => {
     const publicModel = NEURALWATT_MODELS[0];
     if (!publicModel) throw new Error("public model fixture is missing");
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: true,
-      loadEarlyAccess: async () => [
-        {
-          ...earlyAccessModel,
-          id: publicModel.id,
-          name: "Early access collision",
-        },
-      ],
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: true,
+        loadEarlyAccess: async () => [
+          {
+            ...earlyAccessModel,
+            id: publicModel.id,
+            name: "Early access collision",
+          },
+        ],
+      })) ?? [];
 
     expect(models.filter((model) => model.id === publicModel.id)).toEqual([
       publicModel,
@@ -168,11 +173,12 @@ describe("refreshNeuralwattModels", () => {
       stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
     });
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: true,
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: true,
+      })) ?? [];
 
     expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(true);
     expect(models.length).toBeGreaterThan(1);
@@ -182,12 +188,13 @@ describe("refreshNeuralwattModels", () => {
   it("persists the complete refreshed catalog", async () => {
     const { context, writes } = createContext();
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: true,
-      loadEarlyAccess: async () => [earlyAccessModel],
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: true,
+        loadEarlyAccess: async () => [earlyAccessModel],
+      })) ?? [];
 
     expect(writes).toHaveLength(1);
     expect(writes[0]?.models).toHaveLength(models.length);
@@ -204,11 +211,12 @@ describe("refreshNeuralwattModels", () => {
       stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
     });
 
-    const models = await refreshNeuralwattModels(context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: false,
-    });
+    const models =
+      (await refreshNeuralwattModels(context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: false,
+      })) ?? [];
 
     expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(
       false,
@@ -223,6 +231,8 @@ describe("refreshNeuralwattModels", () => {
     const stored = { models: [storedModel(earlyAccessModel)], checkedAt: 1 };
     const { context, writes } = createContext({ stored });
 
+    // A failed discovery resolves undefined instead of throwing; no
+    // persistence happens and the stale store entry is preserved.
     await expect(
       refreshNeuralwattModels(context, {
         includeLegacyModelIds: false,
@@ -230,15 +240,18 @@ describe("refreshNeuralwattModels", () => {
         includeEarlyAccessModels: true,
         loadEarlyAccess: async () => undefined,
       }),
-    ).rejects.toThrow("catalog refresh failed");
+    ).resolves.toBeUndefined();
     expect(writes).toHaveLength(0);
 
     const offline = createContext({ allowNetwork: false, stored });
-    const models = await refreshNeuralwattModels(offline.context, {
-      includeLegacyModelIds: false,
-      includeAliasedModelIds: false,
-      includeEarlyAccessModels: true,
-    });
-    expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(true);
+    const offlineModels =
+      (await refreshNeuralwattModels(offline.context, {
+        includeLegacyModelIds: false,
+        includeAliasedModelIds: false,
+        includeEarlyAccessModels: true,
+      })) ?? [];
+    expect(
+      offlineModels.some((model) => model.id === earlyAccessModel.id),
+    ).toBe(true);
   });
 });

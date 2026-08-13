@@ -6,10 +6,6 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
-  persistModels,
-  readStoredModels,
-} from "../../../src/refresh-store-compat";
-import {
   ALIAS_NEURALWATT_MODEL_IDS,
   buildAliasNeuralwattModels,
 } from "./aliases";
@@ -23,6 +19,8 @@ import { NEURALWATT_MODELS } from "./public-models";
 const PROVIDER_ID = "neuralwatt";
 const BASE_URL = "https://api.neuralwatt.com/v1";
 const API = "openai-completions" as const;
+
+export type StoredProviderModels = readonly Model<Api>[];
 
 export interface RefreshNeuralwattModelsOptions {
   includeLegacyModelIds: boolean;
@@ -129,25 +127,27 @@ function persistCatalog(
   context: RefreshModelsContext,
   models: ProviderModelConfig[],
 ): Promise<boolean> {
-  return persistModels(context, {
-    models: models.map(toStoredModel),
-    checkedAt: Date.now(),
+  return context.publish({
+    persist: {
+      models: models.map(toStoredModel),
+      checkedAt: Date.now(),
+    },
   });
 }
 
-/** Refresh the complete Neuralwatt catalog with Pi-managed persistence. */
+/** Refresh the complete Neuralwatt catalog; undefined = failed (stale store kept). */
 export async function refreshNeuralwattModels(
   context: RefreshModelsContext,
   options: RefreshNeuralwattModelsOptions,
-): Promise<ProviderModelConfig[]> {
+): Promise<ProviderModelConfig[] | undefined> {
   const baseline = configuredModels(
     options.includeLegacyModelIds,
     options.includeAliasedModelIds,
   );
-  const stored = await readStoredModels(context);
+  const stored = context.stored;
 
   if (!options.includeEarlyAccessModels) {
-    await persistCatalog(context, baseline);
+    await persistCatalog(context, baseline).catch(() => false);
     return baseline;
   }
 
@@ -161,29 +161,31 @@ export async function refreshNeuralwattModels(
     cachedEarlyAccess,
   );
 
-  if (!context.allowNetwork || context.signal?.aborted) {
+  if (!context.allowNetwork || context.signal.aborted) {
     return cachedCatalog;
   }
 
+  // Anonymous credential (empty or missing key): keep the public catalog and
+  // skip discovery, which requires a real key.
   const apiKey =
-    context.credential?.type === "api_key" ? context.credential.key : undefined;
+    context.credential?.type === "api_key" && context.credential.key
+      ? context.credential.key
+      : undefined;
   if (!apiKey) return cachedCatalog;
 
   const earlyAccess = await (options.loadEarlyAccess ?? loadEarlyAccessModels)(
     apiKey,
     context.signal,
   );
-  if (context.signal?.aborted) return cachedCatalog;
-  if (!earlyAccess) {
-    throw new Error("Neuralwatt model catalog refresh failed");
-  }
+  if (context.signal.aborted) return cachedCatalog;
+  if (!earlyAccess) return undefined;
 
   const catalog = configuredModels(
     options.includeLegacyModelIds,
     options.includeAliasedModelIds,
     configuredEarlyAccessModels(earlyAccess, baseline),
   );
-  context.signal?.throwIfAborted();
-  await persistCatalog(context, catalog);
+  context.signal.throwIfAborted();
+  await persistCatalog(context, catalog).catch(() => false);
   return catalog;
 }

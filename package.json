@@ -38,8 +38,8 @@
     "@aliou/pi-utils-ui": "^0.5.0"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": ">=0.80.8",
-    "@earendil-works/pi-coding-agent": ">=0.80.8",
+    "@earendil-works/pi-ai": ">=0.84.0",
+    "@earendil-works/pi-coding-agent": ">=0.84.0",
     "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {

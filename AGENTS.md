@@ -23,7 +23,9 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 ```
 extensions/
   provider/
-    index.ts                            # Provider factory: registers provider + quota store (always loaded)
+    index.ts                            # Provider extension entry point; registers the provider + quota flows (always loaded)
+    provider.ts                         # pi-ai Provider assembly: auth resolution, model stamping, stream delegation
+    provider.test.ts                    # Provider tests (auth resolution, catalog swap)
     commands/settings/index.ts          # /neuralwatt:settings command
     models/
       index.ts                          # Re-exports + getNeuralwattModels helper
@@ -79,7 +81,7 @@ Extensions self-register via `neuralwatt:extensions:register` events when the pr
 - Provider name: `neuralwatt`
 - Base URL: `https://api.neuralwatt.com/v1`
 - API: `openai-completions`
-- Auth: `auth.json` entry for "neuralwatt", fallback to `NEURALWATT_API_KEY` env var
+- Auth: the provider owns its standalone auth on the registered pi-ai `Provider`: `resolve` reads the stored credential first, then the `NEURALWATT_API_KEY` env var, and never fails — without a key it resolves to an anonymous empty key so catalog refresh succeeds. `check` stays strict: without a real key the provider reports unconfigured and its models stay hidden from `/model`
 - All models use `maxTokensField: "max_tokens"` and `supportsDeveloperRole: false`
 
 ## Quota Tracking
@@ -142,14 +144,14 @@ The setting was called `provider.includeHiddenModels` before 0.11. Migration `03
 
 The config loader reads the file, runs migrations, and hands the rest of the code the current `NeuralwattConfig` shape only. Each migration declares the superseded shape it needs inside its own file. Do not widen loader, settings, or extension types to accept old shapes.
 
-The provider implements Pi's `refreshModels(context)` API. Pi supplies the resolved credential, abort signal, network policy, and provider-scoped model store. Opening `/model` refreshes the catalog in the background; `pi update --models` forces a refresh.
+The provider implements Pi's `refreshModels(context)` API. Pi supplies the resolved credential, abort signal, network policy, the provider-scoped catalog snapshot (`context.stored`), and generation-checked persistence (`context.publish`). Opening `/model` refreshes the catalog in the background; `pi update --models` forces a refresh.
 
 The refresh flow is:
 
 1. Register hardcoded public models and configured legacy/active aliases synchronously.
 2. During offline startup, restore dynamic early-access models from Pi's provider-scoped cache.
-3. During network refresh, fetch authenticated `/v1/models`, combine early-access models with current public, legacy, and alias definitions, and persist the complete effective catalog through `context.store`.
-4. Preserve the stale catalog when a network refresh fails. A successful empty result purges removed early-access models.
+3. During network refresh with a real key, fetch authenticated `/v1/models`, combine early-access models with current public, legacy, and alias definitions, and persist the complete effective catalog through `context.publish({ persist })`. Without a key, the public catalog is kept and discovery is skipped.
+4. When a network refresh fails, the live catalog is untouched and Pi keeps the stale store entry; the provider overlay restores it on the next refresh. A successful empty result purges removed early-access models.
 
 Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public, legacy, and alias definitions in source remain authoritative over cached copies.
 

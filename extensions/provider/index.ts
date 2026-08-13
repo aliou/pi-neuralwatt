@@ -18,7 +18,8 @@ import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
 import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import { getNeuralwattModels, refreshNeuralwattModels } from "./models";
+import { getNeuralwattModels } from "./models";
+import { createNeuralwattProvider } from "./provider";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 import {
   type NeuralwattRateLimitInfo,
@@ -42,24 +43,24 @@ function registerNeuralwattProvider(
 ): void {
   const { provider: providerConfig } = configLoader.getConfig();
 
-  const models = getNeuralwattModels({
+  const staticModels = getNeuralwattModels({
     includeLegacyModelIds: providerConfig.includeLegacyModelIds,
     includeAliasedModelIds: providerConfig.includeAliasedModelIds,
   });
 
-  const config: Parameters<ExtensionAPI["registerProvider"]>[1] = {
-    name: "Neuralwatt",
-    baseUrl: "https://api.neuralwatt.com/v1",
-    apiKey: "$NEURALWATT_API_KEY",
-    api: "openai-completions",
-    authHeader: true,
-    headers: {
-      Referer: "https://pi.dev",
-      "X-Title": "npm:@aliou/pi-neuralwatt",
-    },
-    models,
-    refreshModels: (context) =>
-      refreshNeuralwattModels(context, {
+  const apiProvider = getApiProvider("openai-completions");
+  const baseStreamSimple = apiProvider?.streamSimple;
+  const streamSimple = baseStreamSimple
+    ? (wrapNeuralwattStreamSimple(
+        baseStreamSimple as never,
+        onSseQuota,
+      ) as never)
+    : undefined;
+
+  pi.registerProvider(
+    createNeuralwattProvider(
+      staticModels,
+      () => ({
         includeLegacyModelIds:
           configLoader.getConfig().provider.includeLegacyModelIds,
         includeAliasedModelIds:
@@ -67,18 +68,9 @@ function registerNeuralwattProvider(
         includeEarlyAccessModels:
           configLoader.getConfig().provider.includeEarlyAccessModels,
       }),
-  };
-
-  const provider = getApiProvider("openai-completions");
-  const baseStreamSimple = provider?.streamSimple;
-  if (baseStreamSimple) {
-    config.streamSimple = wrapNeuralwattStreamSimple(
-      baseStreamSimple as never,
-      onSseQuota,
-    ) as never;
-  }
-
-  pi.registerProvider("neuralwatt", config);
+      streamSimple,
+    ),
+  );
 }
 
 export default async function (pi: ExtensionAPI) {

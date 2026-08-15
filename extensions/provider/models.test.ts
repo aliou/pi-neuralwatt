@@ -370,6 +370,41 @@ describe("Neuralwatt models", () => {
     }
   });
 
+  it("should expose Qwen3.8 27B FP8 as an early-access model", () => {
+    const model = EARLY_ACCESS_NEURALWATT_MODELS.find(
+      (m) => m.id === "Qwen/Qwen3.8-27B-FP8",
+    );
+    expect(model).toBeDefined();
+    expect(model).toMatchObject({
+      name: "Qwen 3.8 27B FP8",
+      reasoning: true,
+      input: ["text", "image"],
+      cost: { input: 0.45, output: 3.2, cacheRead: 0.25, cacheWrite: 0 },
+      contextWindow: 262_128,
+      maxTokens: 65_536,
+      compat: {
+        supportsDeveloperRole: false,
+        maxTokensField: "max_tokens",
+        requiresReasoningContentOnAssistantMessages: true,
+        thinkingFormat: "chat-template",
+        chatTemplateKwargs: {
+          enable_thinking: { $var: "thinking.enabled" },
+        },
+      },
+    });
+    // Binary thinking: the API exposes no `reasoning` block, so the map is
+    // the high-only fallback with `off` disabled.
+    expect(model?.thinkingLevelMap).toEqual({
+      off: null,
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: null,
+    });
+  });
+
   it("should keep early-access model IDs out of the public catalog", () => {
     const publicIds = new Set(NEURALWATT_MODELS.map((m) => m.id));
     for (const model of EARLY_ACCESS_NEURALWATT_MODELS) {

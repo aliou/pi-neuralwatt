@@ -9,7 +9,35 @@ import { NEURALWATT_MODELS } from "./public-models";
 // gated by includeEarlyAccessModels and hardcode entries so they remain
 // available from the offline catalog.
 // Move an entry to public-models.ts once Neuralwatt advertises it publicly.
-export const EARLY_ACCESS_NEURALWATT_MODELS: ProviderModelConfig[] = [];
+export const EARLY_ACCESS_NEURALWATT_MODELS: ProviderModelConfig[] = [
+  // Qwen3.8 27B FP8 — pre-release dense 27B VL model with MTP speculative
+  // decoding, native 262K context, served on 2x H200. Returned by the
+  // authenticated /v1/models catalog but absent from the public endpoint.
+  // Binary thinking is toggled through `chat_template_kwargs.enable_thinking`
+  // (verified: `enable_thinking: false` suppresses reasoning output); the API
+  // exposes no `reasoning` block, so the thinking level map is the high-only
+  // fallback with `off: null`.
+  // https://huggingface.co/Qwen/Qwen3.8-27B-FP8
+  {
+    id: "Qwen/Qwen3.8-27B-FP8",
+    name: "Qwen 3.8 27B FP8",
+    reasoning: true,
+    input: ["text", "image"],
+    cost: { input: 0.45, output: 3.2, cacheRead: 0.25, cacheWrite: 0 },
+    contextWindow: 262_128,
+    maxTokens: 65_536,
+    compat: {
+      supportsDeveloperRole: false,
+      maxTokensField: "max_tokens",
+      requiresReasoningContentOnAssistantMessages: true,
+      thinkingFormat: "chat-template",
+      chatTemplateKwargs: {
+        enable_thinking: { $var: "thinking.enabled" },
+      },
+    },
+    thinkingLevelMap: { ...buildThinkingLevelMap(undefined) },
+  },
+];
 
 // Per-ID overrides for known early-access models. The authenticated /v1/models
 // endpoint exposes pricing and capabilities, but some Pi-specific behavior

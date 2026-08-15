@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.14.0
+
+### Minor Changes
+
+- 36ece2d: Register the Neuralwatt provider as a complete pi-ai `Provider` via `pi.registerProvider(provider)` instead of the name-plus-config form, with auth resolution that falls back to an anonymous credential so the model catalog refreshes without an API key.
+
 ## 0.13.0
 
 ### Minor Changes

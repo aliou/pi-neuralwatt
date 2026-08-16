@@ -1,5 +1,22 @@
 # @aliou/pi-extension-template
 
+## 0.14.2
+
+### Patch Changes
+
+- bb8ac4f: Keep Neuralwatt listed in `/model` without an API key. `check` returned `undefined` when no key existed, so pi's availability gate filtered the provider out even though `resolve` already falls back to an anonymous credential (anonymous playground traffic authenticates at stream time, and aperture proxy mode authenticates gateway-side). `check` now returns that same anonymous credential.
+- c02410e: Add Qwen3.8 27B FP8 as an early-access model
+
+  Qwen/Qwen3.8-27B-FP8 is a pre-release dense 27B vision-language model with
+  MTP speculative decoding and native 262K context, served on 2x H200. It is
+  returned by the authenticated /v1/models catalog but absent from the public
+  endpoint, so it is gated by `provider.includeEarlyAccessModels`. Binary
+  thinking is toggled through `chat_template_kwargs.enable_thinking`
+  (`thinkingFormat: "chat-template"`); the API exposes no `reasoning` block, so
+  the thinking level map is the high-only fallback with `off: null`.
+
+  https://huggingface.co/Qwen/Qwen3.8-27B-FP8
+
 ## 0.14.1
 
 ### Patch Changes

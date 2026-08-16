@@ -180,28 +180,37 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
       },
     ],
   ],
+  // The kimi-k3 endpoint rejects anything above 327,680 total tokens with
+  // `400: max_completion_tokens is too large … supports at most 327680
+  // completion tokens` (verified at runtime), even though the API advertises
+  // `max_model_len: 1048560` with a null output cap for the whole family.
+  // The -fast/-flex endpoints don't enforce any cap server-side yet (they
+  // accept max_completion_tokens beyond the advertised window), but they are
+  // the same K3 deployment and are expected to share the 327,680 limit, so
+  // all three variants are pinned to it. The drift check in models.test.ts
+  // whitelists this divergence via CONTEXT_WINDOW_OVERRIDES.
   [
     KIMI_K3,
     [
       {
         id: "kimi-k3",
         name: "Kimi K3",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
+        contextWindow: 327680,
+        maxOutputTokens: 327680,
         reasoning: true,
       },
       {
         id: "kimi-k3-fast",
         name: "Kimi K3 Fast",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
+        contextWindow: 327680,
+        maxOutputTokens: 327680,
         reasoning: false,
       },
       {
         id: "kimi-k3-flex",
         name: "Kimi K3 (flex)",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
+        contextWindow: 327680,
+        maxOutputTokens: 327680,
         reasoning: true,
         costMultiplier: FLEX_COST_MULTIPLIER,
       },

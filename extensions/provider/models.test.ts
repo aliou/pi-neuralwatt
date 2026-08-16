@@ -95,6 +95,21 @@ function isFlexModelId(id: string): boolean {
 }
 
 /**
+ * Models whose real serving limit is known to be lower than the advertised
+ * `max_model_len`. The Kimi K3 endpoints reject anything above 327,680 total
+ * tokens (`400: … maximum context length of 327680`), despite the API
+ * advertising 1,048,560 with a null output cap for the whole family. The
+ * catalog pins the enforced limit, so the drift check skips the advertised
+ * context-window comparison for these IDs. Remove an entry once the API
+ * metadata agrees with the serving limit again.
+ */
+const CONTEXT_WINDOW_OVERRIDES: ReadonlyMap<string, number> = new Map([
+  ["kimi-k3", 327680],
+  ["kimi-k3-fast", 327680],
+  ["kimi-k3-flex", 327680],
+]);
+
+/**
  * Returns undefined only when the network is unavailable, so offline runs skip.
  * An HTTP error is a real contract failure and still fails the test.
  */
@@ -152,8 +167,18 @@ function compareModels(
 
     const meta = apiModel.metadata;
 
-    // Check context window
-    if (apiModel.max_model_len !== hardcoded.contextWindow) {
+    // Check context window, honoring known serving-limit overrides
+    const contextOverride = CONTEXT_WINDOW_OVERRIDES.get(hardcoded.id);
+    if (contextOverride !== undefined) {
+      if (apiModel.max_model_len === hardcoded.contextWindow) {
+        discrepancies.push({
+          model: hardcoded.id,
+          field: "contextWindowOverrideStale",
+          hardcoded: hardcoded.contextWindow,
+          api: apiModel.max_model_len,
+        });
+      }
+    } else if (apiModel.max_model_len !== hardcoded.contextWindow) {
       discrepancies.push({
         model: hardcoded.id,
         field: "contextWindow",
@@ -263,7 +288,9 @@ function compareModels(
 
     // Check maxTokens. A null `max_output_tokens` means the API imposes no
     // separate output cap, so output is bounded by the context window.
-    if (meta) {
+    // Models with a context-window override are bounded by the enforced
+    // serving limit instead of the advertised metadata.
+    if (meta && contextOverride === undefined) {
       const expectedMaxTokens =
         meta.limits.max_output_tokens ?? apiModel.max_model_len;
       if (expectedMaxTokens !== hardcoded.maxTokens) {
@@ -534,8 +561,10 @@ describe("Neuralwatt models", () => {
       reasoning: true,
       input: ["text", "image"],
       cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
-      contextWindow: 1048560,
-      maxTokens: 1048560,
+      // The API advertises 1,048,560 with a null output cap, but the serving
+      // limit is 327,680 total (see CONTEXT_WINDOW_OVERRIDES).
+      contextWindow: 327680,
+      maxTokens: 327680,
       compat: {
         supportsDeveloperRole: false,
         maxTokensField: "max_tokens",
@@ -552,9 +581,24 @@ describe("Neuralwatt models", () => {
       reasoning: false,
       input: ["text", "image"],
       cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
-      contextWindow: 1048560,
-      maxTokens: 1048560,
+      contextWindow: 327680,
+      maxTokens: 327680,
     });
+  });
+
+  it("should cap every Kimi K3 variant at the 327,680 serving limit", () => {
+    const k3Models = NEURALWATT_MODELS.filter((model) =>
+      model.id.startsWith("kimi-k3"),
+    );
+    expect(k3Models.map((model) => model.id).sort()).toEqual([
+      "kimi-k3",
+      "kimi-k3-fast",
+      "kimi-k3-flex",
+    ]);
+    for (const model of k3Models) {
+      expect(model.contextWindow, `${model.id}.contextWindow`).toBe(327680);
+      expect(model.maxTokens, `${model.id}.maxTokens`).toBe(327680);
+    }
   });
 
   it("should derive GLM-5.2 reasoning levels from `max`, `high`, `none`", () => {

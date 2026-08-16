@@ -157,7 +157,7 @@ describe("auth.apiKey.resolve", () => {
 });
 
 describe("auth.apiKey.check", () => {
-  it("reports unconfigured without a key so models stay hidden from /model", async () => {
+  it("reports anonymous availability without a key so models show up in /model", async () => {
     const provider = createProvider({
       refreshOptions: () => ({
         includeLegacyModelIds: false,
@@ -169,7 +169,7 @@ describe("auth.apiKey.check", () => {
       ctx: authCtx(),
       signal: new AbortController().signal,
     });
-    expect(result).toBeUndefined();
+    expect(result).toMatchObject({ type: "api_key", source: "anonymous" });
   });
 
   it("reports configured with an env key or stored credential", async () => {

@@ -65,7 +65,9 @@ export function createNeuralwattProvider(
           if (await ctx.env(NEURALWATT_API_KEY_ENV)) {
             return { type: "api_key", source: NEURALWATT_API_KEY_ENV };
           }
-          return undefined;
+          // Anonymous availability: requests resolve with an empty key, and
+          // in aperture proxy mode the gateway owns auth.
+          return { type: "api_key", source: "anonymous" };
         },
         resolve: async ({ ctx, credential, signal }) => {
           signal.throwIfAborted();

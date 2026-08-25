@@ -5,7 +5,9 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
-import type { RefreshNeuralwattModelsOptions } from "./models/refresh";
+import type { NeuralwattApiModel } from "../../src/types/models-api";
+import type { NeuralwattModel } from "./models/catalog";
+import type { FetchNeuralwattApiModels } from "./models/refresh";
 import {
   createNeuralwattProvider,
   NEURALWATT_API_KEY_ENV,
@@ -13,7 +15,7 @@ import {
   NEURALWATT_PROVIDER_ID,
 } from "./provider";
 
-const staticModel: ProviderModelConfig = {
+const staticModel: NeuralwattModel = {
   id: "nw/static",
   name: "nw/static",
   reasoning: false,
@@ -23,16 +25,53 @@ const staticModel: ProviderModelConfig = {
   maxTokens: 16_384,
 };
 
-const fetchedModel: ProviderModelConfig = {
-  ...staticModel,
+const fetchedApiModel = {
   id: "nw/fetched",
-  name: "nw/fetched",
-};
+  object: "model",
+  created: 0,
+  owned_by: "neuralwatt",
+  max_model_len: 128_000,
+  metadata: {
+    display_name: "nw/fetched",
+    description: null,
+    provider: "test",
+    huggingface_id: null,
+    pricing: {
+      input_per_million: 1,
+      output_per_million: 2,
+      cached_input_per_million: 0,
+      cached_output_per_million: null,
+      currency: "USD",
+      pricing_tbd: false,
+    },
+    capabilities: {
+      tools: false,
+      json_mode: false,
+      vision: false,
+      reasoning: false,
+      reasoning_effort: false,
+      streaming: true,
+      system_role: true,
+      developer_role: false,
+    },
+    limits: {
+      max_context_length: 128_000,
+      max_output_tokens: 16_384,
+      max_images: null,
+    },
+    deprecated: false,
+    deprecated_message: null,
+  },
+} as NeuralwattApiModel;
 
-function createProvider(options: {
-  refreshOptions: () => RefreshNeuralwattModelsOptions;
+function createProvider(options?: {
+  fetchApiModels?: FetchNeuralwattApiModels;
 }) {
-  return createNeuralwattProvider([staticModel], options.refreshOptions);
+  const fetchApiModels = vi.fn<FetchNeuralwattApiModels>(
+    options?.fetchApiModels ?? (async () => [fetchedApiModel]),
+  );
+  const provider = createNeuralwattProvider([staticModel], fetchApiModels);
+  return { provider, fetchApiModels };
 }
 
 function createContext(
@@ -65,13 +104,7 @@ function authCtx(env: Record<string, string | undefined> = {}) {
 
 describe("createNeuralwattProvider", () => {
   it("registers full pi-ai models stamped with api/provider/baseUrl/headers", () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     expect(provider.id).toBe(NEURALWATT_PROVIDER_ID);
     expect(provider.baseUrl).toBe(NEURALWATT_BASE_URL);
     const models = provider.getModels();
@@ -90,13 +123,7 @@ describe("createNeuralwattProvider", () => {
 
 describe("auth.apiKey.resolve", () => {
   it("prefers the stored credential", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     const result = await provider.auth.apiKey?.resolve({
       ctx: authCtx({ [NEURALWATT_API_KEY_ENV]: "env-key" }),
       credential: { type: "api_key", key: "stored-key" },
@@ -107,13 +134,7 @@ describe("auth.apiKey.resolve", () => {
   });
 
   it("falls back to the NEURALWATT_API_KEY environment variable", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     const result = await provider.auth.apiKey?.resolve({
       ctx: authCtx({ [NEURALWATT_API_KEY_ENV]: "env-key" }),
       signal: new AbortController().signal,
@@ -123,13 +144,7 @@ describe("auth.apiKey.resolve", () => {
   });
 
   it("never fails: resolves anonymously so catalog refresh works without credentials", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     const result = await provider.auth.apiKey?.resolve({
       ctx: authCtx(),
       signal: new AbortController().signal,
@@ -138,13 +153,7 @@ describe("auth.apiKey.resolve", () => {
   });
 
   it("honors the abort signal", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     const controller = new AbortController();
     controller.abort();
     await expect(
@@ -158,13 +167,7 @@ describe("auth.apiKey.resolve", () => {
 
 describe("auth.apiKey.check", () => {
   it("reports anonymous availability without a key so models show up in /model", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     const result = await provider.auth.apiKey?.check?.({
       ctx: authCtx(),
       signal: new AbortController().signal,
@@ -173,13 +176,7 @@ describe("auth.apiKey.check", () => {
   });
 
   it("reports configured with an env key or stored credential", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     await expect(
       provider.auth.apiKey?.check?.({
         ctx: authCtx({ [NEURALWATT_API_KEY_ENV]: "env-key" }),
@@ -198,13 +195,7 @@ describe("auth.apiKey.check", () => {
 
 describe("auth.apiKey.login", () => {
   it("prompts for the key", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      }),
-    });
+    const { provider } = createProvider();
     const prompt = vi.fn(async () => "entered-key");
     const credential = await provider.auth.apiKey?.login?.({
       prompt,
@@ -219,15 +210,8 @@ describe("auth.apiKey.login", () => {
 });
 
 describe("refreshModels", () => {
-  it("publishes refreshed models from the early-access discovery", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => [fetchedModel],
-      }),
-    });
+  it("publishes refreshed models from the API", async () => {
+    const { provider, fetchApiModels } = createProvider();
 
     await provider.refreshModels?.(
       createContext({
@@ -235,19 +219,17 @@ describe("refreshModels", () => {
       }),
     );
 
+    expect(fetchApiModels).toHaveBeenCalled();
     const ids = provider.getModels().map((model) => model.id);
     expect(ids).toContain("nw/fetched");
     expect(provider.getModels()[0]?.provider).toBe(NEURALWATT_PROVIDER_ID);
   });
 
-  it("keeps the static catalog when discovery returns undefined", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => undefined,
-      }),
+  it("keeps the static catalog when the fetch fails", async () => {
+    const { provider } = createProvider({
+      fetchApiModels: async () => {
+        throw new Error("network error");
+      },
     });
 
     await provider.refreshModels?.(
@@ -261,36 +243,25 @@ describe("refreshModels", () => {
     ]);
   });
 
-  it("keeps the public catalog when no key is available", async () => {
-    const loadEarlyAccess = vi.fn(async () => [fetchedModel]);
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess,
-      }),
-    });
+  it("refreshes anonymously without a key", async () => {
+    const fetchApiModels = vi.fn(async () => [fetchedApiModel]);
+    const { provider } = createProvider({ fetchApiModels });
 
     await provider.refreshModels?.(createContext());
 
-    // Anonymous refresh skips early-access discovery and keeps the public
-    // catalog; discovered-only models never appear.
-    expect(loadEarlyAccess).not.toHaveBeenCalled();
+    expect(fetchApiModels).toHaveBeenCalled();
     const ids = provider.getModels().map((model) => model.id);
-    expect(ids).toContain("kimi-k3");
-    expect(ids).not.toContain("nw/fetched");
+    expect(ids).toContain("nw/fetched");
   });
 
   it("adopts a fresh stored catalog without fetching", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: vi.fn(async () => [fetchedModel]),
-      }),
-    });
+    const fetchApiModels = vi.fn(async () => [fetchedApiModel]);
+    const { provider } = createProvider({ fetchApiModels });
+
+    const storedModel: ProviderModelConfig = {
+      ...staticModel,
+      id: "nw/stored",
+    };
 
     await provider.refreshModels?.(
       createContext({
@@ -298,7 +269,7 @@ describe("refreshModels", () => {
         stored: {
           models: [
             {
-              ...fetchedModel,
+              ...storedModel,
               provider: NEURALWATT_PROVIDER_ID,
               api: "openai-completions" as const,
               baseUrl: NEURALWATT_BASE_URL,
@@ -309,20 +280,20 @@ describe("refreshModels", () => {
       }),
     );
 
+    expect(fetchApiModels).not.toHaveBeenCalled();
     expect(provider.getModels().map((model) => model.id)).toContain(
-      "nw/fetched",
+      "nw/stored",
     );
   });
 
   it("restores a stored catalog in offline phases without fetching", async () => {
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: vi.fn(async () => [fetchedModel]),
-      }),
-    });
+    const fetchApiModels = vi.fn(async () => [fetchedApiModel]);
+    const { provider } = createProvider({ fetchApiModels });
+
+    const storedModel: ProviderModelConfig = {
+      ...staticModel,
+      id: "nw/stored",
+    };
 
     await provider.refreshModels?.(
       createContext({
@@ -330,7 +301,7 @@ describe("refreshModels", () => {
         stored: {
           models: [
             {
-              ...fetchedModel,
+              ...storedModel,
               provider: NEURALWATT_PROVIDER_ID,
               api: "openai-completions" as const,
               baseUrl: NEURALWATT_BASE_URL,
@@ -341,36 +312,9 @@ describe("refreshModels", () => {
       }),
     );
 
+    expect(fetchApiModels).not.toHaveBeenCalled();
     expect(provider.getModels().map((model) => model.id)).toContain(
-      "nw/fetched",
-    );
-  });
-
-  it("keeps the catalog unchanged when the refresh signal aborts mid-flight", async () => {
-    const controller = new AbortController();
-    const provider = createProvider({
-      refreshOptions: () => ({
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => {
-          controller.abort();
-          return [fetchedModel];
-        },
-      }),
-    });
-
-    // The refresh resolves to the cached catalog on abort, so the
-    // fetched discovery result is never adopted.
-    await provider.refreshModels?.(
-      createContext({
-        credential: { type: "api_key", key: "real-key" },
-        signal: controller.signal,
-      }),
-    );
-
-    expect(provider.getModels().map((model) => model.id)).not.toContain(
-      "nw/fetched",
+      "nw/stored",
     );
   });
 });

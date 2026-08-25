@@ -3,22 +3,14 @@ import { copyFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { Migration } from "@aliou/pi-utils-settings";
 import packageJson from "../../../package.json";
-import type { NeuralwattConfig } from "../types";
 
 /** The original flat config, replaced by per-feature sections. */
 interface FlatNeuralwattConfig {
-  /** Show the quota command (/neuralwatt:quota). */
+  $schema?: string;
   quotaCommand?: boolean;
-
-  /** Show quota warnings when credits or energy are low. */
   quotaWarnings?: boolean;
-
-  /** Show usage in the sub-bar / status bar. */
   subBarIntegration?: boolean;
-
-  /** Include legacy Neuralwatt model IDs in the model picker. */
   includeLegacyModelIds?: boolean;
-
   /** Renamed to `provider.includeEarlyAccessModels` by migration 03. */
   includeHiddenModels?: boolean;
 }
@@ -50,7 +42,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-function isPreviousConfig(config: NeuralwattConfig): boolean {
+function isPreviousConfig(config: FlatNeuralwattConfig): boolean {
   const record = config as MutableConfigRecord;
   return FLAT_CONFIG_KEYS.some((key) => typeof record[key] === "boolean");
 }
@@ -78,7 +70,7 @@ export async function backupConfig(filePath: string): Promise<void> {
   }
 }
 
-export const flatToNestedConfigMigration: Migration<NeuralwattConfig> = {
+export const flatToNestedConfigMigration: Migration<FlatNeuralwattConfig> = {
   name: "flat-to-nested-config",
   version: "0.8.1",
   shouldRun: isPreviousConfig,
@@ -86,82 +78,54 @@ export const flatToNestedConfigMigration: Migration<NeuralwattConfig> = {
   run: async (config, filePath) => {
     await backupConfig(filePath);
 
-    const nestedConfig = config;
     const record = config as unknown as MutableConfigRecord;
-    const nested: NeuralwattConfig = {
-      provider: {
-        ...(isObject(nestedConfig.provider) ? nestedConfig.provider : {}),
-      },
-      quotaCommand: isObject(nestedConfig.quotaCommand)
-        ? { ...nestedConfig.quotaCommand }
-        : {},
-      quotaWarnings: isObject(nestedConfig.quotaWarnings)
-        ? { ...nestedConfig.quotaWarnings }
-        : {},
-      subBarIntegration: isObject(nestedConfig.subBarIntegration)
-        ? { ...nestedConfig.subBarIntegration }
-        : {},
+
+    // Preserve existing nested values from a partially-migrated config.
+    const existingProvider = isObject(record.provider)
+      ? { ...record.provider }
+      : {};
+    const existingQuotaCommand = isObject(record.quotaCommand)
+      ? { ...record.quotaCommand }
+      : {};
+    const existingQuotaWarnings = isObject(record.quotaWarnings)
+      ? { ...record.quotaWarnings }
+      : {};
+    const existingSubBarIntegration = isObject(record.subBarIntegration)
+      ? { ...record.subBarIntegration }
+      : {};
+
+    const nested = {
+      provider: existingProvider as Record<string, unknown>,
+      quotaCommand: existingQuotaCommand as Record<string, unknown>,
+      quotaWarnings: existingQuotaWarnings as Record<string, unknown>,
+      subBarIntegration: existingSubBarIntegration as Record<string, unknown>,
     };
 
     const includeLegacyModelIds = booleanValue(record, "includeLegacyModelIds");
-    if (
-      nested.provider?.includeLegacyModelIds === undefined &&
-      includeLegacyModelIds !== undefined
-    ) {
-      nested.provider = {
-        ...nested.provider,
-        includeLegacyModelIds,
-      };
+    if (includeLegacyModelIds !== undefined) {
+      nested.provider = { ...nested.provider, includeLegacyModelIds };
     }
 
-    // Flat configs predate the rename, so they still use `includeHiddenModels`.
-    const includeEarlyAccessModels = booleanValue(
-      record,
-      "includeHiddenModels",
-    );
-    if (
-      nested.provider?.includeEarlyAccessModels === undefined &&
-      includeEarlyAccessModels !== undefined
-    ) {
-      nested.provider = {
-        ...nested.provider,
-        includeEarlyAccessModels,
-      };
+    const includeHiddenModels = booleanValue(record, "includeHiddenModels");
+    if (includeHiddenModels !== undefined) {
+      nested.provider = { ...nested.provider, includeHiddenModels };
     }
 
     const quotaCommand = booleanValue(record, "quotaCommand");
-    if (
-      nested.quotaCommand?.enabled === undefined &&
-      quotaCommand !== undefined
-    ) {
-      nested.quotaCommand = {
-        ...nested.quotaCommand,
-        enabled: quotaCommand,
-      };
+    if (quotaCommand !== undefined) {
+      nested.quotaCommand = { enabled: quotaCommand };
     }
 
     const quotaWarnings = booleanValue(record, "quotaWarnings");
-    if (
-      nested.quotaWarnings?.enabled === undefined &&
-      quotaWarnings !== undefined
-    ) {
-      nested.quotaWarnings = {
-        ...nested.quotaWarnings,
-        enabled: quotaWarnings,
-      };
+    if (quotaWarnings !== undefined) {
+      nested.quotaWarnings = { enabled: quotaWarnings };
     }
 
     const subBarIntegration = booleanValue(record, "subBarIntegration");
-    if (
-      nested.subBarIntegration?.enabled === undefined &&
-      subBarIntegration !== undefined
-    ) {
-      nested.subBarIntegration = {
-        ...nested.subBarIntegration,
-        enabled: subBarIntegration,
-      };
+    if (subBarIntegration !== undefined) {
+      nested.subBarIntegration = { enabled: subBarIntegration };
     }
 
-    return nested;
+    return nested as unknown as FlatNeuralwattConfig;
   },
 };

@@ -8,10 +8,6 @@
         "$schema": {
           "type": "string"
         },
-        "provider": {
-          "$ref": "#/definitions/NeuralwattProviderConfig",
-          "description": "Provider/model behavior."
-        },
         "quotaCommand": {
           "$ref": "#/definitions/NeuralwattQuotaCommandConfig",
           "description": "Quota command feature."
@@ -36,24 +32,6 @@
             }
           ],
           "description": "Config schema version, stamped by migrations. Current version: 0.12.0."
-        }
-      },
-      "additionalProperties": false
-    },
-    "NeuralwattProviderConfig": {
-      "type": "object",
-      "properties": {
-        "includeLegacyModelIds": {
-          "type": "boolean",
-          "description": "Include legacy Neuralwatt model IDs in the model picker."
-        },
-        "includeAliasedModelIds": {
-          "type": "boolean",
-          "description": "Include alternate creator-scoped Neuralwatt model IDs in the model picker."
-        },
-        "includeEarlyAccessModels": {
-          "type": "boolean",
-          "description": "Include early-access Neuralwatt models discovered via the authenticated API."
         }
       },
       "additionalProperties": false

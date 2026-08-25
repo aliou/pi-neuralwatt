@@ -1,14 +1,3 @@
-export interface NeuralwattProviderConfig {
-  /** Include legacy Neuralwatt model IDs in the model picker. */
-  includeLegacyModelIds?: boolean;
-
-  /** Include alternate creator-scoped Neuralwatt model IDs in the model picker. */
-  includeAliasedModelIds?: boolean;
-
-  /** Include early-access Neuralwatt models discovered via the authenticated API. */
-  includeEarlyAccessModels?: boolean;
-}
-
 export interface NeuralwattQuotaCommandConfig {
   /** Show the quota command (/neuralwatt:quota). */
   enabled?: boolean;
@@ -28,9 +17,6 @@ export interface NeuralwattConfig {
   /** $schema URL for editor autocomplete. */
   $schema?: string;
 
-  /** Provider/model behavior. */
-  provider?: NeuralwattProviderConfig;
-
   /** Quota command feature. */
   quotaCommand?: NeuralwattQuotaCommandConfig;
 
@@ -42,11 +28,6 @@ export interface NeuralwattConfig {
 }
 
 export interface ResolvedNeuralwattConfig {
-  provider: {
-    includeLegacyModelIds: boolean;
-    includeAliasedModelIds: boolean;
-    includeEarlyAccessModels: boolean;
-  };
   quotaCommand: {
     enabled: boolean;
   };

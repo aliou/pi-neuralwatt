@@ -14,17 +14,6 @@ function normalizeResolvedConfig(
   const config = resolved as Partial<ResolvedNeuralwattConfig>;
 
   return {
-    provider: {
-      includeLegacyModelIds:
-        config.provider?.includeLegacyModelIds ??
-        DEFAULT_CONFIG.provider.includeLegacyModelIds,
-      includeAliasedModelIds:
-        config.provider?.includeAliasedModelIds ??
-        DEFAULT_CONFIG.provider.includeAliasedModelIds,
-      includeEarlyAccessModels:
-        config.provider?.includeEarlyAccessModels ??
-        DEFAULT_CONFIG.provider.includeEarlyAccessModels,
-    },
     quotaCommand: {
       enabled:
         config.quotaCommand?.enabled ?? DEFAULT_CONFIG.quotaCommand.enabled,

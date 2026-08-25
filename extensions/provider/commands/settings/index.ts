@@ -104,82 +104,9 @@ export function registerNeuralwattSettings(
             ),
           ],
         },
-        {
-          label: "Other settings",
-          items: [
-            {
-              id: "includeLegacyModelIds",
-              label: "Legacy model IDs",
-              description:
-                "Include deprecated Neuralwatt model IDs as aliases in the model picker",
-              currentValue:
-                (tabConfig?.provider?.includeLegacyModelIds ??
-                resolved.provider.includeLegacyModelIds)
-                  ? "include"
-                  : "ignore",
-              values: ["include", "ignore"],
-            },
-            {
-              id: "includeAliasedModelIds",
-              label: "Alias model IDs",
-              description:
-                "Include active creator-scoped model IDs as aliases in the model picker",
-              currentValue:
-                (tabConfig?.provider?.includeAliasedModelIds ??
-                resolved.provider.includeAliasedModelIds)
-                  ? "include"
-                  : "ignore",
-              values: ["include", "ignore"],
-            },
-            {
-              id: "includeEarlyAccessModels",
-              label: "Early access models",
-              description:
-                "Include pre-release Neuralwatt models that your API key can reach but that are not yet in the public model list",
-              currentValue:
-                (tabConfig?.provider?.includeEarlyAccessModels ??
-                resolved.provider.includeEarlyAccessModels)
-                  ? "include"
-                  : "ignore",
-              values: ["include", "ignore"],
-            },
-          ],
-        },
       ];
     },
     onSettingChange: (id, newValue, config) => {
-      // Non-feature toggles are handled first so they are not blocked by the
-      // loaded-features guard (they are managed directly by the provider).
-      if (id === "includeLegacyModelIds") {
-        return {
-          ...config,
-          provider: {
-            ...config.provider,
-            includeLegacyModelIds: newValue === "include",
-          },
-        };
-      }
-
-      if (id === "includeAliasedModelIds") {
-        return {
-          ...config,
-          provider: {
-            ...config.provider,
-            includeAliasedModelIds: newValue === "include",
-          },
-        };
-      }
-
-      if (id === "includeEarlyAccessModels") {
-        return {
-          ...config,
-          provider: {
-            ...config.provider,
-            includeEarlyAccessModels: newValue === "include",
-          },
-        };
-      }
-
       if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {
         return null;
       }

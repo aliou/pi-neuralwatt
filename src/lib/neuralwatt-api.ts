@@ -8,6 +8,10 @@ import type { QuotasResult } from "../types/quota-result";
 const BASE_URL = "https://api.neuralwatt.com/v1";
 const FETCH_TIMEOUT_MS = 15_000;
 
+function authHeaders(apiKey: string | undefined): Record<string, string> {
+  return apiKey && apiKey !== "-" ? { Authorization: `Bearer ${apiKey}` } : {};
+}
+
 function isTimeoutReason(reason: unknown): boolean {
   return (
     (reason instanceof DOMException && reason.name === "TimeoutError") ||
@@ -23,12 +27,12 @@ function combineSignals(signal?: AbortSignal): AbortSignal {
 
 async function neuralwattFetch(
   path: string,
-  apiKey: string,
+  apiKey: string | undefined,
   signal?: AbortSignal,
   headers?: Record<string, string>,
 ): Promise<Response> {
   return fetch(`${BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${apiKey}`, ...headers },
+    headers: { ...authHeaders(apiKey), ...headers },
     signal: combineSignals(signal),
   });
 }
@@ -38,13 +42,9 @@ export type NeuralwattModelsResult =
   | { success: false };
 
 export async function fetchNeuralwattModels(
-  apiKey: string,
+  apiKey: string | undefined,
   signal?: AbortSignal,
 ): Promise<NeuralwattModelsResult> {
-  if (!apiKey) {
-    return { success: false };
-  }
-
   const combined = combineSignals(signal);
 
   try {

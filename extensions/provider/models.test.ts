@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ALIAS_MODEL_MAP,
-  ALIAS_NEURALWATT_MODEL_IDS,
-  EARLY_ACCESS_NEURALWATT_MODELS,
-  getNeuralwattModels,
-  LEGACY_NEURALWATT_MODEL_IDS,
-  NEURALWATT_MODELS,
-} from "./models";
+import { NEURALWATT_MODELS } from "./models";
 import {
   buildThinkingLevelMap,
   FLEX_COST_MULTIPLIER,
@@ -151,10 +144,7 @@ function compareModels(
     const apiModel = apiModels.find((m) => m.id === hardcoded.id);
 
     if (!apiModel) {
-      if (
-        !LEGACY_NEURALWATT_MODEL_IDS.has(hardcoded.id) &&
-        !isFlexModelId(hardcoded.id)
-      ) {
+      if (!isFlexModelId(hardcoded.id)) {
         discrepancies.push({
           model: hardcoded.id,
           field: "exists",
@@ -307,11 +297,7 @@ function compareModels(
   // Check for API models not in hardcoded list
   for (const apiModel of apiModels) {
     const hardcoded = hardcodedModels.find((m) => m.id === apiModel.id);
-    if (
-      !hardcoded &&
-      !LEGACY_NEURALWATT_MODEL_IDS.has(apiModel.id) &&
-      !ALIAS_NEURALWATT_MODEL_IDS.has(apiModel.id)
-    ) {
+    if (!hardcoded) {
       discrepancies.push({
         model: apiModel.id,
         field: "exists",
@@ -359,56 +345,11 @@ describe("Neuralwatt models", () => {
   });
 
   it("should never allow more output tokens than context", () => {
-    for (const model of [
-      ...NEURALWATT_MODELS,
-      ...EARLY_ACCESS_NEURALWATT_MODELS,
-    ]) {
+    for (const model of NEURALWATT_MODELS) {
       expect(model.maxTokens, model.id).toBeGreaterThan(0);
       expect(model.maxTokens, model.id).toBeLessThanOrEqual(
         model.contextWindow,
       );
-    }
-  });
-
-  it("should expose Qwen3.8 27B FP8 as an early-access model", () => {
-    const model = EARLY_ACCESS_NEURALWATT_MODELS.find(
-      (m) => m.id === "Qwen/Qwen3.8-27B-FP8",
-    );
-    expect(model).toBeDefined();
-    expect(model).toMatchObject({
-      name: "Qwen 3.8 27B FP8",
-      reasoning: true,
-      input: ["text", "image"],
-      cost: { input: 0.45, output: 3.2, cacheRead: 0.25, cacheWrite: 0 },
-      contextWindow: 262_128,
-      maxTokens: 65_536,
-      compat: {
-        supportsDeveloperRole: false,
-        maxTokensField: "max_tokens",
-        requiresReasoningContentOnAssistantMessages: true,
-        thinkingFormat: "chat-template",
-        chatTemplateKwargs: {
-          enable_thinking: { $var: "thinking.enabled" },
-        },
-      },
-    });
-    // Binary thinking: the API exposes no `reasoning` block, so the map is
-    // the high-only fallback with `off` disabled.
-    expect(model?.thinkingLevelMap).toEqual({
-      off: null,
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: null,
-      max: null,
-    });
-  });
-
-  it("should keep early-access model IDs out of the public catalog", () => {
-    const publicIds = new Set(NEURALWATT_MODELS.map((m) => m.id));
-    for (const model of EARLY_ACCESS_NEURALWATT_MODELS) {
-      expect(publicIds.has(model.id), model.id).toBe(false);
     }
   });
 
@@ -497,49 +438,6 @@ describe("Neuralwatt models", () => {
           6,
         );
       }
-    }
-  });
-
-  it("should only include legacy model IDs when enabled", () => {
-    const defaultIds = new Set(getNeuralwattModels().map((m) => m.id));
-    const legacyIds = new Set(
-      getNeuralwattModels({ includeLegacyModelIds: true }).map((m) => m.id),
-    );
-
-    for (const legacyId of LEGACY_NEURALWATT_MODEL_IDS) {
-      expect(defaultIds.has(legacyId)).toBe(false);
-      expect(legacyIds.has(legacyId)).toBe(true);
-    }
-  });
-
-  it("should only include alias model IDs when enabled", () => {
-    const defaultIds = new Set(getNeuralwattModels().map((m) => m.id));
-    const aliasIds = new Set(
-      getNeuralwattModels({ includeAliasedModelIds: true }).map((m) => m.id),
-    );
-
-    for (const aliasId of ALIAS_NEURALWATT_MODEL_IDS) {
-      expect(defaultIds.has(aliasId)).toBe(false);
-      expect(aliasIds.has(aliasId)).toBe(true);
-    }
-  });
-
-  it("should only point alias model IDs at active models", () => {
-    const activeIds = new Set([
-      ...NEURALWATT_MODELS.map((model) => model.id),
-      ...EARLY_ACCESS_NEURALWATT_MODELS.map((model) => model.id),
-    ]);
-
-    for (const [aliasId, canonicalId] of Object.entries(ALIAS_MODEL_MAP)) {
-      expect(activeIds.has(canonicalId)).toBe(true);
-      expect(LEGACY_NEURALWATT_MODEL_IDS.has(canonicalId)).toBe(false);
-      expect(LEGACY_NEURALWATT_MODEL_IDS.has(aliasId)).toBe(false);
-    }
-  });
-
-  it("should keep alias and legacy model ID sets separate", () => {
-    for (const aliasId of ALIAS_NEURALWATT_MODEL_IDS) {
-      expect(LEGACY_NEURALWATT_MODEL_IDS.has(aliasId)).toBe(false);
     }
   });
 

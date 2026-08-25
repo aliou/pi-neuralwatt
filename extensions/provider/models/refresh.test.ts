@@ -1,257 +1,308 @@
 import type {
-  Api,
-  Model,
   ModelsStoreEntry,
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
-import { NEURALWATT_MODELS } from "./public-models";
-import { refreshNeuralwattModels } from "./refresh";
+import type { NeuralwattApiModel } from "../../../src/types/models-api";
+import {
+  buildNeuralwattProviderModelsFromApi,
+  buildNeuralwattProviderModelsFromStore,
+  type NeuralwattModel,
+} from "./catalog";
+import { createNeuralwattRefreshModels, MODEL_STORE_TTL_MS } from "./refresh";
 
-// Dummy hardcoded early-access model injected via vi.mock so the refresh
-// tests can verify that hardcoded EARLY_ACCESS_NEURALWATT_MODELS are present
-// when the option is enabled, even when discovery returns an empty list.
-const { dummyHardcodedEarlyAccessModel } = vi.hoisted(() => {
-  const dummyHardcodedEarlyAccessModel: ProviderModelConfig = {
-    id: "early-access/hardcoded-dummy",
-    name: "Hardcoded Early Access Dummy",
-    reasoning: false,
-    input: ["text"],
-    cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128_000,
-    maxTokens: 8_192,
-  };
-  return { dummyHardcodedEarlyAccessModel };
-});
-
-vi.mock("./early-access", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./early-access")>();
-  return {
-    ...actual,
-    EARLY_ACCESS_NEURALWATT_MODELS: [dummyHardcodedEarlyAccessModel],
-  };
-});
-
-const earlyAccessModel: ProviderModelConfig = {
-  id: "early-access/model",
-  name: "Early Access Model",
+const staticModel: NeuralwattModel = {
+  id: "nw/static",
+  name: "nw/static",
   reasoning: false,
   input: ["text"],
   cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
   contextWindow: 128_000,
-  maxTokens: 8_192,
+  maxTokens: 16_384,
 };
 
-function storedModel(model: ProviderModelConfig): Model<Api> {
-  return {
-    ...model,
-    provider: "neuralwatt",
-    api: model.api ?? "openai-completions",
-    baseUrl: model.baseUrl ?? "https://api.neuralwatt.com/v1",
-  };
-}
+const apiModel: NeuralwattApiModel = {
+  id: "nw/fetched",
+  object: "model",
+  created: 0,
+  owned_by: "neuralwatt",
+  max_model_len: 128_000,
+  metadata: {
+    display_name: "nw/fetched",
+    description: null,
+    provider: "test",
+    huggingface_id: null,
+    pricing: {
+      input_per_million: 1,
+      output_per_million: 2,
+      cached_input_per_million: 0,
+      cached_output_per_million: null,
+      currency: "USD",
+      pricing_tbd: false,
+    },
+    capabilities: {
+      tools: false,
+      json_mode: false,
+      vision: false,
+      reasoning: false,
+      reasoning_effort: false,
+      streaming: true,
+      system_role: true,
+      developer_role: false,
+    },
+    limits: {
+      max_context_length: 128_000,
+      max_output_tokens: 16_384,
+      max_images: null,
+    },
+    deprecated: false,
+    deprecated_message: null,
+  },
+};
 
 function createContext(options?: {
   allowNetwork?: boolean;
+  credential?: { type: "api_key"; key: string };
   stored?: ModelsStoreEntry;
-}): {
-  context: RefreshModelsContext;
-  writes: ModelsStoreEntry[];
-} {
-  const writes: ModelsStoreEntry[] = [];
-  const context: RefreshModelsContext = {
+  force?: boolean;
+  signal?: AbortSignal;
+}): RefreshModelsContext {
+  return {
+    credential: options?.credential,
     allowNetwork: options?.allowNetwork ?? true,
-    credential: { type: "api_key", key: "test-key" },
+    force: options?.force,
+    signal: options?.signal ?? new AbortController().signal,
     stored: options?.stored,
     publish: async (publication) => {
-      if (publication.persist) writes.push(publication.persist);
+      publication.update?.();
       return true;
     },
-    signal: new AbortController().signal,
   };
-  return { context, writes };
 }
 
-describe("refreshNeuralwattModels", () => {
-  it("persists hardcoded early-access models when discovery is empty", async () => {
-    const { context, writes } = createContext();
+function createRefresh(options?: {
+  fetchApiModels?: (
+    apiKey: string | undefined,
+    signal?: AbortSignal,
+  ) => Promise<readonly NeuralwattApiModel[]>;
+}) {
+  const fetchApiModels =
+    options?.fetchApiModels ??
+    (async () => [apiModel] as readonly NeuralwattApiModel[]);
 
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => [],
-      })) ?? [];
+  return createNeuralwattRefreshModels(
+    [staticModel],
+    fetchApiModels,
+    buildNeuralwattProviderModelsFromApi,
+    buildNeuralwattProviderModelsFromStore,
+  );
+}
 
-    expect(models).toContainEqual(dummyHardcodedEarlyAccessModel);
-    expect(writes).toHaveLength(1);
-    expect(writes[0]?.models).toContainEqual(
-      storedModel(dummyHardcodedEarlyAccessModel),
-    );
-  });
-
-  it("omits hardcoded early-access models when the option is disabled", async () => {
-    const { context } = createContext();
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: false,
-      })) ?? [];
-
-    expect(
-      models.some((model) => model.id === dummyHardcodedEarlyAccessModel.id),
-    ).toBe(false);
-  });
-
-  it("omits early-access models when discovery is disabled", async () => {
-    const { context } = createContext({
-      stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
-    });
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: false,
-      })) ?? [];
-
-    expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(
-      false,
-    );
-  });
-
-  it("includes aliases for active models when enabled", async () => {
-    const { context, writes } = createContext();
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: true,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => [],
-      })) ?? [];
-
-    expect(models.some((model) => model.id === "zai-org/GLM-5.2-FP8")).toBe(
-      true,
-    );
-    expect(
-      writes[0]?.models.some((model) => model.id === "zai-org/GLM-5.2-FP8"),
-    ).toBe(true);
-  });
-
-  it("keeps public models authoritative on early-access ID collisions", async () => {
-    const { context } = createContext();
-    const publicModel = NEURALWATT_MODELS[0];
-    if (!publicModel) throw new Error("public model fixture is missing");
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => [
-          {
-            ...earlyAccessModel,
-            id: publicModel.id,
-            name: "Early access collision",
-          },
-        ],
-      })) ?? [];
-
-    expect(models.filter((model) => model.id === publicModel.id)).toEqual([
-      publicModel,
-    ]);
-  });
-
-  it("restores cached early-access models with current public models offline", async () => {
-    const { context, writes } = createContext({
-      allowNetwork: false,
-      stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
-    });
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      })) ?? [];
-
-    expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(true);
-    expect(models.length).toBeGreaterThan(1);
-    expect(writes).toHaveLength(0);
-  });
-
-  it("persists the complete refreshed catalog", async () => {
-    const { context, writes } = createContext();
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => [earlyAccessModel],
-      })) ?? [];
-
-    expect(writes).toHaveLength(1);
-    expect(writes[0]?.models).toHaveLength(models.length);
-    expect(
-      writes[0]?.models.some((model) => model.id === earlyAccessModel.id),
-    ).toBe(true);
-    expect(
-      writes[0]?.models.some((model) => model.id !== earlyAccessModel.id),
-    ).toBe(true);
-  });
-
-  it("purges early-access models when discovery is disabled", async () => {
-    const { context, writes } = createContext({
-      stored: { models: [storedModel(earlyAccessModel)], checkedAt: 1 },
-    });
-
-    const models =
-      (await refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: false,
-      })) ?? [];
-
-    expect(models.some((model) => model.id === earlyAccessModel.id)).toBe(
-      false,
-    );
-    expect(writes[0]?.models).toHaveLength(models.length);
-    expect(
-      writes[0]?.models.some((model) => model.id === earlyAccessModel.id),
-    ).toBe(false);
-  });
-
-  it("preserves the stale cache when a network refresh fails", async () => {
-    const stored = { models: [storedModel(earlyAccessModel)], checkedAt: 1 };
-    const { context, writes } = createContext({ stored });
-
-    // A failed discovery resolves undefined instead of throwing; no
-    // persistence happens and the stale store entry is preserved.
-    await expect(
-      refreshNeuralwattModels(context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-        loadEarlyAccess: async () => undefined,
+describe("createNeuralwattRefreshModels", () => {
+  it("fetches and persists the API catalog on refresh", async () => {
+    const writes: ModelsStoreEntry[] = [];
+    const refresh = createRefresh();
+    const context: RefreshModelsContext = {
+      ...createContext({
+        credential: { type: "api_key", key: "real-key" },
       }),
-    ).resolves.toBeUndefined();
-    expect(writes).toHaveLength(0);
+      publish: async (publication) => {
+        if (publication.persist) writes.push(publication.persist);
+        publication.update?.();
+        return true;
+      },
+    };
 
-    const offline = createContext({ allowNetwork: false, stored });
-    const offlineModels =
-      (await refreshNeuralwattModels(offline.context, {
-        includeLegacyModelIds: false,
-        includeAliasedModelIds: false,
-        includeEarlyAccessModels: true,
-      })) ?? [];
-    expect(
-      offlineModels.some((model) => model.id === earlyAccessModel.id),
-    ).toBe(true);
+    const models = await refresh(context);
+
+    expect(models.some((m) => m.id === "nw/fetched")).toBe(true);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.models).toHaveLength(1);
+    expect(writes[0]?.checkedAt).toBeGreaterThan(0);
+  });
+
+  it("returns the static fallback when the fetch fails", async () => {
+    const refresh = createRefresh({
+      fetchApiModels: async () => {
+        throw new Error("network error");
+      },
+    });
+
+    const models = await refresh(
+      createContext({
+        credential: { type: "api_key", key: "real-key" },
+      }),
+    );
+
+    expect(models.map((m) => m.id)).toEqual(["nw/static"]);
+  });
+
+  it("builds an empty catalog when the API returns no models", async () => {
+    const refresh = createRefresh({
+      fetchApiModels: async () => [],
+    });
+
+    const models = await refresh(
+      createContext({
+        credential: { type: "api_key", key: "real-key" },
+      }),
+    );
+
+    // Empty API result → empty catalog (all models removed).
+    expect(models).toHaveLength(0);
+  });
+
+  it("refreshes anonymously without a key", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    // No credential — anonymous. The refresh should still fetch because the
+    // public /v1/models endpoint serves the public catalog without auth.
+    const models = await refresh(createContext());
+
+    expect(fetchApiModels).toHaveBeenCalledWith(
+      undefined,
+      expect.any(AbortSignal),
+    );
+    expect(models.some((m) => m.id === "nw/fetched")).toBe(true);
+  });
+
+  it("refreshes with a placeholder key ('-')", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    const models = await refresh(
+      createContext({
+        credential: { type: "api_key", key: "-" },
+      }),
+    );
+
+    // The placeholder key is passed through; the fetch function (in the real
+    // provider) skips it via authHeaders. The refresh itself doesn't gate on
+    // the key.
+    expect(fetchApiModels).toHaveBeenCalledWith("-", expect.any(AbortSignal));
+    expect(models.some((m) => m.id === "nw/fetched")).toBe(true);
+  });
+
+  it("returns the stored catalog when it is fresh (within TTL)", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    const storedModel: ProviderModelConfig = {
+      ...staticModel,
+      id: "nw/stored",
+    };
+
+    const models = await refresh(
+      createContext({
+        stored: {
+          models: [
+            {
+              ...storedModel,
+              provider: "neuralwatt",
+              api: "openai-completions" as const,
+              baseUrl: "https://api.neuralwatt.com/v1",
+            },
+          ],
+          checkedAt: Date.now(),
+        },
+      }),
+    );
+
+    expect(fetchApiModels).not.toHaveBeenCalled();
+    expect(models.some((m) => m.id === "nw/stored")).toBe(true);
+  });
+
+  it("refetches when the store is stale (beyond TTL)", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    await refresh(
+      createContext({
+        stored: {
+          models: [],
+          checkedAt: Date.now() - MODEL_STORE_TTL_MS - 1,
+        },
+      }),
+    );
+
+    expect(fetchApiModels).toHaveBeenCalled();
+  });
+
+  it("refetches when force is true even with a fresh store", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    await refresh(
+      createContext({
+        force: true,
+        stored: {
+          models: [],
+          checkedAt: Date.now(),
+        },
+      }),
+    );
+
+    expect(fetchApiModels).toHaveBeenCalled();
+  });
+
+  it("returns the stored catalog when network is not allowed", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    const storedModel: ProviderModelConfig = {
+      ...staticModel,
+      id: "nw/stored",
+    };
+
+    const models = await refresh(
+      createContext({
+        allowNetwork: false,
+        stored: {
+          models: [
+            {
+              ...storedModel,
+              provider: "neuralwatt",
+              api: "openai-completions" as const,
+              baseUrl: "https://api.neuralwatt.com/v1",
+            },
+          ],
+          checkedAt: 1,
+        },
+      }),
+    );
+
+    expect(fetchApiModels).not.toHaveBeenCalled();
+    expect(models.some((m) => m.id === "nw/stored")).toBe(true);
+  });
+
+  it("returns the static fallback when offline and no store", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    const models = await refresh(createContext({ allowNetwork: false }));
+
+    expect(fetchApiModels).not.toHaveBeenCalled();
+    expect(models.map((m) => m.id)).toEqual(["nw/static"]);
+  });
+
+  it("rethrows on abort", async () => {
+    const controller = new AbortController();
+    const refresh = createRefresh({
+      fetchApiModels: async () => {
+        controller.abort();
+        throw new DOMException("aborted", "AbortError");
+      },
+    });
+
+    await expect(
+      refresh(
+        createContext({
+          credential: { type: "api_key", key: "real-key" },
+          signal: controller.signal,
+        }),
+      ),
+    ).rejects.toThrow();
   });
 });

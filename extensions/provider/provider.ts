@@ -5,12 +5,15 @@ import type {
   ProviderStreamOptions,
 } from "@earendil-works/pi-ai";
 import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
-import type {
-  RefreshNeuralwattModelsOptions,
-  StoredProviderModels,
+import type { NeuralwattModel } from "./models/catalog";
+import {
+  buildNeuralwattProviderModelsFromApi,
+  buildNeuralwattProviderModelsFromStore,
+} from "./models/catalog";
+import {
+  createNeuralwattRefreshModels,
+  type FetchNeuralwattApiModels,
 } from "./models/refresh";
-import { refreshNeuralwattModels } from "./models/refresh";
 import type { AnyStreamSimple } from "./stream-simple";
 
 export const NEURALWATT_PROVIDER_ID = "neuralwatt";
@@ -24,9 +27,7 @@ const NEURALWATT_REQUEST_HEADERS = {
 
 const API = "openai-completions" as const;
 
-function toProviderModels(
-  models: readonly ProviderModelConfig[],
-): Model<Api>[] {
+function toProviderModels(models: NeuralwattModel[]): Model<Api>[] {
   return models.map((model) => ({
     ...model,
     api: model.api ?? API,
@@ -37,11 +38,17 @@ function toProviderModels(
 }
 
 export function createNeuralwattProvider(
-  staticModels: ProviderModelConfig[],
-  refreshOptions: () => RefreshNeuralwattModelsOptions,
+  staticModels: NeuralwattModel[],
+  fetchApiModels: FetchNeuralwattApiModels,
   streamSimpleOverride?: AnyStreamSimple,
 ): Provider {
   let liveModels = toProviderModels(staticModels);
+  const refreshCatalog = createNeuralwattRefreshModels(
+    staticModels,
+    fetchApiModels,
+    buildNeuralwattProviderModelsFromApi,
+    buildNeuralwattProviderModelsFromStore,
+  );
 
   return {
     id: NEURALWATT_PROVIDER_ID,
@@ -65,8 +72,6 @@ export function createNeuralwattProvider(
           if (await ctx.env(NEURALWATT_API_KEY_ENV)) {
             return { type: "api_key", source: NEURALWATT_API_KEY_ENV };
           }
-          // Anonymous availability: requests resolve with an empty key, and
-          // in aperture proxy mode the gateway owns auth.
           return { type: "api_key", source: "anonymous" };
         },
         resolve: async ({ ctx, credential, signal }) => {
@@ -83,28 +88,16 @@ export function createNeuralwattProvider(
           if (envKey) {
             return { auth: { apiKey: envKey }, source: NEURALWATT_API_KEY_ENV };
           }
-          // Resolve never fails: without a key the catalog is the hardcoded
-          // one and early-access discovery is skipped (anonymous playground
-          // traffic authenticates at stream time).
           return { auth: { apiKey: "" }, source: "anonymous" };
         },
       },
     },
     getModels: () => liveModels,
     refreshModels: async (context) => {
-      const refreshed = await refreshNeuralwattModels(
-        context,
-        refreshOptions(),
-      );
-      // Fresh or offline store: the refresh intentionally skipped the
-      // network; adopt the persisted catalog anyway so getModels reflects it
-      // (statics otherwise).
-      const next = refreshed ?? context.stored?.models;
-      if (!next || next.length === 0) return;
-      const adopted = toProviderModels(next as StoredProviderModels);
+      const models = await refreshCatalog(context);
       await context.publish({
         update: () => {
-          liveModels = adopted;
+          liveModels = toProviderModels(models);
         },
       });
     },

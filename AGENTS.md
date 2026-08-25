@@ -4,7 +4,7 @@ Pi extension providing a Neuralwatt inference API provider.
 
 ## Purpose
 
-Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. Models are hardcoded in `extensions/provider/models/public-models.ts` from the `/v1/models` API (including pricing, capabilities, and limits from the `metadata` field).
+Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. The model catalog is built at runtime from the `/v1/models` API response; a hardcoded fallback in `extensions/provider/models/public-models.ts` covers offline first start.
 
 ## Stack
 
@@ -28,12 +28,12 @@ extensions/
     provider.test.ts                    # Provider tests (auth resolution, catalog swap)
     commands/settings/index.ts          # /neuralwatt:settings command
     models/
-      index.ts                          # Re-exports + getNeuralwattModels helper
-      build.ts                          # Shared model builder (compat defaults, maxTokens rule)
-      public-models.ts                  # Public model family/variant table
-      legacy.ts                         # Phased-out model ID aliases
-      early-access.ts                   # Early-access model discovery from authenticated /v1/models
-      refresh.ts                        # Pi-managed dynamic catalog refresh and cache
+      index.ts                          # Re-exports
+      catalog.ts                        # API-driven catalog builder + override maps (flex pricing, kimi-k3 cap, aliases, compat)
+      build.ts                          # Shared model builder utilities (thinkingLevelMap, flex multiplier, maxTokens)
+      public-models.ts                  # Offline fallback model table (first start without network)
+      refresh.ts                        # TTL-based model refresh (fetch → build → persist | failure → fallback)
+      refresh.test.ts                   # Refresh tests (anonymous key, placeholder key, TTL, abort, failure)
   command-quotas/
     index.ts                            # Extension entry (checks config, registers command)
     command.ts                          # /neuralwatt:quota command handler
@@ -54,10 +54,10 @@ src/
     types.ts                            # Config schema types
     defaults.ts                         # Default resolved config
     loader.ts                           # ConfigLoader setup
-    migration/index.ts                  # Config migrations
+    migration/index.ts                  # Config migrations (each typed against its own historical shape)
   events.ts                             # Extension event constants, payloads, header parsing
   lib/
-    neuralwatt-api.ts                   # Neuralwatt API helpers
+    neuralwatt-api.ts                   # Neuralwatt API helpers (anonymous-safe auth)
   types/
     models-api.ts                       # /v1/models response types
     quota-api.ts                        # /v1/quota response types
@@ -67,7 +67,7 @@ src/
     quota-bar.ts                        # Quota severity and percent helpers
 .agents/skills/
   neuralwatt-models/
-    SKILL.md                            # Skill for retrieving/updating model list (dev only)
+    SKILL.md                            # Skill for updating the static fallback model list (dev only)
 ```
 
 ## Extension loading
@@ -116,48 +116,15 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 - **Quota command** (`quotaCommand.enabled`) - Show/hide `/neuralwatt:quota` command
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
 - **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
-- **Legacy model IDs** (`provider.includeLegacyModelIds`) - Include deprecated model aliases
-- **Alias model IDs** (`provider.includeAliasedModelIds`) - Include active creator-scoped model aliases
-- **Early access models** (`provider.includeEarlyAccessModels`) - Include early-access models
 
 The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
-## Model loading
+## Model catalog
 
-The provider registers on startup with `NEURALWATT_MODELS` (hardcoded definitions) so models are available without network. Models must be updated manually in `extensions/provider/models/public-models.ts` when the Neuralwatt API adds or changes models. Active creator-scoped aliases live in `extensions/provider/models/aliases.ts`; deprecated replacement IDs live in `extensions/provider/models/legacy.ts`.
+The catalog is built from `/v1/models` at runtime by `extensions/provider/models/catalog.ts`. `NEURALWATT_MODELS` in `public-models.ts` is the offline fallback for first start only.
 
-Public models are declared as a family/variant table. A family holds the defaults its variants share (pricing, modalities, `reasoningMetadata`); each variant declares its id, name, context window, `maxOutputTokens`, and `reasoning`, plus any override. `reasoningMetadata` snapshots the endpoint's `reasoning.supported_efforts` + `reasoning.mandatory`; `buildThinkingLevelMap` in `build.ts` turns it into the Pi `thinkingLevelMap` by identity (no aliasing). Early-access models read the live `metadata.reasoning` block through the same helper.
+`catalog.ts` applies small per-model overrides: flex pricing (0.65x), kimi-k3 context cap (327680), chat-template compat for Qwen3.8, and aliases (from `huggingface_id` + hardcoded for 4 API-omitted IDs). See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
 
-Variants combine independent modifiers, not a fixed list: `-short` (smaller context, bounded output), `-fast` (reasoning disabled), and `-flex` (Flex tier). GLM-5.2 alone ships `glm-5.2`, `-fast`, `-flex`, `-short`, `-short-fast`, `-short-flex`, and `-short-fast-flex`. A variant may differ from its family in more than limits: override `cost` for a variant priced differently, or set `costMultiplier` for a proportional change such as the Flex discount.
+### Config migrations
 
-`buildNeuralwattModel` in `build.ts` applies the compat defaults and the limit rule `maxTokens = metadata.limits.max_output_tokens ?? max_model_len`; early-access model discovery uses the same builder. `extensions/provider/models.test.ts` diffs the definitions against the live catalog and skips when the API is unreachable.
-
-### Flex variants
-
-`-flex` models are the [Flex tier](https://portal.neuralwatt.com/docs/guides/flex-tier): same model, limits, and prompt cache as the standard variant, but admitted when there is spare capacity. They are billed at 65% of standard (35% off), applied through `costMultiplier` on the variant. The discount only applies to streaming requests; a non-streaming request to a `-flex` model falls back to the standard tier and standard price, and reports `service_tier: "standard"`. Flex models are not in the public `/v1/models` response, so the drift test skips them.
-
-### Early access models
-
-Some Neuralwatt models are pre-release: reachable with an authenticated API key but not yet part of the public `/v1/models` list. They are not secret, and most go public eventually. Enabling the `provider.includeEarlyAccessModels` setting makes them available.
-
-The setting was called `provider.includeHiddenModels` before 0.11. Migration `03-rename-hidden-to-early-access` rewrites it on load.
-
-The config loader reads the file, runs migrations, and hands the rest of the code the current `NeuralwattConfig` shape only. Each migration declares the superseded shape it needs inside its own file. Do not widen loader, settings, or extension types to accept old shapes.
-
-The provider implements Pi's `refreshModels(context)` API. Pi supplies the resolved credential, abort signal, network policy, the provider-scoped catalog snapshot (`context.stored`), and generation-checked persistence (`context.publish`). Opening `/model` refreshes the catalog in the background; `pi update --models` forces a refresh.
-
-The refresh flow is:
-
-1. Register hardcoded public models and configured legacy/active aliases synchronously.
-2. During offline startup, restore dynamic early-access models from Pi's provider-scoped cache.
-3. During network refresh with a real key, fetch authenticated `/v1/models`, combine early-access models with current public, legacy, and alias definitions, and persist the complete effective catalog through `context.publish({ persist })`. Without a key, the public catalog is kept and discovery is skipped.
-4. When a network refresh fails, the live catalog is untouched and Pi keeps the stale store entry; the provider overlay restores it on the next refresh. A successful empty result purges removed early-access models.
-
-Pi stores the catalog in `${getAgentDir()}/models-store.json`. Public, legacy, and alias definitions in source remain authoritative over cached copies.
-
-## Updating Models
-
-1. Check the Neuralwatt API (`https://api.neuralwatt.com/v1/models`) for current model list
-2. Compare against hardcoded definitions in `extensions/provider/models/public-models.ts`
-3. Add missing models to the matching family, update changed fields (context windows, pricing, capabilities)
-4. Run `pnpm test` to validate
+Four migrations handle config schema evolution (flat → nested). Each is typed against its own historical input shape. The `NeuralwattConfig` type does not declare a `provider` key; migrations still write `provider` fields for on-disk backward compatibility but nothing reads them.

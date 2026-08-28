@@ -1,7 +1,6 @@
 import type { Migration } from "@aliou/pi-utils-settings";
 import type { NeuralwattConfig } from "../types";
 
-export { disableLegacyModelIdsByDefaultMigration } from "./01-disable-legacy-model-ids-by-default";
 export {
   backupConfig,
   flatToNestedConfigMigration,
@@ -9,7 +8,6 @@ export {
 export { renameHiddenToEarlyAccessMigration } from "./03-rename-hidden-to-early-access";
 export { enableAliasesForLegacyUsersMigration } from "./04-enable-aliases-for-legacy-users";
 
-import { disableLegacyModelIdsByDefaultMigration } from "./01-disable-legacy-model-ids-by-default";
 import { flatToNestedConfigMigration } from "./02-flat-to-nested-config";
 import { renameHiddenToEarlyAccessMigration } from "./03-rename-hidden-to-early-access";
 import { enableAliasesForLegacyUsersMigration } from "./04-enable-aliases-for-legacy-users";
@@ -18,7 +16,6 @@ import { enableAliasesForLegacyUsersMigration } from "./04-enable-aliases-for-le
 // applies them in sequence on the raw config record, so they are cast to the
 // current config type for the array.
 export const migrations = [
-  disableLegacyModelIdsByDefaultMigration,
   flatToNestedConfigMigration,
   renameHiddenToEarlyAccessMigration,
   enableAliasesForLegacyUsersMigration,

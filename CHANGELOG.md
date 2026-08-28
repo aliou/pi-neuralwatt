@@ -1,5 +1,17 @@
 # @aliou/pi-extension-template
 
+## 0.15.1
+
+### Patch Changes
+
+- bb3898c: Stop the "legacy model IDs are disabled" warning from reappearing on every startup.
+
+  The `disable-legacy-model-ids-by-default` migration gated on the absence of a top-level `includeLegacyModelIds` key instead of the stamped config version. On any already-nested config that key is always absent, so the migration re-ran each load: it re-injected the key, the flat-to-nested migration stripped it back out, the config was rewritten, and the warning fired again. The migration is removed because nothing reads `includeLegacyModelIds` anymore.
+
+- 7a017cb: Sync the Kimi K2.7 Code fallback reasoning metadata with the live API.
+
+  The API now reports mandatory reasoning with no selectable efforts (`supported_efforts: []`) for the Kimi K2.7 Code family, so every thinking level is nulled out instead of falling back to a high-only map.
+
 ## 0.15.0
 
 ### Minor Changes

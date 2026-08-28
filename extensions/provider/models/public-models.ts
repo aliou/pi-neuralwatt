@@ -65,12 +65,15 @@ const KIMI_K3: NeuralwattModelFamily = {
   },
 };
 
-// MoonshotAI. The K2.7 Code API exposes no `reasoning` block, so this family
-// omits `reasoningMetadata`; `buildThinkingLevelMap` falls back to a high-only
-// map with `off: null`, matching the upstream binary thinking toggle.
+// MoonshotAI. K2.7 Code has mandatory reasoning with no selectable efforts
+// (`supported_efforts: []`), so `buildThinkingLevelMap` nulls out every level.
 const KIMI_K2_7_CODE: NeuralwattModelFamily = {
   cost: { input: 0.95, output: 4.0, cacheRead: 0.095 },
   vision: true,
+  reasoningMetadata: {
+    supported_efforts: [],
+    mandatory: true,
+  },
 };
 
 // Qwen. Qwen3.6 35B only advertises `high` and `none`.

@@ -609,9 +609,9 @@ describe("Neuralwatt models", () => {
     });
   });
 
-  it("should fall back to a high-only map when no reasoning block exists", () => {
-    // Kimi K2.7 Code's API metadata exposes no `reasoning` block, so the map
-    // is the conservative fallback: only `high` enabled, `off` disabled.
+  it("should null out every level for mandatory reasoning with no efforts", () => {
+    // Kimi K2.7 Code has mandatory reasoning with `supported_efforts: []`, so
+    // no thinking level is selectable and `off` cannot disable reasoning.
     const k27 = NEURALWATT_MODELS.find((m) => m.id === "kimi-k2.7-code");
     expect(k27?.reasoning).toBe(true);
     expect(k27?.thinkingLevelMap).toEqual({
@@ -619,7 +619,7 @@ describe("Neuralwatt models", () => {
       minimal: null,
       low: null,
       medium: null,
-      high: "high",
+      high: null,
       xhigh: null,
       max: null,
     });

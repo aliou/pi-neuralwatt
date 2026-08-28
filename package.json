@@ -52,6 +52,7 @@
     "@types/node": "^25.0.10",
     "husky": "^9.1.7",
     "ts-json-schema-generator": "^2.4.0",
+    "tsx": "4.23.12",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
@@ -67,6 +68,7 @@
     "format": "biome check --write",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:models": "tsx scripts/check-models.ts",
     "gen:schema": "pi-settings-schema -p src/config/types.ts -t NeuralwattConfig -o schema.json --version 0.12.0",
     "check:schema": "pi-settings-schema -p src/config/types.ts -t NeuralwattConfig -o schema.json --version 0.12.0 --check",
     "check:lockfile": "pnpm install --frozen-lockfile --ignore-scripts",

@@ -1,0 +1,73 @@
+name: Model sync
+
+on:
+  schedule:
+    # Twice daily at 06:00 and 18:00 UTC.
+    - cron: "0 6,18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check fallback models against the live API
+        id: check
+        run: |
+          set +e
+          pnpm exec tsx scripts/check-models.ts > drift-report.md
+          exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          cat drift-report.md >> "$GITHUB_STEP_SUMMARY"
+          echo "----"
+          cat drift-report.md
+
+      - name: Fail the run when the check could not run
+        if: steps.check.outputs.exit_code == '2'
+        run: |
+          echo "check:models could not run (network/HTTP/unexpected error)." >&2
+          exit 1
+
+      - name: Open an issue on drift
+        if: steps.check.outputs.exit_code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          label="model-sync"
+
+          existing_count=$(gh issue list \
+            --label "$label" \
+            --state open \
+            --json number \
+            --jq 'length')
+
+          if [ "$existing_count" -gt 0 ]; then
+            echo "An open $label issue already exists. Skipping."
+            exit 0
+          fi
+
+          gh label create "$label" --color "FBCA04" \
+            --description "Neuralwatt fallback model drift" || true
+
+          gh issue create \
+            --label "$label" \
+            --title "[model-sync] Neuralwatt fallback model drift ($(date -u +%Y-%m-%d))" \
+            --body-file drift-report.md

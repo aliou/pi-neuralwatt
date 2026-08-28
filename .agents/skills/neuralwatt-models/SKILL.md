@@ -41,7 +41,7 @@ Do not push.
 Use these in order:
 
 1. Neuralwatt models endpoint: `https://api.neuralwatt.com/v1/models`
-2. Existing test failures from `extensions/provider/models.test.ts`
+2. Drift reported by `pnpm check:models` (`scripts/check-models.ts`)
 3. Neuralwatt portal pages:
    - `https://portal.neuralwatt.com/models`
    - `https://portal.neuralwatt.com/pricing`
@@ -56,9 +56,14 @@ Read:
 
 - `extensions/provider/models/public-models.ts`
 - `extensions/provider/models/catalog.ts` (override maps for flex pricing, context caps, compat, aliases)
-- `extensions/provider/models.test.ts`
+- `scripts/check-models.ts` (the drift comparison logic)
 
 Use the current file shape and comments as the formatting baseline.
+
+Run `pnpm check:models` to see current drift against the live API. It exits 1
+with a markdown report when the fallback has drifted, 0 when it matches. This
+is the same check the `model-sync` workflow runs twice daily to open an issue.
+The fallback is only the first-start seed, so drift is not a build blocker.
 
 ### 2) Fetch Neuralwatt endpoint data
 
@@ -222,7 +227,8 @@ When model metadata changed:
 3. Re-run verification before committing:
 
 ```bash
-pnpm test -- extensions/provider/models.test.ts
+pnpm check:models
+pnpm test
 pnpm typecheck
 pnpm lint
 ```
@@ -260,4 +266,5 @@ Use these exact paths in this repo:
 - `extensions/provider/models/build.ts`
 - `extensions/provider/models/refresh.ts`
 - `extensions/provider/models/refresh.test.ts`
-- `extensions/provider/models.test.ts`
+- `extensions/provider/models.test.ts` (deterministic invariant + derivation tests)
+- `scripts/check-models.ts` (live-API drift check, run on a schedule)

@@ -15,7 +15,8 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 - `pnpm typecheck` - Type check
 - `pnpm lint` - Lint
 - `pnpm format` - Format code
-- `pnpm test` - Run model validation tests
+- `pnpm test` - Run deterministic tests (invariants, derivation, unit tests)
+- `pnpm check:models` - Compare the offline fallback table against the live API
 - `pnpm changeset` - Create changeset for versioning
 
 ## Structure
@@ -124,6 +125,12 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 The catalog is built from `/v1/models` at runtime by `extensions/provider/models/catalog.ts`. `NEURALWATT_MODELS` in `public-models.ts` is the offline fallback for first start only.
 
 `catalog.ts` applies small per-model overrides: flex pricing (0.65x), kimi-k3 context cap (327680), chat-template compat for Qwen3.8, and aliases (from `huggingface_id` + hardcoded for 4 API-omitted IDs). See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
+
+Drift between the fallback and the live API is a non-blocking, notify-me concern (the runtime syncs from the API). `scripts/check-models.ts` (`pnpm check:models`) compares them and exits 1 with a markdown report on drift; the `model-sync` workflow runs it twice daily and opens a `model-sync` issue. The deterministic invariant, derivation, and unit tests in `models.test.ts` stay in the blocking CI suite.
+
+### Tests vs drift check
+
+`extensions/provider/models.test.ts` holds only deterministic tests against the local fallback data: invariants (unique IDs, `maxTokens <= contextWindow`, required fields, no `thinkingLevelMap` holes), flex derivation/pricing, `thinkingLevelMap` derivation, and `buildThinkingLevelMap` unit tests. The live-API comparison lives in `scripts/check-models.ts`, not the test suite, so upstream changes never break PR CI.
 
 ### Config migrations
 

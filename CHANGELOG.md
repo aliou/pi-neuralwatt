@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.15.2
+
+### Patch Changes
+
+- d11a13b: Add `glm-5.3` to the offline fallback model table to match the live Neuralwatt API: GLM-5.2 pricing parity (1.45/4.5/0.145), 1M context, mandatory reasoning with `max`/`high`/`low` efforts and no `off` level.
+
 ## 0.15.1
 
 ### Patch Changes

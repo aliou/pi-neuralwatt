@@ -223,7 +223,7 @@ If Neuralwatt rejects image input, keep `input: ["text"]`.
 When model metadata changed:
 
 1. Create a changeset with `pnpm changeset` or write a valid changeset manually.
-2. Use a patch bump for routine model metadata updates.
+2. Use a patch bump for model syncs (additions, removals, and metadata updates).
 3. Re-run verification before committing:
 
 ```bash

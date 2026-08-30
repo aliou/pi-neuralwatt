@@ -53,6 +53,19 @@ const GLM_5_2: NeuralwattModelFamily = {
   },
 };
 
+// ZhipuAI. GLM-5.3 ships as a GLM-5.2 weight swap in gated preview, with
+// GLM-5.2 pricing parity (per the API metadata; review at launch). Unlike
+// 5.2, reasoning is mandatory and `none` is not offered: efforts are
+// max/high/low (default max).
+const GLM_5_3: NeuralwattModelFamily = {
+  cost: { input: 1.45, output: 4.5, cacheRead: 0.145 },
+  vision: false,
+  reasoningMetadata: {
+    supported_efforts: ["max", "high", "low"],
+    mandatory: true,
+  },
+};
+
 // MoonshotAI. K3 supports reasoning efforts low/high/max (default max) and
 // can be turned off (`mandatory: false`). The `-fast` endpoint is a shorthand
 // to set thinking to off.
@@ -180,6 +193,18 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         maxOutputTokens: 32000,
         reasoning: true,
         costMultiplier: FLEX_COST_MULTIPLIER,
+      },
+    ],
+  ],
+  [
+    GLM_5_3,
+    [
+      {
+        id: "glm-5.3",
+        name: "GLM-5.3",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
       },
     ],
   ],

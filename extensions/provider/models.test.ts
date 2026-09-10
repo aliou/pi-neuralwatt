@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NEURALWATT_MODELS } from "./models";
 import {
+  buildAnthropicThinkingLevelMap,
   buildThinkingLevelMap,
   type NeuralwattReasoningMapSource,
   resolveMaxTokens,
@@ -299,5 +300,87 @@ describe("buildThinkingLevelMap", () => {
       xhigh: null,
       max: null,
     });
+  });
+});
+
+describe("buildAnthropicThinkingLevelMap", () => {
+  it("falls back to high-only with off disabled when the reasoning block is missing", () => {
+    expect(buildAnthropicThinkingLevelMap(undefined)).toEqual({
+      off: null,
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: null,
+    });
+  });
+
+  it("exposes positive efforts natively and marks off with the 'none' sentinel", () => {
+    const map = buildAnthropicThinkingLevelMap({
+      supported_efforts: ["max", "high", "low", "none"],
+      mandatory: false,
+      effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
+    });
+    expect(map).toEqual({
+      off: "none",
+      minimal: "low",
+      low: "low",
+      medium: "high",
+      high: "high",
+      xhigh: "max",
+      max: "max",
+    });
+  });
+
+  it("resolves minimal through the 'none' alias (glm-5.2: minimal means off)", () => {
+    const map = buildAnthropicThinkingLevelMap({
+      supported_efforts: ["max", "high", "none"],
+      mandatory: false,
+      effort_aliases: {
+        xhigh: "max",
+        medium: "high",
+        low: "high",
+        minimal: "none",
+      },
+    });
+    expect(map.minimal).toBe("none");
+    expect(map.low).toBe("high");
+    expect(map.medium).toBe("high");
+    expect(map.xhigh).toBe("max");
+  });
+
+  it("forbids off when reasoning is mandatory, even if 'none' is supported", () => {
+    const map = buildAnthropicThinkingLevelMap({
+      supported_efforts: ["max", "high", "low", "none"],
+      mandatory: true,
+    });
+    expect(map.off).toBeNull();
+    expect(map.low).toBe("low");
+  });
+
+  it("nulls levels that are neither supported nor aliased", () => {
+    const map = buildAnthropicThinkingLevelMap({
+      supported_efforts: ["high", "none"],
+      mandatory: false,
+    });
+    expect(map).toEqual({
+      off: "none",
+      minimal: null,
+      low: null,
+      medium: null,
+      high: "high",
+      xhigh: null,
+      max: null,
+    });
+  });
+
+  it("ignores aliases whose target is not natively supported", () => {
+    const map = buildAnthropicThinkingLevelMap({
+      supported_efforts: ["high"],
+      mandatory: false,
+      effort_aliases: { minimal: "low" },
+    } as NeuralwattReasoningMapSource);
+    expect(map.minimal).toBeNull();
   });
 });

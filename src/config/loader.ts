@@ -2,7 +2,11 @@ import { buildSchemaUrl, ConfigLoader } from "@aliou/pi-utils-settings";
 import packageJson from "../../package.json";
 import { DEFAULT_CONFIG } from "./defaults";
 import { migrations } from "./migration";
-import type { NeuralwattConfig, ResolvedNeuralwattConfig } from "./types";
+import type {
+  NeuralwattApi,
+  NeuralwattConfig,
+  ResolvedNeuralwattConfig,
+} from "./types";
 
 /**
  * Fill in every field the rest of the code reads. Migrations already normalized
@@ -27,7 +31,17 @@ function normalizeResolvedConfig(
         config.subBarIntegration?.enabled ??
         DEFAULT_CONFIG.subBarIntegration.enabled,
     },
+    provider: {
+      api: resolveApi(config.provider?.api),
+    },
   };
+}
+
+export function resolveApi(value: string | undefined): NeuralwattApi {
+  if (value === "anthropic-messages" || value === "openai-completions") {
+    return value;
+  }
+  return DEFAULT_CONFIG.provider.api;
 }
 
 export const configLoader = new ConfigLoader<

@@ -155,4 +155,38 @@ describe("wrapNeuralwattStreamSimple", () => {
     );
     expect(globalThis.fetch).toBe(fetchMock);
   });
+
+  it("tees anthropic /messages responses for quota comments too", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(': cost {"request_cost_usd":0.000189}\n', {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+    );
+    globalThis.fetch = fetchMock as never;
+    const onSseQuota = vi.fn();
+
+    const base: AnyStreamSimple = () => {
+      const stream = createAssistantMessageEventStream();
+      queueMicrotask(async () => {
+        const response = await fetch("https://api.neuralwatt.com/v1/messages");
+        await response.text();
+        stream.push({
+          type: "done",
+          reason: "stop",
+          message: makeAssistantMessage(),
+        } as never);
+        stream.end();
+      });
+      return stream;
+    };
+
+    const wrapped = wrapNeuralwattStreamSimple(base, onSseQuota);
+    await collect(wrapped({} as never, {} as never));
+
+    expect(onSseQuota).toHaveBeenCalledWith(
+      ': cost {"request_cost_usd":0.000189}',
+    );
+  });
 });

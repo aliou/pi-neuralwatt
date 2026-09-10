@@ -10,4 +10,7 @@ export const DEFAULT_CONFIG: ResolvedNeuralwattConfig = {
   subBarIntegration: {
     enabled: true,
   },
+  provider: {
+    api: "openai-completions",
+  },
 };

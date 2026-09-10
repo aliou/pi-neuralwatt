@@ -4,7 +4,9 @@ import {
   buildThinkingLevelMap,
   FLEX_COST_MULTIPLIER,
   type NeuralwattReasoningMapSource,
+  resolveMaxTokens,
 } from "./models/build";
+import { buildNeuralwattProviderModelsFromApi } from "./models/catalog";
 
 describe("Neuralwatt models", () => {
   it("should never allow more output tokens than context", () => {
@@ -217,6 +219,117 @@ describe("Neuralwatt models", () => {
       xhigh: null,
       max: null,
     });
+  });
+});
+
+describe("buildNeuralwattProviderModelsFromApi", () => {
+  it("should exclude embeddings models and never emit maxTokens: 0", () => {
+    // Fixture: API-shaped payload with an embeddings model and a chat model
+    const apiModels = [
+      {
+        id: "qwen3-embedding-8b",
+        object: "model",
+        created: 1234567890,
+        owned_by: "neuralwatt",
+        max_model_len: 8176,
+        metadata: {
+          display_name: "Qwen3 Embedding 8B",
+          description: null,
+          provider: "neuralwatt",
+          huggingface_id: "Qwen/Qwen3-Embedding-8B",
+          pricing: {
+            input_per_million: 10,
+            output_per_million: 0,
+            cached_input_per_million: 1,
+            cached_output_per_million: null,
+            currency: "USD",
+            pricing_tbd: false,
+          },
+          capabilities: {
+            tools: false,
+            json_mode: false,
+            vision: false,
+            reasoning: false,
+            reasoning_effort: false,
+            streaming: true,
+            system_role: true,
+            developer_role: false,
+            task: "embed",
+            embedding_dimensions: 4096,
+          },
+          limits: {
+            max_context_length: 8176,
+            max_output_tokens: 0,
+            max_images: null,
+          },
+          deprecated: false,
+          deprecated_message: null,
+        },
+      },
+      {
+        id: "chat-model-7b",
+        object: "model",
+        created: 1234567890,
+        owned_by: "neuralwatt",
+        max_model_len: 4096,
+        metadata: {
+          display_name: "Chat Model 7B",
+          description: null,
+          provider: "neuralwatt",
+          huggingface_id: null,
+          pricing: {
+            input_per_million: 5,
+            output_per_million: 10,
+            cached_input_per_million: 1,
+            cached_output_per_million: null,
+            currency: "USD",
+            pricing_tbd: false,
+          },
+          capabilities: {
+            tools: true,
+            json_mode: true,
+            vision: false,
+            reasoning: false,
+            reasoning_effort: false,
+            streaming: true,
+            system_role: true,
+            developer_role: false,
+            task: "chat",
+          },
+          limits: {
+            max_context_length: 4096,
+            max_output_tokens: 1024,
+            max_images: null,
+          },
+          deprecated: false,
+          deprecated_message: null,
+        },
+      },
+    ];
+
+    // Build models from API
+    const models = buildNeuralwattProviderModelsFromApi(apiModels);
+
+    // Assert embeddings model is excluded (no entries with id containing "embedding")
+    const embeddingModels = models.filter((m) => m.id.includes("embedding"));
+    expect(embeddingModels.length).toBe(0);
+
+    // Assert chat model is present
+    const chatModels = models.filter((m) => m.id === "chat-model-7b");
+    expect(chatModels.length).toBe(1);
+    const chatModel = chatModels[0];
+
+    // Assert chat model has valid maxTokens (> 0)
+    expect(chatModel.maxTokens).toBeGreaterThan(0);
+    expect(chatModel.maxTokens).toBeLessThanOrEqual(chatModel.contextWindow);
+
+    // Assert chat model has valid cost.output (> 0)
+    expect(chatModel.cost.output).toBeGreaterThan(0);
+
+    // Assert resolveMaxTokens treats 0 as null (fallback to contextWindow)
+    expect(resolveMaxTokens(0, 4096)).toBe(4096);
+    expect(resolveMaxTokens(null, 4096)).toBe(4096);
+    expect(resolveMaxTokens(1024, 4096)).toBe(1024);
   });
 });
 

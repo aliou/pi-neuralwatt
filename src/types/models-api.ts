@@ -16,6 +16,8 @@ export interface NeuralwattApiModelCapabilities {
   streaming: boolean;
   system_role: boolean;
   developer_role: boolean;
+  task?: string;
+  embedding_dimensions?: number;
 }
 
 /**

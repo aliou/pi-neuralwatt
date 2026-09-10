@@ -135,7 +135,14 @@ export function buildNeuralwattProviderModelsFromApi(
   const models = apiModels
     .filter(
       (m) =>
-        m.metadata && !m.metadata.deprecated && !m.metadata.pricing.pricing_tbd,
+        m.metadata &&
+        !m.metadata.deprecated &&
+        !m.metadata.pricing.pricing_tbd &&
+        // Exclude non-chat models (e.g. embeddings) by task
+        !(
+          m.metadata.capabilities.task &&
+          !["chat", "completions"].includes(m.metadata.capabilities.task)
+        ),
     )
     .map(apiModelToProviderModel);
   return [...models, ...buildAliases(models, apiModels)];

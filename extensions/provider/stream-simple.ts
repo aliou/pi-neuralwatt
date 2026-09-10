@@ -35,7 +35,7 @@ function headersToRecord(headers: Headers): Record<string, string> {
   return record;
 }
 
-function isProviderChatCompletionsUrl(
+function isProviderStreamUrl(
   input: RequestInfo | URL,
   providerOrigin: string,
 ): boolean {
@@ -50,7 +50,8 @@ function isProviderChatCompletionsUrl(
     const url = new URL(rawUrl);
     return (
       url.origin === providerOrigin &&
-      url.pathname.endsWith("/chat/completions")
+      (url.pathname.endsWith("/chat/completions") ||
+        url.pathname.endsWith("/messages"))
     );
   } catch {
     return false;
@@ -96,7 +97,7 @@ export function wrapNeuralwattStreamSimple(
     const wrappedFetch: typeof fetch = async (input, init) => {
       const response = await originalFetch(input, init);
 
-      if (!isProviderChatCompletionsUrl(input, providerOrigin)) return response;
+      if (!isProviderStreamUrl(input, providerOrigin)) return response;
 
       const headers = headersToRecord(response.headers);
       if (response.status === 429) {

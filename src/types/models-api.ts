@@ -38,14 +38,11 @@ export type NeuralwattReasoningEffort =
   | "max";
 
 /**
- * Per-model reasoning contract from `/v1/models`.
- *
- * `supported_efforts` is authoritative for which Pi thinking levels to expose:
- * the Pi map is built by identity (a level is enabled iff it appears here),
- * see `buildThinkingLevelMap` in `extensions/provider/models/build.ts`.
- * `default_effort` and `effort_aliases` are typed for fidelity but are not
- * consumed — Pi has no default-reasoning field and we expose native efforts
- * rather than aliasing unsupported ones.
+ * Per-model reasoning contract from `/v1/models`. The openai-completions
+ * thinking map uses `supported_efforts` by identity; the anthropic-messages
+ * map additionally resolves through `effort_aliases` (vLLM's effort enum
+ * accepts only native values). `default_enabled`/`default_effort` are typed
+ * for fidelity but not consumed.
  */
 export interface NeuralwattApiModelReasoning {
   /** Whether the model reasons by default. */
@@ -58,7 +55,10 @@ export interface NeuralwattApiModelReasoning {
   accepted_efforts?: NeuralwattReasoningEffort[];
   /** Server-side default. Not consumed; Pi has no default-reasoning field. */
   default_effort: NeuralwattReasoningEffort;
-  /** Wire-level aliases from accepted to supported efforts. Not consumed. */
+  /**
+   * Wire-level aliases from accepted to supported efforts. Consumed by the
+   * anthropic-messages thinking level map; ignored by openai-completions.
+   */
   effort_aliases?: Partial<
     Record<NeuralwattReasoningEffort, NeuralwattReasoningEffort>
   >;

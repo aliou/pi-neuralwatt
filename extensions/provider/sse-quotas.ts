@@ -31,13 +31,26 @@ export function updateQuotasFromSseComment(
     if (trimmed.startsWith(": cost ")) {
       const cost = JSON.parse(trimmed.slice(7)) as {
         request_cost_usd?: number;
+        allowance_remaining_usd?: number;
       };
       const requestCostUsd = cost.request_cost_usd ?? 0;
       if (requestCostUsd <= 0) return quotas;
-      next.balance.credits_remaining_usd = Math.max(
-        0,
-        next.balance.credits_remaining_usd - requestCostUsd,
-      );
+      // The absolute allowance in the comment is fresher than the locally
+      // tracked total.
+      if (
+        typeof cost.allowance_remaining_usd === "number" &&
+        Number.isFinite(cost.allowance_remaining_usd)
+      ) {
+        next.balance.credits_remaining_usd = Math.max(
+          0,
+          cost.allowance_remaining_usd,
+        );
+      } else {
+        next.balance.credits_remaining_usd = Math.max(
+          0,
+          next.balance.credits_remaining_usd - requestCostUsd,
+        );
+      }
       next.balance.credits_used_usd += requestCostUsd;
       next.usage.current_month.cost_usd += requestCostUsd;
       next.usage.lifetime.cost_usd += requestCostUsd;

@@ -1,10 +1,14 @@
-import type {
-  Api,
-  Model,
-  Provider,
-  ProviderStreamOptions,
-} from "@earendil-works/pi-ai";
-import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
+import type { Provider } from "@earendil-works/pi-ai";
+import type { NeuralwattApi } from "../../src/config";
+import { createAnthropicMessagesApi } from "./api/anthropic-messages";
+import { createOpenAiCompletionsApi } from "./api/openai-completions";
+import type { NeuralwattApiHandler } from "./api/types";
+import {
+  NEURALWATT_API_KEY_ENV,
+  NEURALWATT_BASE_URL,
+  NEURALWATT_PROVIDER_ID,
+  NEURALWATT_REQUEST_HEADERS,
+} from "./constants";
 import type { NeuralwattModel } from "./models/catalog";
 import {
   buildNeuralwattProviderModelsFromApi,
@@ -16,33 +20,39 @@ import {
 } from "./models/refresh";
 import type { AnyStreamSimple } from "./stream-simple";
 
-export const NEURALWATT_PROVIDER_ID = "neuralwatt";
-export const NEURALWATT_BASE_URL = "https://api.neuralwatt.com/v1";
-export const NEURALWATT_API_KEY_ENV = "NEURALWATT_API_KEY";
+export { NEURALWATT_API_KEY_ENV, NEURALWATT_BASE_URL, NEURALWATT_PROVIDER_ID };
 
-const NEURALWATT_REQUEST_HEADERS = {
-  Referer: "https://pi.dev",
-  "X-Title": "npm:@aliou/pi-neuralwatt",
-};
+export interface NeuralwattProviderOptions {
+  /** Active API surface; resolved once. Changes need a `/reload`. */
+  api?: NeuralwattApi;
+  openAiStreamSimple?: AnyStreamSimple;
+  messagesStreamSimple?: AnyStreamSimple;
+}
 
-const API = "openai-completions" as const;
-
-function toProviderModels(models: NeuralwattModel[]): Model<Api>[] {
-  return models.map((model) => ({
-    ...model,
-    api: model.api ?? API,
-    provider: NEURALWATT_PROVIDER_ID,
-    baseUrl: model.baseUrl ?? NEURALWATT_BASE_URL,
-    headers: NEURALWATT_REQUEST_HEADERS,
-  }));
+function createApiHandler(
+  api: NeuralwattApi,
+  options?: NeuralwattProviderOptions,
+): NeuralwattApiHandler {
+  if (api === "anthropic-messages") {
+    return createAnthropicMessagesApi({
+      streamSimple: options?.messagesStreamSimple,
+    });
+  }
+  return createOpenAiCompletionsApi({
+    streamSimple: options?.openAiStreamSimple,
+  });
 }
 
 export function createNeuralwattProvider(
   staticModels: NeuralwattModel[],
   fetchApiModels: FetchNeuralwattApiModels,
-  streamSimpleOverride?: AnyStreamSimple,
+  options?: NeuralwattProviderOptions,
 ): Provider {
-  let liveModels = toProviderModels(staticModels);
+  const handler = createApiHandler(
+    options?.api ?? "openai-completions",
+    options,
+  );
+  let canonicalModels = staticModels;
   const refreshCatalog = createNeuralwattRefreshModels(
     staticModels,
     fetchApiModels,
@@ -92,17 +102,18 @@ export function createNeuralwattProvider(
         },
       },
     },
-    getModels: () => liveModels,
+    getModels: () => handler.stampModels(canonicalModels),
     refreshModels: async (context) => {
       const models = await refreshCatalog(context);
       await context.publish({
         update: () => {
-          liveModels = toProviderModels(models);
+          canonicalModels = models;
         },
       });
     },
-    stream: (model, context, options) =>
-      stream(model, context, options as ProviderStreamOptions | undefined),
-    streamSimple: streamSimpleOverride ?? streamSimple,
+    stream: (model, context, streamOptions) =>
+      handler.stream(model, context, streamOptions as never),
+    streamSimple: (model, context, simpleOptions) =>
+      handler.streamSimple(model, context, simpleOptions),
   };
 }

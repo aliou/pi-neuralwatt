@@ -13,7 +13,7 @@ export type ThinkingLevelMap = NonNullable<
  * streams. A non-streaming request to a `-flex` model silently falls back to
  * the standard tier and the standard price.
  *
- * https://portal.neuralwatt.com/docs/guides/flex-tier
+ * https://docs.neuralwatt.com/guides/flex-tier.md
  */
 export const FLEX_COST_MULTIPLIER = 0.65;
 

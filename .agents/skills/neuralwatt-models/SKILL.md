@@ -43,8 +43,8 @@ Use these in order:
 1. Neuralwatt models endpoint: `https://api.neuralwatt.com/v1/models`
 2. Drift reported by `pnpm check:models` (`scripts/check-models.ts`)
 3. Neuralwatt portal pages:
-   - `https://portal.neuralwatt.com/models`
-   - `https://portal.neuralwatt.com/pricing`
+   - `https://docs.neuralwatt.com/api/models.md`
+   - `https://docs.neuralwatt.com/billing/faq.md`
 4. Neuralwatt runtime behavior via direct `chat/completions` calls when needed
 5. Existing fallback definitions for fields the live sources do not expose
 
@@ -99,8 +99,8 @@ curl -s https://api.neuralwatt.com/v1/models \
 
 For pricing and capabilities, check:
 
-- `https://portal.neuralwatt.com/pricing`
-- `https://portal.neuralwatt.com/models`
+- `https://docs.neuralwatt.com/billing/faq.md`
+- `https://docs.neuralwatt.com/api/models.md`
 
 Use browser/page extraction if needed. Do not invent pricing, image support, reasoning support, or max output tokens from the model name alone.
 
@@ -138,7 +138,7 @@ standard variant, admitted on spare capacity. They are billed at a 0.65 multipli
 (35% off) when the request streams, so declare them with
 `costMultiplier: FLEX_COST_MULTIPLIER` rather than copying prices. A non-streaming
 request to a `-flex` model silently falls back to standard tier and standard price.
-See https://portal.neuralwatt.com/docs/guides/flex-tier.
+See https://docs.neuralwatt.com/guides/flex-tier.md.
 
 All Neuralwatt models keep the provider compatibility defaults:
 

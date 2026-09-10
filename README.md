@@ -144,5 +144,5 @@ This repository uses [Changesets](https://github.com/changesets/changesets) for 
 ## Links
 
 - [Neuralwatt](https://portal.neuralwatt.com/auth/register?ref=NW-ALIOU-Q7MF)
-- [Neuralwatt API Docs](https://neuralwatt.com/docs)
+- [Neuralwatt API Docs](https://docs.neuralwatt.com/quickstart.md)
 - [Pi Documentation](https://buildwithpi.ai/)

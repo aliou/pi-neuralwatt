@@ -214,6 +214,30 @@ describe("createNeuralwattRefreshModels", () => {
     expect(models.some((m) => m.id === "nw/stored")).toBe(true);
   });
 
+  it("refetches with a key even when the store is fresh (scope-blind cache)", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    // A fresh entry persisted by an anonymous refresh only carries the public
+    // scope. An authenticated refresh must bypass it, or preview,
+    // grant-gated, and private models stay missing from the tier.
+    const models = await refresh(
+      createContext({
+        credential: { type: "api_key", key: "real-key" },
+        stored: {
+          models: [],
+          checkedAt: Date.now(),
+        },
+      }),
+    );
+
+    expect(fetchApiModels).toHaveBeenCalledWith(
+      "real-key",
+      expect.any(AbortSignal),
+    );
+    expect(models.some((m) => m.id === "nw/fetched")).toBe(true);
+  });
+
   it("refetches when the store is stale (beyond TTL)", async () => {
     const fetchApiModels = vi.fn(async () => [apiModel]);
     const refresh = createRefresh({ fetchApiModels });

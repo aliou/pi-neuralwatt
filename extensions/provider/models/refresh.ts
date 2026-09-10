@@ -40,13 +40,18 @@ export function createNeuralwattRefreshModels(
           ? buildFromStore(context.stored.models)
           : fallback;
       }
-      if (!context.force && isFreshStoreEntry(context.stored)) {
-        return buildFromStore(context.stored.models);
-      }
       const apiKey =
         context.credential?.type === "api_key"
           ? context.credential.key
           : undefined;
+      // The stored catalog is scope-blind: an entry persisted by an anonymous
+      // (public-scope) refresh must not shadow the wider customer scope
+      // (preview, grant-gated, private models) once a key is configured.
+      const authenticated =
+        apiKey !== undefined && apiKey !== "" && apiKey !== "-";
+      if (!context.force && !authenticated && isFreshStoreEntry(context.stored)) {
+        return buildFromStore(context.stored.models);
+      }
       const apiModels = await fetchApiModels(apiKey, context.signal);
       context.signal.throwIfAborted();
       const models = buildFromApi(apiModels);

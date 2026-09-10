@@ -3,6 +3,7 @@ import type {
   ProviderAuthInteraction,
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import type { NeuralwattApiModel } from "../../src/types/models-api";
@@ -13,7 +14,9 @@ import {
   NEURALWATT_API_KEY_ENV,
   NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
+  type NeuralwattProviderOptions,
 } from "./provider";
+import type { AnyStreamSimple } from "./stream-simple";
 
 const staticModel: NeuralwattModel = {
   id: "nw/static",
@@ -66,11 +69,16 @@ const fetchedApiModel = {
 
 function createProvider(options?: {
   fetchApiModels?: FetchNeuralwattApiModels;
+  providerOptions?: NeuralwattProviderOptions;
 }) {
   const fetchApiModels = vi.fn<FetchNeuralwattApiModels>(
     options?.fetchApiModels ?? (async () => [fetchedApiModel]),
   );
-  const provider = createNeuralwattProvider([staticModel], fetchApiModels);
+  const provider = createNeuralwattProvider(
+    [staticModel],
+    fetchApiModels,
+    options?.providerOptions,
+  );
   return { provider, fetchApiModels };
 }
 
@@ -117,7 +125,18 @@ describe("createNeuralwattProvider", () => {
         Referer: "https://pi.dev",
         "X-Title": "npm:@aliou/pi-neuralwatt",
       });
+      const compat = model.compat as Record<string, unknown> | undefined;
+      expect(compat?.forceAdaptiveThinking).toBeUndefined();
     }
+  });
+
+  it("delegates to the anthropic handler when provider.api is anthropic-messages", () => {
+    const { provider } = createProvider({
+      providerOptions: { api: "anthropic-messages" },
+    });
+    const models = provider.getModels();
+    expect(models.every((m) => m.api === "anthropic-messages")).toBe(true);
+    expect(models.map((m) => m.id)).toEqual(["nw/static"]);
   });
 });
 
@@ -317,6 +336,54 @@ describe("refreshModels", () => {
     expect(fetchApiModels).not.toHaveBeenCalled();
     expect(provider.getModels().map((model) => model.id)).toContain(
       "nw/stored",
+    );
+  });
+});
+
+describe("api delegation", () => {
+  function fakeStreamSimple() {
+    return vi.fn<AnyStreamSimple>(() => createAssistantMessageEventStream());
+  }
+
+  it("passes caller options through on the openai api", () => {
+    const openaiStream = fakeStreamSimple();
+    const messagesStream = fakeStreamSimple();
+    const onPayload = vi.fn();
+    const { provider } = createProvider({
+      providerOptions: {
+        openAiStreamSimple: openaiStream as never,
+        messagesStreamSimple: messagesStream as never,
+      },
+    });
+
+    provider.streamSimple(
+      provider.getModels()[0],
+      { messages: [] } as never,
+      { onPayload } as never,
+    );
+
+    expect(openaiStream).toHaveBeenCalledOnce();
+    expect(messagesStream).not.toHaveBeenCalled();
+    expect(openaiStream.mock.calls[0]?.[2]?.onPayload).toBe(onPayload);
+  });
+
+  it("chains the reasoning injector on the anthropic api", () => {
+    const openaiStream = fakeStreamSimple();
+    const messagesStream = fakeStreamSimple();
+    const { provider } = createProvider({
+      providerOptions: {
+        api: "anthropic-messages",
+        openAiStreamSimple: openaiStream as never,
+        messagesStreamSimple: messagesStream as never,
+      },
+    });
+
+    provider.streamSimple(provider.getModels()[0], { messages: [] } as never);
+
+    expect(messagesStream).toHaveBeenCalledOnce();
+    expect(openaiStream).not.toHaveBeenCalled();
+    expect(typeof messagesStream.mock.calls[0]?.[2]?.onPayload).toBe(
+      "function",
     );
   });
 });

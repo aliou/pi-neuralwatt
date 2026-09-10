@@ -13,6 +13,18 @@ export interface NeuralwattSubBarIntegrationConfig {
   enabled?: boolean;
 }
 
+/**
+ * Neuralwatt serves every chat model twice: on an OpenAI-compatible
+ * `chat/completions` endpoint and on a vLLM-backed Anthropic-compatible
+ * `POST /v1/messages` endpoint. Exactly one serves the provider at a time.
+ */
+export type NeuralwattApi = "openai-completions" | "anthropic-messages";
+
+export interface NeuralwattProviderConfig {
+  /** Which API serves model requests. */
+  api?: NeuralwattApi;
+}
+
 export interface NeuralwattConfig {
   /** $schema URL for editor autocomplete. */
   $schema?: string;
@@ -25,6 +37,9 @@ export interface NeuralwattConfig {
 
   /** Sub-bar/status-bar integration feature. */
   subBarIntegration?: NeuralwattSubBarIntegrationConfig;
+
+  /** Provider behavior (API surface). */
+  provider?: NeuralwattProviderConfig;
 }
 
 export interface ResolvedNeuralwattConfig {
@@ -36,5 +51,8 @@ export interface ResolvedNeuralwattConfig {
   };
   subBarIntegration: {
     enabled: boolean;
+  };
+  provider: {
+    api: NeuralwattApi;
   };
 }

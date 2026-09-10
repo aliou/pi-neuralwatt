@@ -1,7 +1,7 @@
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
   buildNeuralwattFamily,
   FLEX_COST_MULTIPLIER,
+  type NeuralwattCompiledModel,
   type NeuralwattModelFamily,
   type NeuralwattVariantSpec,
 } from "./build";
@@ -10,10 +10,9 @@ import {
 // Pricing, capabilities, and limits are sourced from the API metadata fields;
 // `maxTokens` is `metadata.limits.max_output_tokens ?? max_model_len`.
 //
-// Each reasoning family snapshots its `reasoning.supported_efforts` +
-// `reasoning.mandatory` from the API; `buildThinkingLevelMap` turns that into
-// the Pi thinking level map by identity (no aliasing). See `models.test.ts`
-// for the drift check against the live catalog.
+// Each reasoning family snapshots `supported_efforts`, `mandatory` and
+// `effort_aliases` from the API; the thinking maps are derived from them
+// (see `build.ts`).
 
 // DeepSeek V4 Flash: efforts max/high/none, not mandatory.
 // https://api-docs.deepseek.com/guides/thinking_mode/
@@ -23,6 +22,12 @@ const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "none"],
     mandatory: false,
+    effort_aliases: {
+      xhigh: "max",
+      medium: "high",
+      low: "high",
+      minimal: "high",
+    },
   },
 };
 
@@ -38,6 +43,13 @@ const GEMMA_4: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "none"],
     mandatory: false,
+    effort_aliases: {
+      xhigh: "max",
+      high: "max",
+      medium: "max",
+      low: "max",
+      minimal: "max",
+    },
   },
 };
 
@@ -50,6 +62,12 @@ const GLM_5_2: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "none"],
     mandatory: false,
+    effort_aliases: {
+      xhigh: "max",
+      medium: "high",
+      low: "high",
+      minimal: "none",
+    },
   },
 };
 
@@ -63,6 +81,7 @@ const GLM_5_3: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "low"],
     mandatory: true,
+    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
   },
 };
 
@@ -75,6 +94,7 @@ const KIMI_K3: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "low", "none"],
     mandatory: false,
+    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
   },
 };
 
@@ -96,6 +116,13 @@ const QWEN_3_6_35B: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["high", "none"],
     mandatory: false,
+    effort_aliases: {
+      max: "high",
+      xhigh: "high",
+      medium: "high",
+      low: "high",
+      minimal: "high",
+    },
   },
 };
 
@@ -206,6 +233,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         maxOutputTokens: null,
         reasoning: true,
       },
+      {
+        id: "glm-5.3-flex",
+        name: "GLM-5.3 (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
+      },
     ],
   ],
   [
@@ -292,6 +327,6 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
 // `costMultiplier` rather than reflected in the catalog metadata.
 // https://docs.neuralwatt.com/guides/flex-tier.md
 
-export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(
+export const NEURALWATT_MODELS: NeuralwattCompiledModel[] = FAMILIES.flatMap(
   ([family, variants]) => buildNeuralwattFamily(family, variants),
 );

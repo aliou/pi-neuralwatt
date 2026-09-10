@@ -6,6 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { SettingItem } from "@earendil-works/pi-tui";
 import {
   configLoader,
+  type NeuralwattApi,
   type NeuralwattConfig,
   type ResolvedNeuralwattConfig,
 } from "../../../../src/config";
@@ -61,6 +62,9 @@ export function registerNeuralwattSettings(
   options: RegisterNeuralwattSettingsOptions,
 ): void {
   const { getLoadedFeatures } = options;
+  // The provider stamps `provider.api` at extension load; a saved change only
+  // reaches it after `/reload`.
+  let pendingApi: NeuralwattApi | undefined;
 
   registerSettingsCommand<NeuralwattConfig, ResolvedNeuralwattConfig>(pi, {
     commandName: "neuralwatt:settings",
@@ -69,6 +73,19 @@ export function registerNeuralwattSettings(
     buildSections: (tabConfig, resolved): SettingsSection[] => {
       const loaded = getLoadedFeatures();
       return [
+        {
+          label: "Provider",
+          items: [
+            {
+              id: "api",
+              label: "API",
+              description:
+                "Serve models via the OpenAI-compatible chat/completions endpoint or the Anthropic-compatible /v1/messages endpoint",
+              currentValue: tabConfig?.provider?.api ?? resolved.provider.api,
+              values: ["openai-completions", "anthropic-messages"],
+            },
+          ],
+        },
         {
           label: "Features",
           items: [
@@ -107,6 +124,20 @@ export function registerNeuralwattSettings(
       ];
     },
     onSettingChange: (id, newValue, config) => {
+      if (id === "api") {
+        if (
+          newValue !== "openai-completions" &&
+          newValue !== "anthropic-messages"
+        ) {
+          return null;
+        }
+        pendingApi = newValue;
+        return {
+          ...config,
+          provider: { ...config.provider, api: newValue },
+        };
+      }
+
       if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {
         return null;
       }
@@ -132,8 +163,11 @@ export function registerNeuralwattSettings(
           return null;
       }
     },
-    onSave: async () => {
+    onSave: async (ctx) => {
       emitConfigUpdated(pi);
+      if (pendingApi === undefined) return;
+      pendingApi = undefined;
+      ctx.ui.notify("Run /reload to apply the new API", "info");
     },
   });
 }

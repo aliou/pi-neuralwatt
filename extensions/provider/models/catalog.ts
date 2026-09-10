@@ -3,12 +3,13 @@ import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import {
   buildThinkingLevelMap,
   FLEX_COST_MULTIPLIER,
+  type NeuralwattCompiledModel,
   resolveMaxTokens,
   type ThinkingLevelMap,
 } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
 
-export type NeuralwattModel = ProviderModelConfig;
+export type NeuralwattModel = NeuralwattCompiledModel;
 
 // Chat-template thinking: the API exposes a `reasoning` block, but the
 // underlying mechanism is chat_template_kwargs, so Pi needs the mapping.
@@ -80,6 +81,9 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
     result.thinkingLevelMap = buildThinkingLevelMap(
       meta.reasoning,
     ) as ThinkingLevelMap;
+    // Kept for anthropic-messages stamping, which resolves levels through
+    // `effort_aliases`.
+    result.reasoningContract = meta.reasoning;
   }
 
   return result;

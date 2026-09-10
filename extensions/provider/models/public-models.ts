@@ -31,7 +31,7 @@ const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
 // `max` and `none`; every non-`none` request resolves to `max` upstream.
 // It does not reason by default (`default_enabled: false`), but the model
 // can produce reasoning traces when asked. See
-// https://portal.neuralwatt.com/docs/api/chat-completions#reasoning-effort
+// https://docs.neuralwatt.com/api/chat-completions.md
 const GEMMA_4: NeuralwattModelFamily = {
   cost: { input: 0.144, output: 0.42, cacheRead: 0.0144 },
   vision: true,
@@ -299,7 +299,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
 // The API now advertises flex variants but lists them at standard pricing;
 // the 35% Flex discount is a billing-time concept applied here via
 // `costMultiplier` rather than reflected in the catalog metadata.
-// https://portal.neuralwatt.com/docs/guides/flex-tier
+// https://docs.neuralwatt.com/guides/flex-tier.md
 
 export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(
   ([family, variants]) => buildNeuralwattFamily(family, variants),

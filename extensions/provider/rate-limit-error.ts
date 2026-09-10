@@ -12,7 +12,7 @@ interface AssistantErrorLike {
  * layer. Each sets unique headers so the client can tell which layer
  * triggered the rejection.
  *
- * @see https://portal.neuralwatt.com/docs/guides/rate-limits
+ * @see https://docs.neuralwatt.com/guides/rate-limits.md
  */
 export interface NeuralwattRateLimitInfo {
   /** Which rate-limit layer triggered the 429 */

@@ -107,12 +107,14 @@ export function buildThinkingLevelMap(
 
 /**
  * Neuralwatt reports `max_output_tokens: null` for models whose output is only
- * bounded by the context window. Mirror the API instead of inventing a cap.
+ * bounded by the context window. Some models incorrectly report 0; treat 0
+ * like null so we never emit maxTokens: 0.
  */
 export function resolveMaxTokens(
   maxOutputTokens: number | null | undefined,
   contextWindow: number,
 ): number {
+  if (maxOutputTokens === 0) return contextWindow;
   return maxOutputTokens ?? contextWindow;
 }
 

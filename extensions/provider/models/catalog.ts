@@ -23,19 +23,8 @@ const COMPAT_OVERRIDES: Partial<
   },
 };
 
-const HARDCODED_ALIASES: Record<string, string> = {
-  "zai-org/GLM-5.2-FP8": "glm-5.2",
-  "moonshotai/Kimi-K2.7-Code": "kimi-k2.7-code",
-  "Qwen/Qwen3.6-35B-A3B": "qwen3.6-35b",
-  "deepseek-ai/DeepSeek-V4-Flash": "deepseek-v4-flash",
-};
-
 function isFlexModelId(id: string): boolean {
   return id.endsWith("-flex");
-}
-
-function isVariantId(id: string): boolean {
-  return id.includes("-fast") || id.includes("-flex") || id.includes("-short");
 }
 
 function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
@@ -85,39 +74,6 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
   return result;
 }
 
-function buildAliases(
-  models: NeuralwattModel[],
-  apiModels: readonly NeuralwattApiModel[],
-): NeuralwattModel[] {
-  const existingIds = new Set(models.map((m) => m.id));
-  const aliases: NeuralwattModel[] = [];
-  const seen = new Set<string>();
-
-  const addAlias = (aliasId: string, canonicalId: string): void => {
-    if (seen.has(aliasId) || existingIds.has(aliasId)) return;
-    const canonical = models.find((m) => m.id === canonicalId);
-    if (!canonical) return;
-    seen.add(aliasId);
-    aliases.push({
-      ...canonical,
-      id: aliasId,
-      name: `${canonical.name} (alias ID)`,
-    });
-  };
-
-  for (const [aliasId, canonicalId] of Object.entries(HARDCODED_ALIASES)) {
-    addAlias(aliasId, canonicalId);
-  }
-
-  for (const apiModel of apiModels) {
-    const hfId = apiModel.metadata?.huggingface_id;
-    if (!hfId || hfId === apiModel.id || isVariantId(apiModel.id)) continue;
-    addAlias(hfId, apiModel.id);
-  }
-
-  return aliases;
-}
-
 export function buildNeuralwattProviderModels(): NeuralwattModel[] {
   return NEURALWATT_MODELS.map((model) => ({ ...model }));
 }
@@ -138,7 +94,7 @@ export function buildNeuralwattProviderModelsFromApi(
         ),
     )
     .map(apiModelToProviderModel);
-  return [...models, ...buildAliases(models, apiModels)];
+  return models;
 }
 
 export function buildNeuralwattProviderModelsFromStore(

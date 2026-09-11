@@ -55,7 +55,7 @@ Use these in order:
 Read:
 
 - `extensions/provider/models/public-models.ts`
-- `extensions/provider/models/catalog.ts` (override maps for flex pricing, context caps, compat, aliases)
+- `extensions/provider/models/catalog.ts` (override maps for flex pricing, context caps, compat)
 - `scripts/check-models.ts` (the drift comparison logic)
 
 Use the current file shape and comments as the formatting baseline.

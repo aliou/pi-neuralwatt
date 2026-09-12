@@ -115,7 +115,7 @@ describe("Neuralwatt models", () => {
     }
   });
 
-  it("should cap every Kimi K3 variant at the 327,680 serving limit", () => {
+  it("should advertise every Kimi K3 variant with the full 1M context window", () => {
     const k3Models = NEURALWATT_MODELS.filter((model) =>
       model.id.startsWith("kimi-k3"),
     );
@@ -125,8 +125,8 @@ describe("Neuralwatt models", () => {
       "kimi-k3-flex",
     ]);
     for (const model of k3Models) {
-      expect(model.contextWindow, `${model.id}.contextWindow`).toBe(327680);
-      expect(model.maxTokens, `${model.id}.maxTokens`).toBe(327680);
+      expect(model.contextWindow, `${model.id}.contextWindow`).toBe(1048560);
+      expect(model.maxTokens, `${model.id}.maxTokens`).toBe(1048560);
     }
   });
 

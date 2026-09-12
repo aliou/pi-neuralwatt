@@ -30,7 +30,7 @@ extensions/
     commands/settings/index.ts          # /neuralwatt:settings command
     models/
       index.ts                          # Re-exports
-      catalog.ts                        # API-driven catalog builder + override maps (flex pricing, kimi-k3 cap, aliases, compat)
+      catalog.ts                        # API-driven catalog builder + overrides (flex pricing, chat-template compat)
       build.ts                          # Shared model builder utilities (thinkingLevelMap, flex multiplier, maxTokens)
       public-models.ts                  # Offline fallback model table (first start without network)
       refresh.ts                        # TTL-based model refresh (fetch → build → persist | failure → fallback)
@@ -124,7 +124,7 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 The catalog is built from `/v1/models` at runtime by `extensions/provider/models/catalog.ts`. `NEURALWATT_MODELS` in `public-models.ts` is the offline fallback for first start only.
 
-`catalog.ts` applies small per-model overrides: flex pricing (0.65x), kimi-k3 context cap (327680), chat-template compat for Qwen3.8, and aliases (from `huggingface_id` + hardcoded for 4 API-omitted IDs). See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
+`catalog.ts` applies small per-model overrides: flex pricing (0.65x) and chat-template compat for Qwen3.8. See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
 
 Drift between the fallback and the live API is a non-blocking, notify-me concern (the runtime syncs from the API). `scripts/check-models.ts` (`pnpm check:models`) compares them and exits 1 with a markdown report on drift; the `model-sync` workflow runs it twice daily and opens a `model-sync` issue. The deterministic invariant, derivation, and unit tests in `models.test.ts` stay in the blocking CI suite.
 

@@ -10,12 +10,6 @@ import { NEURALWATT_MODELS } from "./public-models";
 
 export type NeuralwattModel = ProviderModelConfig;
 
-const CONTEXT_WINDOW_OVERRIDES: ReadonlyMap<string, number> = new Map([
-  ["kimi-k3", 327_680],
-  ["kimi-k3-fast", 327_680],
-  ["kimi-k3-flex", 327_680],
-]);
-
 // Chat-template thinking: the API exposes a `reasoning` block, but the
 // underlying mechanism is chat_template_kwargs, so Pi needs the mapping.
 const COMPAT_OVERRIDES: Partial<
@@ -62,8 +56,7 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
   if (reasoning) compat.requiresReasoningContentOnAssistantMessages = true;
   Object.assign(compat, COMPAT_OVERRIDES[model.id]);
 
-  const contextWindow =
-    CONTEXT_WINDOW_OVERRIDES.get(model.id) ?? model.max_model_len;
+  const contextWindow = model.max_model_len;
 
   const result: NeuralwattModel = {
     id: model.id,

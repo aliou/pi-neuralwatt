@@ -37,20 +37,6 @@ interface Discrepancy {
   api: unknown;
 }
 
-/**
- * Models whose real serving limit is known to be lower than the advertised
- * `max_model_len`. The Kimi K3 endpoints reject anything above 327,680 total
- * tokens, despite the API advertising 1,048,560 with a null output cap for the
- * whole family. The catalog pins the enforced limit, so the drift check skips
- * the advertised context-window comparison for these IDs. Remove an entry once
- * the API metadata agrees with the serving limit again.
- */
-const CONTEXT_WINDOW_OVERRIDES: ReadonlyMap<string, number> = new Map([
-  ["kimi-k3", 327680],
-  ["kimi-k3-fast", 327680],
-  ["kimi-k3-flex", 327680],
-]);
-
 function isFlexModelId(id: string): boolean {
   return id.endsWith("-flex");
 }
@@ -107,18 +93,8 @@ function compareModels(
 
     const meta = apiModel.metadata;
 
-    // Context window, honoring known serving-limit overrides.
-    const contextOverride = CONTEXT_WINDOW_OVERRIDES.get(hardcoded.id);
-    if (contextOverride !== undefined) {
-      if (apiModel.max_model_len === hardcoded.contextWindow) {
-        discrepancies.push({
-          model: hardcoded.id,
-          field: "contextWindowOverrideStale",
-          hardcoded: hardcoded.contextWindow,
-          api: apiModel.max_model_len,
-        });
-      }
-    } else if (apiModel.max_model_len !== hardcoded.contextWindow) {
+    // Context window.
+    if (apiModel.max_model_len !== hardcoded.contextWindow) {
       discrepancies.push({
         model: hardcoded.id,
         field: "contextWindow",
@@ -215,9 +191,8 @@ function compareModels(
     }
 
     // Max output tokens. A null `max_output_tokens` means the API imposes no
-    // separate output cap, so output is bounded by the context window. Models
-    // with a context-window override are bounded by the enforced serving limit.
-    if (meta && contextOverride === undefined) {
+    // separate output cap, so output is bounded by the context window.
+    if (meta) {
       const expectedMaxTokens =
         meta.limits.max_output_tokens ?? apiModel.max_model_len;
       if (expectedMaxTokens !== hardcoded.maxTokens) {

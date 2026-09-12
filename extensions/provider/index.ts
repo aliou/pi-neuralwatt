@@ -55,6 +55,15 @@ function registerNeuralwattProvider(
       ) as never)
     : undefined;
 
+  const messagesApiProvider = getApiProvider("anthropic-messages");
+  const messagesBaseStreamSimple = messagesApiProvider?.streamSimple;
+  const messagesStreamSimple = messagesBaseStreamSimple
+    ? (wrapNeuralwattStreamSimple(
+        messagesBaseStreamSimple as never,
+        onSseQuota,
+      ) as never)
+    : undefined;
+
   pi.registerProvider(
     createNeuralwattProvider(
       staticModels,
@@ -65,7 +74,11 @@ function registerNeuralwattProvider(
         }
         return result.data;
       },
-      streamSimple,
+      {
+        api: configLoader.getConfig().provider.api,
+        openAiStreamSimple: streamSimple,
+        messagesStreamSimple,
+      },
     ),
   );
 }

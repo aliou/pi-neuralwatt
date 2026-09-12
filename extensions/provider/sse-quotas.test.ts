@@ -79,6 +79,17 @@ describe("updateQuotasFromSseComment", () => {
     expect(result?.usage.lifetime.cost_usd).toBeCloseTo(5.25);
   });
 
+  it("adopts the absolute allowance when the cost comment carries it", () => {
+    const quotas = quotaFixture();
+    const result = updateQuotasFromSseComment(
+      quotas,
+      ': cost {"request_cost_usd":0.25,"allowance_remaining_usd":108.149197}',
+    );
+
+    expect(result?.balance.credits_remaining_usd).toBeCloseTo(108.149197);
+    expect(result?.balance.credits_used_usd).toBeCloseTo(10.25);
+  });
+
   it("ignores malformed and unknown comments", () => {
     const quotas = quotaFixture();
     expect(updateQuotasFromSseComment(quotas, ": energy nope")).toBe(quotas);

@@ -9,6 +9,15 @@ export type ThinkingLevelMap = NonNullable<
 >;
 
 /**
+ * A compiled provider model plus the reasoning contract it was compiled from,
+ * retained for anthropic-messages map derivation. Rides the models store
+ * (JSON passthrough); stripped from stamped runtime models.
+ */
+export type NeuralwattCompiledModel = ProviderModelConfig & {
+  reasoningContract?: NeuralwattReasoningMapSource;
+};
+
+/**
  * Flex tier is billed at 65% of standard pricing (35% off) when the request
  * streams. A non-streaming request to a `-flex` model silently falls back to
  * the standard tier and the standard price.
@@ -65,7 +74,7 @@ export interface NeuralwattVariantSpec {
  */
 export type NeuralwattReasoningMapSource = Pick<
   NeuralwattApiModelReasoning,
-  "supported_efforts" | "mandatory"
+  "supported_efforts" | "mandatory" | "effort_aliases"
 >;
 
 /**
@@ -80,9 +89,9 @@ export type NeuralwattReasoningMapSource = Pick<
  * exposes none), falls back to a conservative `high`-only map with `off: null`,
  * matching the upstream binary thinking toggle.
  *
- * `default_effort` and `effort_aliases` are deliberately ignored: Pi has no
- * default-reasoning field, and we expose native supported efforts rather than
- * aliasing unsupported ones.
+ * `effort_aliases` is deliberately ignored here (the openai-completions
+ * gateway aliases unsupported efforts server-side); it is consumed by the
+ * anthropic-messages map below.
  */
 export function buildThinkingLevelMap(
   reasoning: NeuralwattReasoningMapSource | undefined,
@@ -106,6 +115,39 @@ export function buildThinkingLevelMap(
 }
 
 /**
+ * Thinking level map for the anthropic-messages surface. vLLM's
+ * `output_config.effort` accepts only the model's native efforts, so
+ * unsupported Pi levels resolve through `effort_aliases` (or `null`). A level
+ * may resolve to `"none"` — off on this surface, handled by the payload
+ * injector in `api/anthropic-messages.ts`.
+ */
+export function buildAnthropicThinkingLevelMap(
+  reasoning: NeuralwattReasoningMapSource | undefined,
+): ThinkingLevelMap {
+  const supported = new Set<string>(reasoning?.supported_efforts ?? ["high"]);
+  const mandatory = reasoning?.mandatory ?? true;
+  const aliases = reasoning?.effort_aliases ?? {};
+
+  const resolve = (level: string): string | null => {
+    if (supported.has(level)) return level;
+    const alias = aliases[level as keyof typeof aliases];
+    return alias && supported.has(alias) ? alias : null;
+  };
+
+  return {
+    // "none" is a marker so pi-ai enables the off path (off !== null);
+    // vLLM rejects it on the wire, so the injector never sends it verbatim.
+    off: !mandatory && supported.has("none") ? "none" : null,
+    minimal: resolve("minimal"),
+    low: resolve("low"),
+    medium: resolve("medium"),
+    high: resolve("high"),
+    xhigh: resolve("xhigh"),
+    max: resolve("max"),
+  };
+}
+
+/**
  * Neuralwatt reports `max_output_tokens: null` for models whose output is only
  * bounded by the context window. Some models incorrectly report 0; treat 0
  * like null so we never emit maxTokens: 0.
@@ -121,7 +163,7 @@ export function resolveMaxTokens(
 export function buildNeuralwattModel(
   family: NeuralwattModelFamily,
   variant: NeuralwattVariantSpec,
-): ProviderModelConfig {
+): NeuralwattCompiledModel {
   const vision = variant.vision ?? family.vision;
 
   const compat: NonNullable<ProviderModelConfig["compat"]> = {
@@ -136,7 +178,7 @@ export function buildNeuralwattModel(
   const scale = (value: number): number =>
     multiplier === 1 ? value : Number((value * multiplier).toFixed(6));
 
-  const model: ProviderModelConfig = {
+  const model: NeuralwattCompiledModel = {
     id: variant.id,
     name: variant.name,
     reasoning: variant.reasoning,
@@ -153,14 +195,14 @@ export function buildNeuralwattModel(
   };
 
   if (variant.reasoning) {
+    const contract = variant.reasoningMetadata ?? family.reasoningMetadata;
     // Clone so variants never share a family map instance. The map is derived
     // from the API reasoning contract; missing metadata falls back to a
     // high-only map rather than throwing.
     model.thinkingLevelMap = {
-      ...buildThinkingLevelMap(
-        variant.reasoningMetadata ?? family.reasoningMetadata,
-      ),
+      ...buildThinkingLevelMap(contract),
     };
+    model.reasoningContract = contract;
   }
 
   return model;
@@ -169,6 +211,6 @@ export function buildNeuralwattModel(
 export function buildNeuralwattFamily(
   family: NeuralwattModelFamily,
   variants: NeuralwattVariantSpec[],
-): ProviderModelConfig[] {
+): NeuralwattCompiledModel[] {
   return variants.map((variant) => buildNeuralwattModel(family, variant));
 }

@@ -123,6 +123,7 @@ From `metadata.capabilities`:
 - `vision` -> `input` (true = `["text", "image"]`, false = `["text"]`)
 - `reasoning` -> `reasoning`
 - `reasoning.supported_efforts` + `reasoning.mandatory` -> the Pi `thinkingLevelMap` via `buildThinkingLevelMap` (identity, no aliasing)
+- `reasoning.effort_aliases` -> also snapshot it: the anthropic-messages surface map (`buildAnthropicThinkingLevelMap`) resolves unsupported Pi levels through aliases onto native vLLM efforts
 - `developer_role` -> confirm `supportsDeveloperRole: false`
 
 From `metadata.limits`:

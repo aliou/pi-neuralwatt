@@ -47,6 +47,15 @@ Once installed, select `neuralwatt` as your provider and choose from available m
 /model neuralwatt meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
 ```
 
+### API surface
+
+Neuralwatt serves every model on two APIs. Pick one via `/neuralwatt:settings` → **API** (or set `provider.api` in the extension config):
+
+- `openai-completions` (default) — the OpenAI-compatible `chat/completions` endpoint;
+- `anthropic-messages` — the Anthropic-compatible `POST /v1/messages` endpoint (vLLM-backed), which streams native tool use and thinking blocks.
+
+The setting swaps the whole provider (same model ids on both sides) and applies on `/reload`. Usage/cost accounting and quota tracking work on both surfaces: per-request quota headers only exist on chat-completions responses, while `/v1/messages` streams carry the same data as `: energy` / `: cost` SSE comments.
+
 ### Quota Command
 
 Check your API usage at a glance:
@@ -74,6 +83,7 @@ When a Neuralwatt model is active, the footer status bar shows live quota usage 
 
 Configure features with `/neuralwatt:settings`:
 
+- **API** — Choose between `openai-completions` (default) and `anthropic-messages`; applies on `/reload`
 - **Quota command** — Show/hide `/neuralwatt:quota`
 - **Quota warnings** — Enable/disable low quota notifications
 - **Sub-bar integration** — Show/hide usage in status bar

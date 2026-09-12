@@ -20,6 +20,10 @@
           "$ref": "#/definitions/NeuralwattSubBarIntegrationConfig",
           "description": "Sub-bar/status-bar integration feature."
         },
+        "provider": {
+          "$ref": "#/definitions/NeuralwattProviderConfig",
+          "description": "Provider behavior (API surface)."
+        },
         "version": {
           "anyOf": [
             {
@@ -65,6 +69,24 @@
         }
       },
       "additionalProperties": false
+    },
+    "NeuralwattProviderConfig": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "$ref": "#/definitions/NeuralwattApi",
+          "description": "Which API serves model requests."
+        }
+      },
+      "additionalProperties": false
+    },
+    "NeuralwattApi": {
+      "type": "string",
+      "enum": [
+        "openai-completions",
+        "anthropic-messages"
+      ],
+      "description": "Neuralwatt serves every chat model twice: on an OpenAI-compatible `chat/completions` endpoint and on a vLLM-backed Anthropic-compatible `POST /v1/messages` endpoint. Exactly one serves the provider at a time."
     }
   }
 }

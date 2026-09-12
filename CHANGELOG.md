@@ -1,5 +1,13 @@
 # @aliou/pi-extension-template
 
+## 0.15.3
+
+### Patch Changes
+
+- 51f9dbf: fix: exclude embeddings model from catalog and harden resolveMaxTokens
+- d15f9c8: Make the model-store cache scaffold-aware. A fresh entry persisted without a key only carries the public scope, so logged-in users never saw preview, grant-gated, or private models — and a key-scoped entry could be replayed for an anonymous user. Each refresh now stamps the persisted entry with the scope it was fetched under (`public` / `key v1`) and treats a scope mismatch as stale: keyed refreshes bypass anonymous entries, anonymous refreshes and cache-only boots no longer replay key-scoped entries, and fresh same-scope entries still skip the network. Legacy entries without a stamp re-fetch once and are restamped. Supersedes the behavior proposed in #90.
+- 76b4464: Remove the 327,680 context-window override from the Kimi K3 family. The endpoint no longer rejects requests above 327,680 tokens; both `/v1/models` (`max_model_len`, `limits.max_context_length`) and the live endpoints now agree on 1,048,560 for `kimi-k3`, `kimi-k3-fast`, and `kimi-k3-flex`. The fallback table and drift check follow the API again.
+
 ## 0.15.2
 
 ### Patch Changes

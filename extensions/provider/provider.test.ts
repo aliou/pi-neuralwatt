@@ -78,7 +78,7 @@ function createContext(
   options: {
     allowNetwork?: boolean;
     credential?: { type: "api_key"; key: string };
-    stored?: ModelsStoreEntry;
+    stored?: ModelsStoreEntry & { catalogKey?: string };
     signal?: AbortSignal;
   } = {},
 ): RefreshModelsContext {
@@ -276,6 +276,7 @@ describe("refreshModels", () => {
             },
           ],
           checkedAt: Date.now(),
+          catalogKey: "public v1",
         },
       }),
     );
@@ -308,6 +309,7 @@ describe("refreshModels", () => {
             },
           ],
           checkedAt: Date.now(),
+          catalogKey: "public v1",
         },
       }),
     );

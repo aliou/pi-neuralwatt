@@ -24,7 +24,6 @@ const COMPAT_OVERRIDES: Partial<
 };
 
 const HARDCODED_ALIASES: Record<string, string> = {
-  "zai-org/GLM-5.2-FP8": "glm-5.2",
   "moonshotai/Kimi-K2.7-Code": "kimi-k2.7-code",
   "Qwen/Qwen3.6-35B-A3B": "qwen3.6-35b",
   "deepseek-ai/DeepSeek-V4-Flash": "deepseek-v4-flash",

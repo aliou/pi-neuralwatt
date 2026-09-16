@@ -26,14 +26,11 @@ describe("Neuralwatt models", () => {
   it("should mirror reasoning config for flex variants", () => {
     const byId = new Map(NEURALWATT_MODELS.map((m) => [m.id, m]));
 
-    expect(byId.get("glm-5.2-flex")?.thinkingLevelMap).toEqual(
-      byId.get("glm-5.2")?.thinkingLevelMap,
+    expect(byId.get("glm-5.3-flex")?.thinkingLevelMap).toEqual(
+      byId.get("glm-5.3")?.thinkingLevelMap,
     );
-    expect(byId.get("glm-5.2-short-flex")?.thinkingLevelMap).toEqual(
-      byId.get("glm-5.2-short")?.thinkingLevelMap,
-    );
-    expect(byId.get("glm-5.2-short-fast-flex")?.reasoning).toBe(
-      byId.get("glm-5.2-short-fast")?.reasoning,
+    expect(byId.get("glm-5.3-flash-flex")?.thinkingLevelMap).toEqual(
+      byId.get("glm-5.3-flash")?.thinkingLevelMap,
     );
     expect(byId.get("kimi-k2.7-code-flex")?.thinkingLevelMap).toEqual(
       byId.get("kimi-k2.7-code")?.thinkingLevelMap,
@@ -41,17 +38,24 @@ describe("Neuralwatt models", () => {
     expect(byId.get("kimi-k3-flex")?.thinkingLevelMap).toEqual(
       byId.get("kimi-k3")?.thinkingLevelMap,
     );
+    expect(byId.get("qwen3.6-35b-flex")?.thinkingLevelMap).toEqual(
+      byId.get("qwen3.6-35b")?.thinkingLevelMap,
+    );
+    expect(byId.get("qwen-3.8-27b-flex")?.thinkingLevelMap).toEqual(
+      byId.get("qwen-3.8-27b")?.thinkingLevelMap,
+    );
   });
 
   it("should price flex variants with the flex multiplier", () => {
     const byId = new Map(NEURALWATT_MODELS.map((m) => [m.id, m]));
     const pairs: [string, string][] = [
-      ["glm-5.2-flex", "glm-5.2"],
-      ["glm-5.2-short-flex", "glm-5.2-short"],
-      ["glm-5.2-short-fast-flex", "glm-5.2-short-fast"],
+      ["glm-5.3-flex", "glm-5.3"],
+      ["glm-5.3-flash-flex", "glm-5.3-flash"],
       ["kimi-k2.7-code-flex", "kimi-k2.7-code"],
       ["deepseek-v4-flash-flex", "deepseek-v4-flash"],
       ["kimi-k3-flex", "kimi-k3"],
+      ["qwen3.6-35b-flex", "qwen3.6-35b"],
+      ["qwen-3.8-27b-flex", "qwen-3.8-27b"],
     ];
 
     for (const [flexId, standardId] of pairs) {
@@ -130,19 +134,19 @@ describe("Neuralwatt models", () => {
     }
   });
 
-  it("should derive GLM-5.2 reasoning levels from `max`, `high`, `none`", () => {
-    // GLM-5.2 natively supports `high` and `max` reasoning efforts. Pi's `max`
-    // level (0.80.6) maps to GLM's top tier; `xhigh` is an unsupported hole.
+  it("should derive GLM-5.3 reasoning levels from mandatory `max`, `high`, `low`", () => {
+    // GLM-5.3 variants have mandatory reasoning with no `none` support:
+    // efforts max/high/low (default max), and `off` cannot disable reasoning.
     const glmModels = NEURALWATT_MODELS.filter((m) =>
-      m.id.startsWith("glm-5.2"),
+      m.id.startsWith("glm-5.3"),
     ).filter((m) => m.reasoning);
 
     expect(glmModels.length).toBeGreaterThan(0);
     for (const model of glmModels) {
       expect(model.thinkingLevelMap).toEqual({
-        off: "none",
+        off: null,
         minimal: null,
-        low: null,
+        low: "low",
         medium: null,
         high: "high",
         xhigh: null,
@@ -203,6 +207,20 @@ describe("Neuralwatt models", () => {
       xhigh: null,
       max: null,
     });
+
+    // Qwen 3.8 27B tops out at `xhigh` (no `max` effort) and supports
+    // disabling reasoning.
+    expect(
+      NEURALWATT_MODELS.find((m) => m.id === "qwen-3.8-27b")?.thinkingLevelMap,
+    ).toEqual({
+      off: "none",
+      minimal: null,
+      low: "low",
+      medium: "medium",
+      high: null,
+      xhigh: "xhigh",
+      max: null,
+    });
   });
 
   it("should null out every level for mandatory reasoning with no efforts", () => {
@@ -219,6 +237,10 @@ describe("Neuralwatt models", () => {
       xhigh: null,
       max: null,
     });
+    // The snapshot matches what the live API reasoning block derives.
+    expect(
+      buildThinkingLevelMap({ supported_efforts: [], mandatory: true }),
+    ).toEqual(k27?.thinkingLevelMap);
   });
 });
 

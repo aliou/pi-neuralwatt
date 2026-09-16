@@ -41,25 +41,23 @@ const GEMMA_4: NeuralwattModelFamily = {
   },
 };
 
-// ZhipuAI. GLM-5.2 natively supports `high` and `max` reasoning efforts;
-// `xhigh` is an unsupported hole between them. Pi's `max` level (0.80.6) maps
-// to GLM's top tier.
-const GLM_5_2: NeuralwattModelFamily = {
-  cost: { input: 1.45, output: 4.5, cacheRead: 0.145 },
-  vision: false,
-  reasoningMetadata: {
-    supported_efforts: ["max", "high", "none"],
-    mandatory: false,
-  },
-};
-
-// ZhipuAI. GLM-5.3 ships as a GLM-5.2 weight swap in gated preview, with
-// GLM-5.2 pricing parity (per the API metadata; review at launch). Unlike
-// 5.2, reasoning is mandatory and `none` is not offered: efforts are
-// max/high/low (default max).
+// ZhipuAI. GLM-5.3 has mandatory reasoning and `none` is not offered:
+// efforts are max/high/low (default max).
 const GLM_5_3: NeuralwattModelFamily = {
   cost: { input: 1.45, output: 4.5, cacheRead: 0.145 },
   vision: false,
+  reasoningMetadata: {
+    supported_efforts: ["max", "high", "low"],
+    mandatory: true,
+  },
+};
+
+// ZhipuAI. GLM-5.3 Flash is the small GLM-5.3 tier: vision-capable, much
+// cheaper than the flagship, with the same mandatory max/high/low reasoning
+// contract as GLM-5.3.
+const GLM_5_3_FLASH: NeuralwattModelFamily = {
+  cost: { input: 0.15, output: 0.5, cacheRead: 0.03 },
+  vision: true,
   reasoningMetadata: {
     supported_efforts: ["max", "high", "low"],
     mandatory: true,
@@ -99,6 +97,18 @@ const QWEN_3_6_35B: NeuralwattModelFamily = {
   },
 };
 
+// Qwen. Qwen 3.8 27B tops out at `xhigh` (its default) and also supports
+// `medium`, `low`, and `none`; there is no `max` effort. Reasoning is on by
+// default but can be disabled.
+const QWEN_3_8_27B: NeuralwattModelFamily = {
+  cost: { input: 0.45, output: 3.2, cacheRead: 0.25 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["xhigh", "medium", "low", "none"],
+    mandatory: false,
+  },
+};
+
 const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
   [
     DEEPSEEK_V4_FLASH,
@@ -133,78 +143,42 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
     ],
   ],
   [
-    GLM_5_2,
+    GLM_5_3,
     [
       {
-        id: "glm-5.2",
-        name: "GLM-5.2",
+        id: "glm-5.3",
+        name: "GLM 5.3",
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
       },
       {
-        // GLM-5.2 Fast pins thinking off by default, but keeps the parent's
-        // full reasoning contract (`high`/`max`/`none`): sending
-        // `reasoning_effort` re-enables thinking for that request.
-        id: "glm-5.2-fast",
-        name: "GLM-5.2 (fast)",
+        id: "glm-5.3-flex",
+        name: "GLM 5.3 (flex)",
         contextWindow: 1048560,
         maxOutputTokens: null,
-        reasoning: true,
-      },
-      {
-        id: "glm-5.2-flex",
-        name: "GLM-5.2 (flex)",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
-        reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
-      },
-      {
-        id: "glm-5.2-short",
-        name: "GLM-5.2 Short",
-        contextWindow: 199984,
-        maxOutputTokens: 32000,
-        reasoning: true,
-      },
-      {
-        // Short/fast: pins thinking off but keeps the parent reasoning
-        // contract, like glm-5.2-fast.
-        id: "glm-5.2-short-fast",
-        name: "GLM-5.2 (short, fast)",
-        contextWindow: 199984,
-        maxOutputTokens: 32000,
-        reasoning: true,
-      },
-      {
-        id: "glm-5.2-short-flex",
-        name: "GLM-5.2 (short, flex)",
-        contextWindow: 199984,
-        maxOutputTokens: 32000,
-        reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
-      },
-      {
-        // Short/fast/flex: pins thinking off but keeps the parent reasoning
-        // contract, like glm-5.2-fast.
-        id: "glm-5.2-short-fast-flex",
-        name: "GLM-5.2 (short, fast, flex)",
-        contextWindow: 199984,
-        maxOutputTokens: 32000,
         reasoning: true,
         costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],
   [
-    GLM_5_3,
+    GLM_5_3_FLASH,
     [
       {
-        id: "glm-5.3",
-        name: "GLM-5.3",
+        id: "glm-5.3-flash",
+        name: "GLM-5.3 Flash",
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
+      },
+      {
+        id: "glm-5.3-flash-flex",
+        name: "GLM-5.3 Flash (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],
@@ -280,6 +254,34 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 131056,
         maxOutputTokens: null,
         reasoning: false,
+      },
+      {
+        id: "qwen3.6-35b-flex",
+        name: "Qwen3.6 35B (flex)",
+        contextWindow: 131056,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
+      },
+    ],
+  ],
+  [
+    QWEN_3_8_27B,
+    [
+      {
+        id: "qwen-3.8-27b",
+        name: "Qwen 3.8 27B",
+        contextWindow: 262128,
+        maxOutputTokens: 131072,
+        reasoning: true,
+      },
+      {
+        id: "qwen-3.8-27b-flex",
+        name: "Qwen 3.8 27B (flex)",
+        contextWindow: 262128,
+        maxOutputTokens: 131072,
+        reasoning: true,
+        costMultiplier: FLEX_COST_MULTIPLIER,
       },
     ],
   ],

@@ -30,8 +30,8 @@ extensions/
     commands/settings/index.ts          # /neuralwatt:settings command
     models/
       index.ts                          # Re-exports
-      catalog.ts                        # API-driven catalog builder + overrides (flex pricing, chat-template compat)
-      build.ts                          # Shared model builder utilities (thinkingLevelMap, flex multiplier, maxTokens)
+      catalog.ts                        # API-driven catalog builder + overrides (chat-template compat)
+      build.ts                          # Shared model builder utilities (thinkingLevelMap, maxTokens)
       public-models.ts                  # Offline fallback model table (first start without network)
       refresh.ts                        # TTL-based model refresh (fetch → build → persist | failure → fallback)
       refresh.test.ts                   # Refresh tests (anonymous key, placeholder key, TTL, abort, failure)
@@ -98,12 +98,12 @@ Two sources of quota data:
 When a subscription is active, energy (kWh) is the primary billing method. Credits are on-demand top-up only. The quota warnings progress through the billing stages, each with its own alert key so a later stage suppresses the earlier one instead of re-reporting a depleted pool:
 
 - Subscribed, not in overage — warn on subscription energy (kWh remaining).
-- Subscribed, in overage with an overage cap — warn about overage cap progress. Overage cost is derived from kWh usage (`kwh_used - kwh_included`) at the subscribed rate of $5/kWh; remaining cap and % are computed against `limits.overage_limit_usd`. `subscription.in_overage` is a pure on/off flag with no spent counter, so progress is computed rather than read from the API. Credits are not warned here because a cap means they are never reached.
-- Subscribed, in overage with no cap — warn on balance credits (overage draws down the balance directly at $5/kWh).
+- Subscribed, in overage with an overage cap — warn about overage cap progress. Overage cost is derived from kWh usage (`kwh_used - kwh_included`) at a per-plan rate ($7.00–$8.50/kWh by plan and billing interval); remaining cap and % are computed against `limits.overage_limit_usd`. `subscription.in_overage` is a pure on/off flag with no spent counter, so progress is computed rather than read from the API. Credits are not warned here because a cap means they are never reached.
+- Subscribed, in overage with no cap — warn on balance credits (overage draws down the balance directly at the per-plan rate).
 - No subscription with an overage cap — warn on overage cap progress. All kWh are billable at the unsubscribed rate of $10/kWh, computed from `usage.current_month.energy_kwh`.
 - No subscription with no cap — warn on credits.
 
-Usage totals (monthly/lifetime cost in USD) are deliberately not used as a threshold basis — they are not directly tied to the subscription's kWh quota.
+Usage totals (monthly/lifetime cost in USD) are deliberately not used as a threshold basis — they are not directly tied to the subscription's kWh quota. Unknown plans fall back to the Standard monthly rate; the unsubscribed rate is $10/kWh.
 
 ### Quota tabs
 
@@ -124,13 +124,13 @@ The provider itself cannot be disabled. Settings can also be changed via `pi con
 
 The catalog is built from `/v1/models` at runtime by `extensions/provider/models/catalog.ts`. `NEURALWATT_MODELS` in `public-models.ts` is the offline fallback for first start only.
 
-`catalog.ts` applies per-model overrides: flex pricing (0.65x) and chat-template compat for Qwen3.8. See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
+`catalog.ts` applies per-model overrides: chat-template compat for Qwen3.8. Flex pricing ships discounted in `/v1/models`; the fallback mirrors it via `costMultiplier: 0.65` per `-flex` variant. See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
 
 Drift between the fallback and the live API is a non-blocking, notify-me concern (the runtime syncs from the API). `scripts/check-models.ts` (`pnpm check:models`) compares them and exits 1 with a markdown report on drift; the `model-sync` workflow runs it twice daily and opens a `model-sync` issue. The deterministic invariant, derivation, and unit tests in `models.test.ts` stay in the blocking CI suite.
 
 ### Tests vs drift check
 
-`extensions/provider/models.test.ts` holds only deterministic tests against the local fallback data: invariants (unique IDs, `maxTokens <= contextWindow`, required fields, no `thinkingLevelMap` holes), flex derivation/pricing, `thinkingLevelMap` derivation, and `buildThinkingLevelMap` unit tests. The live-API comparison lives in `scripts/check-models.ts`, not the test suite, so upstream changes never break PR CI.
+`extensions/provider/models.test.ts` holds only deterministic tests against the local fallback data: invariants (unique IDs, `maxTokens <= contextWindow`, required fields, no `thinkingLevelMap` holes), flex pricing, `thinkingLevelMap` derivation, and `buildThinkingLevelMap` unit tests. The live-API comparison lives in `scripts/check-models.ts`, not the test suite, so upstream changes never break PR CI.
 
 ### Config migrations
 

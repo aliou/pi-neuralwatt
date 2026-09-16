@@ -62,7 +62,7 @@ function subFixture(): NonNullable<NeuralwattQuotas["subscription"]> {
 }
 
 describe("computeOverageProgress", () => {
-  it("subscribed: bills kWh beyond the included quota at $5/kWh", () => {
+  it("subscribed: bills kWh beyond the included quota at the plan's monthly rate", () => {
     const quotas = baseQuotas({
       subscription: {
         ...subFixture(),
@@ -76,12 +76,63 @@ describe("computeOverageProgress", () => {
 
     const p = computeOverageProgress(quotas);
     expect(p.overageKwh).toBeCloseTo(0.0161, 4);
-    expect(p.rate).toBe(5);
-    expect(p.costUsd).toBeCloseTo(0.0805, 4);
+    expect(p.rate).toBe(8);
+    expect(p.costUsd).toBeCloseTo(0.1288, 4);
     expect(p.capUsd).toBe(10);
-    expect(p.remainingUsd).toBeCloseTo(9.9195, 4);
-    expect(p.pctRemaining).toBeCloseTo(99.2, 1);
+    expect(p.remainingUsd).toBeCloseTo(9.8712, 4);
+    expect(p.pctRemaining).toBeCloseTo(98.7, 1);
     expect(p.exhausted).toBe(false);
+  });
+
+  it("subscribed: max plan on a monthly interval bills at $7.00/kWh", () => {
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        plan: "max",
+        kwh_included: 16,
+        kwh_used: 17,
+        kwh_remaining: 0,
+        in_overage: true,
+      },
+    });
+
+    const p = computeOverageProgress(quotas);
+    expect(p.rate).toBe(7);
+    expect(p.costUsd).toBeCloseTo(7, 4);
+  });
+
+  it("subscribed: standard plan on an annual interval bills at $6.67/kWh", () => {
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        plan: "standard",
+        billing_interval: "year",
+        kwh_included: 16,
+        kwh_used: 17,
+        kwh_remaining: 0,
+        in_overage: true,
+      },
+    });
+
+    const p = computeOverageProgress(quotas);
+    expect(p.rate).toBe(6.67);
+    expect(p.costUsd).toBeCloseTo(6.67, 4);
+  });
+
+  it("subscribed: unknown plan falls back to the Standard monthly rate", () => {
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        plan: "enterprise",
+        kwh_included: 16,
+        kwh_used: 17,
+        kwh_remaining: 0,
+        in_overage: true,
+      },
+    });
+
+    const p = computeOverageProgress(quotas);
+    expect(p.rate).toBe(8);
   });
 
   it("subscribed: marks cap exhausted when overage cost reaches the cap", () => {
@@ -89,7 +140,7 @@ describe("computeOverageProgress", () => {
       subscription: {
         ...subFixture(),
         kwh_included: 16,
-        kwh_used: 18.1, // 2.1 kWh over * $5 = $10.50, over the $10 cap
+        kwh_used: 17.3125, // 1.3125 kWh over * $8 = $10.50, over the $10 cap
         kwh_remaining: 0,
         in_overage: true,
       },
@@ -159,7 +210,7 @@ describe("checkQuotas warning staging", () => {
   it("warns on overage cap progress when subscribed and in overage with a cap", () => {
     clearAlertState();
     const ctx = mockCtx();
-    // 0.4 kWh * $5 = $2 used, $8 of $10 remaining = 80%.
+    // 0.4 kWh * $8 = $3.20 used, $6.80 of $10 remaining = 68%.
     const quotas = baseQuotas({
       subscription: {
         ...subFixture(),
@@ -174,10 +225,10 @@ describe("checkQuotas warning staging", () => {
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Overage cap:");
-    expect(ctx.calls[0]).toContain("80%");
-    expect(ctx.calls[0]).toContain("$8.00");
+    expect(ctx.calls[0]).toContain("68%");
+    expect(ctx.calls[0]).toContain("$6.80");
     expect(ctx.calls[0]).toContain("$10.00");
-    expect(ctx.calls[0]).toContain("@ $5.00/kWh");
+    expect(ctx.calls[0]).toContain("@ $8.00/kWh");
     // 0.4 kWh renders as Wh via formatKwh.
     expect(ctx.calls[0]).toContain("400.0 Wh over");
     // Credits are unreachable while a cap is set and not exhausted.
@@ -197,7 +248,7 @@ describe("checkQuotas warning staging", () => {
       subscription: {
         ...subFixture(),
         kwh_included: 16,
-        kwh_used: 18.1, // exhausted
+        kwh_used: 17.3125, // exhausted
         kwh_remaining: 0,
         in_overage: true,
       },

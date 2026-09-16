@@ -28,6 +28,10 @@ export interface NeuralwattQuotas {
     total_credits_usd: number;
     credits_used_usd: number;
     accounting_method: string;
+    /** Legacy credit pool split (USD). Typed for fidelity, not consumed yet. */
+    legacy_credits_usd?: number;
+    /** New credit pool split (USD). Typed for fidelity, not consumed yet. */
+    new_credits_usd?: number;
   };
   usage: {
     lifetime: {

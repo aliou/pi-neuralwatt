@@ -5,6 +5,10 @@ export interface NeuralwattApiModelPricing {
   cached_output_per_million: number | null;
   currency: string;
   pricing_tbd: boolean;
+  /** Service tier the pricing applies to (e.g. "standard", "flex"). */
+  service_tier?: string;
+  /** Flex tier cost multiplier (e.g. 0.65); null/absent on standard pricing. */
+  flex_discount_multiplier?: number | null;
 }
 
 export interface NeuralwattApiModelCapabilities {

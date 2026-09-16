@@ -90,6 +90,8 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
             cached_output_per_million: null,
             currency: "USD",
             pricing_tbd: false,
+            service_tier: "standard",
+            flex_discount_multiplier: null,
           },
           capabilities: {
             tools: false,
@@ -130,6 +132,8 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
             cached_output_per_million: null,
             currency: "USD",
             pricing_tbd: false,
+            service_tier: "standard",
+            flex_discount_multiplier: null,
           },
           capabilities: {
             tools: true,
@@ -176,6 +180,60 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
     expect(resolveMaxTokens(0, 4096)).toBe(4096);
     expect(resolveMaxTokens(null, 4096)).toBe(4096);
     expect(resolveMaxTokens(1024, 4096)).toBe(1024);
+  });
+
+  it("takes flex pricing directly (already discounted in API metadata)", () => {
+    const models = buildNeuralwattProviderModelsFromApi([
+      {
+        id: "chat-model-7b-flex",
+        object: "model",
+        created: 1234567890,
+        owned_by: "neuralwatt",
+        max_model_len: 4096,
+        metadata: {
+          display_name: "Chat Model 7B (flex)",
+          description: null,
+          provider: "neuralwatt",
+          huggingface_id: null,
+          pricing: {
+            // Already-discounted flex prices; the multiplier field is
+            // provenance only and must not be applied again.
+            input_per_million: 3.25,
+            output_per_million: 6.5,
+            cached_input_per_million: 0.65,
+            cached_output_per_million: null,
+            currency: "USD",
+            pricing_tbd: false,
+            service_tier: "flex",
+            flex_discount_multiplier: 0.65,
+          },
+          capabilities: {
+            tools: true,
+            json_mode: true,
+            vision: false,
+            reasoning: false,
+            reasoning_effort: false,
+            streaming: true,
+            system_role: true,
+            developer_role: false,
+            task: "chat",
+          },
+          limits: {
+            max_context_length: 4096,
+            max_output_tokens: 1024,
+            max_images: null,
+          },
+          deprecated: false,
+          deprecated_message: null,
+        },
+      },
+    ]);
+
+    const flexModel = models.find((m) => m.id === "chat-model-7b-flex");
+    expect(flexModel).toBeDefined();
+    expect(flexModel?.cost.input).toBe(3.25);
+    expect(flexModel?.cost.output).toBe(6.5);
+    expect(flexModel?.cost.cacheRead).toBe(0.65);
   });
 });
 

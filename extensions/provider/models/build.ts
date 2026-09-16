@@ -8,15 +8,6 @@ export type ThinkingLevelMap = NonNullable<
   ProviderModelConfig["thinkingLevelMap"]
 >;
 
-/**
- * Flex tier is billed at 65% of standard pricing (35% off) when the request
- * streams. A non-streaming request to a `-flex` model silently falls back to
- * the standard tier and the standard price.
- *
- * https://docs.neuralwatt.com/guides/flex-tier.md
- */
-export const FLEX_COST_MULTIPLIER = 0.65;
-
 export interface NeuralwattCost {
   input: number;
   output: number;

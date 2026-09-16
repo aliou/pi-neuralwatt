@@ -55,7 +55,7 @@ Use these in order:
 Read:
 
 - `extensions/provider/models/public-models.ts`
-- `extensions/provider/models/catalog.ts` (override maps for flex pricing, context caps, compat, aliases)
+- `extensions/provider/models/catalog.ts` (override maps for context caps, compat, aliases)
 - `scripts/check-models.ts` (the drift comparison logic)
 
 Use the current file shape and comments as the formatting baseline.
@@ -134,11 +134,10 @@ From `metadata`:
 - `pricing_tbd` -> skip model if true
 
 Flex variants (`-flex`) are the same model, context window, and output cap as the
-standard variant, admitted on spare capacity. They are billed at a 0.65 multiplier
-(35% off) when the request streams, so declare them with
-`costMultiplier: FLEX_COST_MULTIPLIER` rather than copying prices. A non-streaming
-request to a `-flex` model silently falls back to standard tier and standard price.
-See https://docs.neuralwatt.com/guides/flex-tier.md.
+standard variant, admitted on spare capacity. The API lists them at discounted
+prices, so declare fallback variants with `costMultiplier: 0.65` rather than
+copying prices. A non-streaming request to a `-flex` model silently falls back
+to standard tier and standard price. See https://docs.neuralwatt.com/guides/flex-tier.md.
 
 All Neuralwatt models keep the provider compatibility defaults:
 

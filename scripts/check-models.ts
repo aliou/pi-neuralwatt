@@ -144,10 +144,9 @@ function compareModels(
       }
     }
 
-    // Pricing. Flex variants are advertised at standard pricing; the 35% Flex
-    // discount is a billing-time concept applied via costMultiplier in our
-    // definitions, so skip price checks for them.
-    if (meta && !isFlexModelId(hardcoded.id)) {
+    // Pricing. Flex entries ship discounted prices in the API, so compare
+    // directly — no multiplier handling.
+    if (meta) {
       if (
         Math.abs(meta.pricing.input_per_million - hardcoded.cost.input) >
         EPSILON

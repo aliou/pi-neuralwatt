@@ -1,7 +1,6 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
   buildNeuralwattFamily,
-  FLEX_COST_MULTIPLIER,
   type NeuralwattModelFamily,
   type NeuralwattVariantSpec,
 } from "./build";
@@ -126,7 +125,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: 65536,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
@@ -158,7 +157,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
@@ -178,7 +177,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
@@ -205,7 +204,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
@@ -234,7 +233,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 262128,
         maxOutputTokens: null,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
@@ -261,7 +260,7 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 131056,
         maxOutputTokens: null,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
@@ -281,17 +280,16 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         contextWindow: 262128,
         maxOutputTokens: 131072,
         reasoning: true,
-        costMultiplier: FLEX_COST_MULTIPLIER,
+        costMultiplier: 0.65,
       },
     ],
   ],
 ];
 
 // `-flex` variants are the Flex tier: same model, context window, output cap,
-// and prompt cache as the standard variant, admitted on spare capacity.
-// The API now advertises flex variants but lists them at standard pricing;
-// the 35% Flex discount is a billing-time concept applied here via
-// `costMultiplier` rather than reflected in the catalog metadata.
+// and prompt cache as the standard variant, admitted on spare capacity. The
+// API lists them at discounted prices; the fallback mirrors that with
+// `costMultiplier: 0.65` per variant.
 // https://docs.neuralwatt.com/guides/flex-tier.md
 
 export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(

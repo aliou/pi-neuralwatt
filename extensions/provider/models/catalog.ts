@@ -2,7 +2,6 @@ import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import {
   buildThinkingLevelMap,
-  FLEX_COST_MULTIPLIER,
   resolveMaxTokens,
   type ThinkingLevelMap,
 } from "./build";
@@ -29,10 +28,6 @@ const HARDCODED_ALIASES: Record<string, string> = {
   "deepseek-ai/DeepSeek-V4-Flash": "deepseek-v4-flash",
 };
 
-function isFlexModelId(id: string): boolean {
-  return id.endsWith("-flex");
-}
-
 function isVariantId(id: string): boolean {
   return id.includes("-fast") || id.includes("-flex") || id.includes("-short");
 }
@@ -45,8 +40,6 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
     );
 
   const reasoning = meta.capabilities.reasoning;
-  // Flex variants are billed at 0.65x when streaming (35% off).
-  const multiplier = isFlexModelId(model.id) ? FLEX_COST_MULTIPLIER : 1;
 
   const compat: NonNullable<ProviderModelConfig["compat"]> = {
     supportsDeveloperRole: meta.capabilities.developer_role,
@@ -65,10 +58,10 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
       ? (["text", "image"] as const)
       : (["text"] as const),
     cost: {
-      input: meta.pricing.input_per_million * multiplier,
-      output: meta.pricing.output_per_million * multiplier,
-      cacheRead: (meta.pricing.cached_input_per_million ?? 0) * multiplier,
-      cacheWrite: (meta.pricing.cached_output_per_million ?? 0) * multiplier,
+      input: meta.pricing.input_per_million,
+      output: meta.pricing.output_per_million,
+      cacheRead: meta.pricing.cached_input_per_million ?? 0,
+      cacheWrite: meta.pricing.cached_output_per_million ?? 0,
     },
     contextWindow,
     maxTokens: resolveMaxTokens(meta.limits.max_output_tokens, contextWindow),

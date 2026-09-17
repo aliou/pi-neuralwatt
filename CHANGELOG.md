@@ -1,5 +1,14 @@
 # @aliou/pi-extension-template
 
+## 0.15.4
+
+### Patch Changes
+
+- 45373d6: Take flex model pricing from the API's already-discounted values instead of applying a local 0.65 multiplier at catalog build time.
+- 48b331e: Sync the offline fallback model table with the live Neuralwatt API: remove GLM-5.2 and its variants (gone upstream), add glm-5.3-flash(-flex) and qwen-3.8-27b(-flex), and add flex variants for glm-5.3 and qwen3.6-35b.
+- db99586: Type the new `service_tier`, `flex_discount_multiplier` (models) and `legacy_credits_usd`, `new_credits_usd` (quota balance) API fields.
+- 96b01f4: Resolve the overage billing rate from the subscription plan and billing interval (per-plan $7.00–$8.50/kWh, $10/kWh pay-as-you-go, Standard monthly rate as fallback) instead of a flat $5/kWh.
+
 ## 0.15.3
 
 ### Patch Changes

@@ -1,5 +1,5 @@
 ---
-@aliou/pi-neuralwatt: patch
+"@aliou/pi-neuralwatt": patch
 ---
 fix: remove model-id aliases that should have been dropped with the provider config section
 

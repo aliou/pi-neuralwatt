@@ -69,6 +69,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check:models": "tsx scripts/check-models.ts",
+    "check:changesets": "tsx scripts/check-changesets.ts",
     "gen:schema": "pi-settings-schema -p src/config/types.ts -t NeuralwattConfig -o schema.json --version 0.12.0",
     "check:schema": "pi-settings-schema -p src/config/types.ts -t NeuralwattConfig -o schema.json --version 0.12.0 --check",
     "check:lockfile": "pnpm install --frozen-lockfile --ignore-scripts",

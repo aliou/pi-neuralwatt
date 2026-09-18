@@ -1,3 +1,4 @@
 pnpm typecheck
 pnpm lint
 pnpm check:lockfile
+pnpm check:changesets

@@ -1,5 +1,23 @@
 # @aliou/pi-extension-template
 
+## 0.16.0
+
+### Minor Changes
+
+- e7b6b5d: Add a `provider.api` setting (`/neuralwatt:settings` → **API**, default `openai-completions`) that serves the catalog on Neuralwatt's Anthropic-compatible `POST /v1/messages` endpoint (vLLM-backed) — native tool use and thinking streams with the same model ids. Applies on `/reload`.
+
+  - Thinking levels resolve per model from the catalog's `supported_efforts` + `effort_aliases` (vLLM's `output_config.effort` enum only accepts native values); reasoning off is expressed as `chat_template_kwargs.enable_thinking=false` because the endpoint accepts but ignores `thinking:{type:"disabled"}`.
+  - Usage cost on this surface is rate-derived from the model's per-MTok pricing (the adapter discards the server's `cost` field).
+  - Quota tracking works on both surfaces: `/v1/messages` streams emit the same `: energy` / `: cost` SSE comments as chat-completions, which the stream tee now feeds into the same quota events; per-response quota headers remain chat-completions-only and `/v1/quota` polling is unchanged. SSE cost comments that carry an absolute `allowance_remaining_usd` now update the credit balance directly on both surfaces.
+
+### Patch Changes
+
+- 2117f48: fix: remove model-id aliases that should have been dropped with the provider config section
+
+  The provider no longer appends alias entries (HuggingFace-style ids such as `zai-org/GLM-5.2-FP8`) to the catalog; only canonical ids are registered. Aliases were unconditional leftovers from the config toggles removed earlier. Sessions pinned to an alias id must re-select the canonical model. Stale alias entries persisted in `~/.pi/agent/models-store.json` age out via the existing TTL/refresh path; no store migration is needed.
+
+- abdb896: Update the Neuralwatt fallback model catalog with the DeepSeek V4 Flash Speed variant.
+
 ## 0.15.4
 
 ### Patch Changes

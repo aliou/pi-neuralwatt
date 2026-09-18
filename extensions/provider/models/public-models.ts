@@ -127,6 +127,13 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         reasoning: true,
         costMultiplier: 0.65,
       },
+      {
+        id: "deepseek-v4-flash-speed",
+        name: "DeepSeek V4 Flash (Speed)",
+        contextWindow: 1048560,
+        maxOutputTokens: 65536,
+        reasoning: true,
+      },
     ],
   ],
   [

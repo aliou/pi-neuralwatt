@@ -1,5 +1,12 @@
 # @aliou/pi-extension-template
 
+## 0.16.1
+
+### Patch Changes
+
+- 2dcc7ce: Model sync: add DeepSeek V4.1 Flash (+ flex) with its full reasoning ladder, raise DeepSeek V4 Flash's max output tokens to 393216, and snapshot `effort_aliases` for every reasoning family so the anthropic-messages thinking map resolves unsupported levels offline.
+- 4a6d641: Fix reasoning replay across turns: replayed chain-of-thought is sent as `reasoning` only, matching what the gateway streams and documents, so multi-turn conversations keep the model's prior reasoning instead of silently dropping it on every turn after the first. The persisted model store scope is bumped to v2 so previously cached catalogs are invalidated.
+
 ## 0.16.0
 
 ### Minor Changes

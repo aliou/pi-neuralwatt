@@ -295,7 +295,7 @@ describe("refreshModels", () => {
             },
           ],
           checkedAt: Date.now(),
-          catalogKey: "public v1",
+          catalogKey: "public v2",
         },
       }),
     );
@@ -328,7 +328,7 @@ describe("refreshModels", () => {
             },
           ],
           checkedAt: Date.now(),
-          catalogKey: "public v1",
+          catalogKey: "public v2",
         },
       }),
     );

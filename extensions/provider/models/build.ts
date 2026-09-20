@@ -161,10 +161,6 @@ export function buildNeuralwattModel(
     supportsDeveloperRole: false,
     maxTokensField: "max_tokens",
   };
-  if (variant.reasoning) {
-    compat.requiresReasoningContentOnAssistantMessages = true;
-  }
-
   const multiplier = variant.costMultiplier ?? 1;
   const scale = (value: number): number =>
     multiplier === 1 ? value : Number((value * multiplier).toFixed(6));

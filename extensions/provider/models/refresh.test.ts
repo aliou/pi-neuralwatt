@@ -89,7 +89,7 @@ function scopedStored(
   return {
     models,
     checkedAt,
-    ...(scope !== "legacy" ? { catalogKey: `${scope} v1` } : {}),
+    ...(scope !== "legacy" ? { catalogKey: `${scope} v2` } : {}),
   };
 }
 
@@ -368,7 +368,7 @@ describe("createNeuralwattRefreshModels", () => {
       },
     });
 
-    expect((writes[0] as { catalogKey?: string }).catalogKey).toBe("key v1");
+    expect((writes[0] as { catalogKey?: string }).catalogKey).toBe("key v2");
   });
 
   it("refetches when the store is stale (beyond TTL)", async () => {

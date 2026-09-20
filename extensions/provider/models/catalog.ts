@@ -35,9 +35,8 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
   const compat: NonNullable<ProviderModelConfig["compat"]> = {
     supportsDeveloperRole: meta.capabilities.developer_role,
     maxTokensField: "max_tokens",
+    ...COMPAT_OVERRIDES[model.id],
   };
-  if (reasoning) compat.requiresReasoningContentOnAssistantMessages = true;
-  Object.assign(compat, COMPAT_OVERRIDES[model.id]);
 
   const contextWindow = model.max_model_len;
 

@@ -19,7 +19,7 @@ export const MODEL_STORE_TTL_MS = 4 * 60 * 60 * 1000;
  * must not be replayed for an anonymous user. Matches the anonymous-key
  * convention in src/lib/neuralwatt-api.ts (authHeaders).
  */
-const CATALOG_SCOPE_VERSION = "v1";
+const CATALOG_SCOPE_VERSION = "v2";
 type CatalogScope = "public" | "key";
 
 type ScopedModelsStoreEntry = ModelsStoreEntry & { catalogKey?: string };

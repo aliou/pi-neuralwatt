@@ -9,10 +9,12 @@ import {
 // Pricing, capabilities, and limits are sourced from the API metadata fields;
 // `maxTokens` is `metadata.limits.max_output_tokens ?? max_model_len`.
 //
-// Each reasoning family snapshots its `reasoning.supported_efforts` +
-// `reasoning.mandatory` from the API; `buildThinkingLevelMap` turns that into
-// the Pi thinking level map by identity (no aliasing). See `models.test.ts`
-// for the drift check against the live catalog.
+// Each reasoning family snapshots its `reasoning.supported_efforts`,
+// `reasoning.mandatory`, and `reasoning.effort_aliases` from the API;
+// `buildThinkingLevelMap` turns that into the Pi thinking level map by
+// identity (no aliasing), while the anthropic-messages surface map resolves
+// unsupported levels through the aliases. See `models.test.ts` for the drift
+// check against the live catalog.
 
 // DeepSeek V4 Flash: efforts max/high/none, not mandatory.
 // https://api-docs.deepseek.com/guides/thinking_mode/
@@ -22,6 +24,24 @@ const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "none"],
     mandatory: false,
+    effort_aliases: {
+      xhigh: "max",
+      medium: "high",
+      low: "high",
+      minimal: "high",
+    },
+  },
+};
+
+// DeepSeek. V4.1 Flash is vision-capable, unlike V4 Flash, and admits
+// reasoning levels up to `xhigh`. Not mandatory (off defaults).
+const DEEPSEEK_V4_1_FLASH: NeuralwattModelFamily = {
+  cost: { input: 0.15, output: 0.6, cacheRead: 0.015 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["max", "xhigh", "high", "low", "none"],
+    mandatory: false,
+    effort_aliases: { medium: "high", minimal: "low" },
   },
 };
 
@@ -37,6 +57,13 @@ const GEMMA_4: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "none"],
     mandatory: false,
+    effort_aliases: {
+      xhigh: "max",
+      high: "max",
+      medium: "max",
+      low: "max",
+      minimal: "max",
+    },
   },
 };
 
@@ -48,6 +75,7 @@ const GLM_5_3: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "low"],
     mandatory: true,
+    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
   },
 };
 
@@ -60,6 +88,7 @@ const GLM_5_3_FLASH: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "low"],
     mandatory: true,
+    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
   },
 };
 
@@ -72,6 +101,7 @@ const KIMI_K3: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["max", "high", "low", "none"],
     mandatory: false,
+    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
   },
 };
 
@@ -93,6 +123,13 @@ const QWEN_3_6_35B: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["high", "none"],
     mandatory: false,
+    effort_aliases: {
+      max: "high",
+      xhigh: "high",
+      medium: "high",
+      low: "high",
+      minimal: "high",
+    },
   },
 };
 
@@ -105,6 +142,7 @@ const QWEN_3_8_27B: NeuralwattModelFamily = {
   reasoningMetadata: {
     supported_efforts: ["xhigh", "medium", "low", "none"],
     mandatory: false,
+    effort_aliases: { max: "xhigh", high: "xhigh", minimal: "low" },
   },
 };
 
@@ -116,14 +154,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         id: "deepseek-v4-flash",
         name: "DeepSeek V4 Flash",
         contextWindow: 1048560,
-        maxOutputTokens: 65536,
+        maxOutputTokens: 393216,
         reasoning: true,
       },
       {
         id: "deepseek-v4-flash-flex",
         name: "DeepSeek V4 Flash (flex)",
         contextWindow: 1048560,
-        maxOutputTokens: 65536,
+        maxOutputTokens: 393216,
         reasoning: true,
         costMultiplier: 0.65,
       },
@@ -131,8 +169,28 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         id: "deepseek-v4-flash-speed",
         name: "DeepSeek V4 Flash (Speed)",
         contextWindow: 1048560,
-        maxOutputTokens: 65536,
+        maxOutputTokens: 393216,
         reasoning: true,
+      },
+    ],
+  ],
+  [
+    DEEPSEEK_V4_1_FLASH,
+    [
+      {
+        id: "deepseek-v4.1-flash",
+        name: "DeepSeek V4.1 Flash",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
+      },
+      {
+        id: "deepseek-v4.1-flash-flex",
+        name: "DeepSeek V4.1 Flash (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
+        costMultiplier: 0.65,
       },
     ],
   ],

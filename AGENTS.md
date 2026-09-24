@@ -128,6 +128,8 @@ The catalog is built from `/v1/models` at runtime by `extensions/provider/models
 
 When `provider.api` is `anthropic-messages`, the same canonical catalog is stamped at read time by `api/anthropic-messages.ts` (origin-root baseUrl because the Anthropic SDK appends `/v1/messages` itself, `forceAdaptiveThinking` compat, thinking map built by `buildAnthropicThinkingLevelMap` from the reasoning contract's `supported_efforts` + `effort_aliases`; aliases are needed here because vLLM's effort enum accepts only native values). Reasoning off is expressed as `chat_template_kwargs.enable_thinking=false` by that module's payload injector, because the vLLM-backed endpoint accepts but ignores `thinking:{type:"disabled"}`. The api is resolved once at extension load; `/neuralwatt:settings` tells the user to run `/reload` after changing it.
 
+The openai-completions surface has its own payload injector in `api/openai-completions.ts` for reasoning replay: the API streams chain-of-thought in `reasoning`, pi-ai records that field name as the thinking signature and replays prior thinking under it, but the served chat templates render only `reasoning_content`, so the injector renames the field on the wire. It is a move, not a copy — the gateway prefers an empty `reasoning_content` over a populated `reasoning` when both are present.
+
 Drift between the fallback and the live API is a non-blocking, notify-me concern (the runtime syncs from the API). `scripts/check-models.ts` (`pnpm check:models`) compares them and exits 1 with a markdown report on drift; the `model-sync` workflow runs it twice daily and opens a `model-sync` issue. The deterministic invariant, derivation, and unit tests in `models.test.ts` stay in the blocking CI suite.
 
 ### Tests vs drift check

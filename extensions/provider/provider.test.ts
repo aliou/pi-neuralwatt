@@ -345,7 +345,7 @@ describe("api delegation", () => {
     return vi.fn<AnyStreamSimple>(() => createAssistantMessageEventStream());
   }
 
-  it("passes caller options through on the openai api", () => {
+  it("chains the reasoning replay injector on the openai api", async () => {
     const openaiStream = fakeStreamSimple();
     const messagesStream = fakeStreamSimple();
     const onPayload = vi.fn();
@@ -364,7 +364,12 @@ describe("api delegation", () => {
 
     expect(openaiStream).toHaveBeenCalledOnce();
     expect(messagesStream).not.toHaveBeenCalled();
-    expect(openaiStream.mock.calls[0]?.[2]?.onPayload).toBe(onPayload);
+    // The caller's onPayload is chained into the replay injector, not passed
+    // by identity; invoking the chained hook invokes the caller's.
+    const chained = openaiStream.mock.calls[0]?.[2]?.onPayload;
+    expect(typeof chained).toBe("function");
+    await chained?.({}, provider.getModels()[0] as never);
+    expect(onPayload).toHaveBeenCalledOnce();
   });
 
   it("chains the reasoning injector on the anthropic api", () => {

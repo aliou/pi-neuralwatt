@@ -1,5 +1,12 @@
 # @aliou/pi-extension-template
 
+## 0.16.2
+
+### Patch Changes
+
+- 4bcbe4c: Fix reasoning replay on the openai-completions surface: prior-turn chain-of-thought is replayed in the `reasoning` field (the field K3 streams), but the served chat templates only render `reasoning_content`, so the model never saw its earlier thinking on any turn after the first. The surface now renames `reasoning` to `reasoning_content` on replayed assistant messages. This is a move, not a copy — an empty `reasoning_content` next to a populated `reasoning` is preferred by the gateway and would drop the replay again.
+- b94900e: Update the qwen3.6-35b family (standard, fast, flex) context window and max output tokens in the offline fallback table from 131056 to 262128 to match the live Neuralwatt API.
+
 ## 0.16.1
 
 ### Patch Changes

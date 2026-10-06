@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.16.3
+
+### Patch Changes
+
+- 03eda9d: Sync the offline fallback model table with the live API: add mimo-v2.6-pro, the nw-large/nw-flash/nw-small tracking aliases (with flex variants), and deepseek-v4.1-flash-speed.
+
 ## 0.16.2
 
 ### Patch Changes

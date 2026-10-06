@@ -116,6 +116,62 @@ const KIMI_K2_7_CODE: NeuralwattModelFamily = {
   },
 };
 
+// Xiaomi. MiMo-V2.6-Pro only has two reasoning behaviors: `high` (default)
+// and `none`; the API aliases every other effort onto those, with `minimal`
+// landing on `none`.
+const MIMO_V2_6_PRO: NeuralwattModelFamily = {
+  cost: { input: 0.87, output: 1.74, cacheRead: 0.036 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["high", "none"],
+    mandatory: false,
+    effort_aliases: {
+      max: "high",
+      xhigh: "high",
+      medium: "high",
+      low: "high",
+      minimal: "none",
+    },
+  },
+};
+
+// Neuralwatt tracking alias: the current large model, today Kimi K3. The
+// alias moves to newer models over time, so it snapshots K3's contract
+// instead of sharing the KIMI_K3 family.
+const NW_LARGE: NeuralwattModelFamily = {
+  cost: { input: 3, output: 15, cacheRead: 0.3 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["max", "high", "low", "none"],
+    mandatory: false,
+    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
+  },
+};
+
+// Neuralwatt tracking alias: the current cheap, fast model, today DeepSeek
+// V4.1 Flash. Same moving-alias caveat as NW_LARGE.
+const NW_FLASH: NeuralwattModelFamily = {
+  cost: { input: 0.15, output: 0.6, cacheRead: 0.015 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["max", "xhigh", "high", "low", "none"],
+    mandatory: false,
+    effort_aliases: { medium: "high", minimal: "low" },
+  },
+};
+
+// Neuralwatt tracking alias: the current small model, today Qwen3.8-27B.
+// Same moving-alias caveat as NW_LARGE.
+const NW_SMALL: NeuralwattModelFamily = {
+  cost: { input: 0.45, output: 3.2, cacheRead: 0.25 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["xhigh", "medium", "low", "none"],
+    mandatory: false,
+    effort_aliases: { max: "xhigh", high: "xhigh", minimal: "low" },
+  },
+};
+
 // Qwen. Qwen3.6 35B only advertises `high` and `none`.
 const QWEN_3_6_35B: NeuralwattModelFamily = {
   cost: { input: 0.29, output: 1.15, cacheRead: 0.029 },
@@ -191,6 +247,13 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         maxOutputTokens: 393216,
         reasoning: true,
         costMultiplier: 0.65,
+      },
+      {
+        id: "deepseek-v4.1-flash-speed",
+        name: "DeepSeek V4.1 Flash (Speed)",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
       },
     ],
   ],
@@ -297,6 +360,78 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         name: "Kimi K2.7 Code (flex)",
         contextWindow: 262128,
         maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: 0.65,
+      },
+    ],
+  ],
+  [
+    MIMO_V2_6_PRO,
+    [
+      {
+        id: "mimo-v2.6-pro",
+        name: "MiMo-V2.6-Pro",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
+      },
+    ],
+  ],
+  [
+    NW_LARGE,
+    [
+      {
+        id: "nw-large",
+        name: "Neuralwatt Large",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "nw-large-flex",
+        name: "Neuralwatt Large (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: 0.65,
+      },
+    ],
+  ],
+  [
+    NW_FLASH,
+    [
+      {
+        id: "nw-flash",
+        name: "Neuralwatt Flash",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
+      },
+      {
+        id: "nw-flash-flex",
+        name: "Neuralwatt Flash (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
+        costMultiplier: 0.65,
+      },
+    ],
+  ],
+  [
+    NW_SMALL,
+    [
+      {
+        id: "nw-small",
+        name: "Neuralwatt Small",
+        contextWindow: 262128,
+        maxOutputTokens: 131072,
+        reasoning: true,
+      },
+      {
+        id: "nw-small-flex",
+        name: "Neuralwatt Small (flex)",
+        contextWindow: 262128,
+        maxOutputTokens: 131072,
         reasoning: true,
         costMultiplier: 0.65,
       },

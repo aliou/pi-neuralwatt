@@ -375,6 +375,14 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         maxOutputTokens: 393216,
         reasoning: true,
       },
+      {
+        id: "mimo-v2.6-pro-flex",
+        name: "MiMo-V2.6-Pro (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: 393216,
+        reasoning: true,
+        costMultiplier: 0.65,
+      },
     ],
   ],
   [

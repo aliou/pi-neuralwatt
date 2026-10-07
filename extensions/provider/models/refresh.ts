@@ -1,4 +1,5 @@
 import type {
+  AnyModel,
   ModelsStoreEntry,
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
@@ -49,6 +50,15 @@ export type FetchNeuralwattApiModels = (
   signal?: AbortSignal,
 ) => Promise<readonly NeuralwattApiModel[]>;
 
+/**
+ * pi 0.99 widened `ModelsStoreEntry.models` to `AnyModel[]` (chat / image /
+ * classifier). This extension only ever persists its own chat configs, so
+ * store reads cast back to them.
+ */
+function asStoredChatModels(models: readonly AnyModel[]): NeuralwattModel[] {
+  return models as unknown as NeuralwattModel[];
+}
+
 function isFreshStoreEntry(
   entry: Readonly<ModelsStoreEntry> | undefined,
 ): entry is ModelsStoreEntry {
@@ -82,11 +92,11 @@ export function createNeuralwattRefreshModels(
       const stored = context.stored as ScopedModelsStoreEntry | undefined;
       if (!context.allowNetwork) {
         return stored !== undefined && catalogKeyMatches(stored, scope)
-          ? buildFromStore(stored.models)
+          ? buildFromStore(asStoredChatModels(stored.models))
           : fallback;
       }
       if (!context.force && isUsableStoreEntry(stored, scope)) {
-        return buildFromStore(stored.models);
+        return buildFromStore(asStoredChatModels(stored.models));
       }
       const apiModels = await fetchApiModels(apiKey, context.signal);
       context.signal.throwIfAborted();

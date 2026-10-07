@@ -105,10 +105,10 @@ export function createAnthropicMessagesApi(options?: {
     stream: (model, context, streamOptions) =>
       stream(model, context, withReasoning(streamOptions) as never),
     streamSimple: (model, context, simpleOptions) =>
-      (options?.streamSimple ?? streamSimple)(
+      ((options?.streamSimple ?? streamSimple) as AnyStreamSimple)(
         model,
         context,
-        withReasoning(simpleOptions) as never,
+        withReasoning(simpleOptions),
       ),
   };
 }

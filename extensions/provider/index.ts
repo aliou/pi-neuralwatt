@@ -30,7 +30,10 @@ import {
   parseRateLimitHeaders,
 } from "./rate-limit-error";
 import { updateQuotasFromSseComment } from "./sse-quotas";
-import { wrapNeuralwattStreamSimple } from "./stream-simple";
+import {
+  type NeuralwattStreamCallbacks,
+  wrapNeuralwattStreamSimple,
+} from "./stream-simple";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
 
@@ -42,7 +45,7 @@ function emitConfigUpdated(pi: ExtensionAPI): void {
 
 function registerNeuralwattProvider(
   pi: ExtensionAPI,
-  onSseQuota: (line: string) => void,
+  streamCallbacks: NeuralwattStreamCallbacks,
 ): void {
   const staticModels = buildNeuralwattProviderModels();
 
@@ -51,7 +54,7 @@ function registerNeuralwattProvider(
   const streamSimple = baseStreamSimple
     ? (wrapNeuralwattStreamSimple(
         baseStreamSimple as never,
-        onSseQuota,
+        streamCallbacks,
       ) as never)
     : undefined;
 
@@ -60,7 +63,7 @@ function registerNeuralwattProvider(
   const messagesStreamSimple = messagesBaseStreamSimple
     ? (wrapNeuralwattStreamSimple(
         messagesBaseStreamSimple as never,
-        onSseQuota,
+        streamCallbacks,
       ) as never)
     : undefined;
 
@@ -101,7 +104,17 @@ export default async function (pi: ExtensionAPI) {
     emitQuotas(quotas, "sse");
   };
 
-  registerNeuralwattProvider(pi, handleSseQuota);
+  // Rate-limit info captured by the per-request fetch wrapper from the most
+  // recent 429 response. Used in message_end to rewrite the generic error
+  // text with actionable details from Neuralwatt's response headers.
+  let pendingRateLimitInfo: NeuralwattRateLimitInfo | undefined;
+
+  registerNeuralwattProvider(pi, {
+    onSseQuota: handleSseQuota,
+    onRateLimit: (info) => {
+      pendingRateLimitInfo = info;
+    },
+  });
 
   const loadedFeatures = new Set<NeuralwattFeatureId>();
 
@@ -125,10 +138,6 @@ export default async function (pi: ExtensionAPI) {
     pi.events.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, { quotas, source });
   }
 
-  // Stored rate-limit info from the most recent 429 response.
-  // Used in message_end to rewrite the generic error text with
-  // actionable details from Neuralwatt's response headers.
-  let pendingRateLimitInfo: NeuralwattRateLimitInfo | undefined;
   let currentModelRegistry: ModelRegistry | undefined;
 
   pi.on("message_end", (event, ctx) => {
@@ -148,14 +157,14 @@ export default async function (pi: ExtensionAPI) {
       return { message };
     }
 
-    // Fallback for 429s where no layer-specific headers were captured. The
-    // streamSimple wrap (wrapNeuralwattStreamSimple) already formats a
-    // detailed message via formatRateLimitError when it captures headers;
-    // detect that case by the `"429 rate limit:"` prefix it emits and leave
-    // it untouched. This branch only fires for genuinely headerless 429s
-    // (e.g. anonymous playground limits, or a 429 from infra in front of
-    // Neuralwatt), since after_provider_response cannot observe 429s — the
-    // OpenAI SDK throws before Pi's onResponse hook runs.
+    // Fallback for 429s where no layer-specific headers were captured (the
+    // fetch wrapper reported `undefined` via onRateLimit, or the 429 came
+    // from infra in front of Neuralwatt). The `"429 rate limit:"` prefix
+    // guard skips messages the first branch already rewrote. On the
+    // openai-completions surface after_provider_response cannot observe
+    // 429s — the OpenAI SDK throws before Pi's onResponse hook runs — so
+    // this is the only repair path there; on anthropic-messages
+    // after_provider_response also feeds pendingRateLimitInfo directly.
     if (
       event.message.role === "assistant" &&
       event.message.stopReason === "error" &&

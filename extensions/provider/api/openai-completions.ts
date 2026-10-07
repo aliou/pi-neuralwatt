@@ -5,7 +5,7 @@ import {
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
-import type { NeuralwattModel } from "../models/catalog";
+import type { NeuralwattChatModel } from "../models/catalog";
 import type { AnyStreamSimple } from "../stream-simple";
 import type { NeuralwattApiHandler } from "./types";
 
@@ -60,7 +60,7 @@ export function createOpenAiCompletionsApi(options?: {
   });
 
   return {
-    stampModels: (models: NeuralwattModel[]) =>
+    stampModels: (models: NeuralwattChatModel[]) =>
       models.map((model) => {
         const { reasoningContract: _reasoningContract, ...compiled } = model;
         return {

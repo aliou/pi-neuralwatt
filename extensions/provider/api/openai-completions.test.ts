@@ -11,12 +11,12 @@ import {
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
-import type { NeuralwattModel } from "../models/catalog";
+import type { NeuralwattChatModel } from "../models/catalog";
 import { NEURALWATT_MODELS } from "../models/public-models";
 import type { AnyStreamSimple } from "../stream-simple";
 import { createOpenAiCompletionsApi } from "./openai-completions";
 
-const canonicalModel: NeuralwattModel = {
+const canonicalModel: NeuralwattChatModel = {
   id: "nw/static",
   name: "nw/static",
   reasoning: false,
@@ -26,7 +26,7 @@ const canonicalModel: NeuralwattModel = {
   maxTokens: 16_384,
 };
 
-const reasoningModel: NeuralwattModel = {
+const reasoningModel: NeuralwattChatModel = {
   ...canonicalModel,
   id: "nw/reasoning",
   reasoning: true,
@@ -205,7 +205,7 @@ describe("end-to-end replay through pi-ai", () => {
     const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3");
     if (!k3) throw new Error("kimi-k3 missing from the fallback catalog");
     const [model] = createOpenAiCompletionsApi().stampModels([
-      k3 as NeuralwattModel,
+      k3 as NeuralwattChatModel,
     ]);
 
     const turn1: AssistantMessage = {

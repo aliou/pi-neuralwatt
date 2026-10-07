@@ -9,6 +9,31 @@ export type ProviderChatModelConfig = Extract<
   { type?: "chat" }
 >;
 
+/**
+ * Classifier slice of pi-coding-agent's `ProviderModelConfig` union.
+ * Neuralwatt decision models (`task: "decision"` in `/v1/models`) compile to
+ * this member.
+ */
+export type ProviderClassifierModelConfig = Extract<
+  ProviderModelConfig,
+  { type: "classifier" }
+>;
+
+/**
+ * Classifier API Neuralwatt decision models are stamped with. The wire
+ * protocol is TypeSafe System One (`POST {baseUrl}/systemone`), implemented
+ * in `api/system-one.ts`.
+ */
+export const NEURALWATT_SYSTEM_ONE_API = "typesafe-system-one" as const;
+
+/**
+ * A compiled Neuralwatt decision model. `api` is pinned to the System One
+ * classifier API: decision models only serve `/v1/systemone`, never chat.
+ */
+export type NeuralwattClassifierModel = ProviderClassifierModelConfig & {
+  api: typeof NEURALWATT_SYSTEM_ONE_API;
+};
+
 export type ThinkingLevelMap = NonNullable<
   ProviderChatModelConfig["thinkingLevelMap"]
 >;

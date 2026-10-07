@@ -6,7 +6,7 @@ import {
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
 import { buildAnthropicThinkingLevelMap } from "../models/build";
-import type { NeuralwattModel } from "../models/catalog";
+import type { NeuralwattChatModel } from "../models/catalog";
 import type { AnyStreamSimple } from "../stream-simple";
 import type { NeuralwattApiHandler } from "./types";
 
@@ -61,7 +61,7 @@ function toMessagesBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/v1\/?$/, "");
 }
 
-function stampAnthropicModels(models: NeuralwattModel[]) {
+function stampAnthropicModels(models: NeuralwattChatModel[]) {
   return models.map((model) => {
     const { reasoningContract, ...compiled } = model;
     // No retained contract: the identity map is the alias-free special case.

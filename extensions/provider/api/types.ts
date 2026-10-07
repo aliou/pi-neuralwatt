@@ -6,11 +6,15 @@ import type {
   StreamOptions,
   TranscriptContext,
 } from "@earendil-works/pi-ai";
-import type { NeuralwattModel } from "../models/catalog";
+import type { NeuralwattChatModel } from "../models/catalog";
 
-/** One Neuralwatt API surface: model stamping plus submission plumbing. */
+/**
+ * One Neuralwatt API surface: model stamping plus chat submission plumbing.
+ * Surfaces are chat-only: decision models (classifiers) are stamped in
+ * `api/system-one.ts` and join the provider through `getAllModels()`.
+ */
 export interface NeuralwattApiHandler {
-  stampModels(models: NeuralwattModel[]): Model<Api>[];
+  stampModels(models: NeuralwattChatModel[]): Model<Api>[];
   stream(
     model: Model<Api>,
     context: TranscriptContext,

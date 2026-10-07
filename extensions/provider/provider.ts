@@ -2,6 +2,7 @@ import type { Provider } from "@earendil-works/pi-ai";
 import type { NeuralwattApi } from "../../src/config";
 import { createAnthropicMessagesApi } from "./api/anthropic-messages";
 import { createOpenAiCompletionsApi } from "./api/openai-completions";
+import { classify, stampClassifierModels } from "./api/system-one";
 import type { NeuralwattApiHandler } from "./api/types";
 import {
   NEURALWATT_API_KEY_ENV,
@@ -13,6 +14,7 @@ import type { NeuralwattModel } from "./models/catalog";
 import {
   buildNeuralwattProviderModelsFromApi,
   buildNeuralwattProviderModelsFromStore,
+  partitionNeuralwattModels,
 } from "./models/catalog";
 import {
   createNeuralwattRefreshModels,
@@ -102,7 +104,21 @@ export function createNeuralwattProvider(
         },
       },
     },
-    getModels: () => handler.stampModels(canonicalModels),
+    // Chat catalog only (drives /model). Decision models are classifiers and
+    // must never appear here.
+    getModels: () =>
+      handler.stampModels(partitionNeuralwattModels(canonicalModels).chat),
+    // Full catalog: surface-stamped chat models plus System One classifiers.
+    getAllModels: () => {
+      const { chat, classifiers } = partitionNeuralwattModels(canonicalModels);
+      return [
+        ...handler.stampModels(chat),
+        ...stampClassifierModels(classifiers),
+      ];
+    },
+    // System One classification (api/typesafe-system-one). Never rejects; an
+    // unsupported classifier api comes back as an error result.
+    classify: (model, context, options) => classify(model, context, options),
     refreshModels: async (context) => {
       const models = await refreshCatalog(context);
       await context.publish({

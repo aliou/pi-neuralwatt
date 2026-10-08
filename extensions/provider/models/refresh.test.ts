@@ -8,11 +8,11 @@ import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import {
   buildNeuralwattProviderModelsFromApi,
   buildNeuralwattProviderModelsFromStore,
-  type NeuralwattModel,
+  type NeuralwattChatModel,
 } from "./catalog";
 import { createNeuralwattRefreshModels, MODEL_STORE_TTL_MS } from "./refresh";
 
-const staticModel: NeuralwattModel = {
+const staticModel: NeuralwattChatModel = {
   id: "nw/static",
   name: "nw/static",
   reasoning: false,

@@ -1,6 +1,8 @@
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import {
   buildThinkingLevelMap,
+  NEURALWATT_SYSTEM_ONE_API,
+  type NeuralwattClassifierModel,
   type NeuralwattCompiledModel,
   type ProviderChatModelConfig,
   resolveMaxTokens,
@@ -8,7 +10,31 @@ import {
 } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
 
-export type NeuralwattModel = NeuralwattCompiledModel;
+export type NeuralwattChatModel = NeuralwattCompiledModel;
+
+export type NeuralwattModel = NeuralwattChatModel | NeuralwattClassifierModel;
+
+export function isNeuralwattClassifierModel(
+  model: NeuralwattModel,
+): model is NeuralwattClassifierModel {
+  return model.type === "classifier";
+}
+
+export function partitionNeuralwattModels(models: readonly NeuralwattModel[]): {
+  chat: NeuralwattChatModel[];
+  classifiers: NeuralwattClassifierModel[];
+} {
+  const chat: NeuralwattChatModel[] = [];
+  const classifiers: NeuralwattClassifierModel[] = [];
+  for (const model of models) {
+    if (isNeuralwattClassifierModel(model)) {
+      classifiers.push(model);
+    } else {
+      chat.push(model);
+    }
+  }
+  return { chat, classifiers };
+}
 
 // Chat-template thinking: the API exposes a `reasoning` block, but the
 // underlying mechanism is chat_template_kwargs, so Pi needs the mapping.
@@ -23,7 +49,36 @@ const COMPAT_OVERRIDES: Partial<
   },
 };
 
-function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
+function apiModelToClassifierModel(
+  model: NeuralwattApiModel,
+): NeuralwattClassifierModel {
+  const meta = model.metadata;
+  if (!meta)
+    throw new Error(
+      `Neuralwatt API returned model "${model.id}" without metadata`,
+    );
+
+  return {
+    type: "classifier",
+    api: NEURALWATT_SYSTEM_ONE_API,
+    id: model.id,
+    name: meta.display_name ?? model.id,
+    input: meta.capabilities.vision
+      ? (["text", "image"] as const)
+      : (["text"] as const),
+    cost: {
+      input: meta.pricing.input_per_million,
+      output: meta.pricing.output_per_million,
+      cacheRead: meta.pricing.cached_input_per_million ?? 0,
+      cacheWrite: meta.pricing.cached_output_per_million ?? 0,
+    },
+    contextWindow: model.max_model_len,
+  };
+}
+
+function apiModelToProviderModel(
+  model: NeuralwattApiModel,
+): NeuralwattChatModel {
   const meta = model.metadata;
   if (!meta)
     throw new Error(
@@ -83,13 +138,18 @@ export function buildNeuralwattProviderModelsFromApi(
         m.metadata &&
         !m.metadata.deprecated &&
         !m.metadata.pricing.pricing_tbd &&
-        // Exclude non-chat models (e.g. embeddings) by task
         !(
           m.metadata.capabilities.task &&
-          !["chat", "completions"].includes(m.metadata.capabilities.task)
+          !["chat", "completions", "decision"].includes(
+            m.metadata.capabilities.task,
+          )
         ),
     )
-    .map(apiModelToProviderModel);
+    .map((m) =>
+      m.metadata?.capabilities.task === "decision"
+        ? apiModelToClassifierModel(m)
+        : apiModelToProviderModel(m),
+    );
   return models;
 }
 

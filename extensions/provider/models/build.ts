@@ -9,6 +9,17 @@ export type ProviderChatModelConfig = Extract<
   { type?: "chat" }
 >;
 
+export type ProviderClassifierModelConfig = Extract<
+  ProviderModelConfig,
+  { type: "classifier" }
+>;
+
+export const NEURALWATT_SYSTEM_ONE_API = "typesafe-system-one" as const;
+
+export type NeuralwattClassifierModel = ProviderClassifierModelConfig & {
+  api: typeof NEURALWATT_SYSTEM_ONE_API;
+};
+
 export type ThinkingLevelMap = NonNullable<
   ProviderChatModelConfig["thinkingLevelMap"]
 >;

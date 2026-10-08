@@ -6,7 +6,10 @@ import {
   type NeuralwattReasoningMapSource,
   resolveMaxTokens,
 } from "./models/build";
-import { buildNeuralwattProviderModelsFromApi } from "./models/catalog";
+import {
+  buildNeuralwattProviderModelsFromApi,
+  type NeuralwattChatModel,
+} from "./models/catalog";
 
 describe("Neuralwatt models", () => {
   it("should never allow more output tokens than context", () => {
@@ -168,7 +171,7 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
     // Assert chat model is present
     const chatModels = models.filter((m) => m.id === "chat-model-7b");
     expect(chatModels.length).toBe(1);
-    const chatModel = chatModels[0];
+    const chatModel = chatModels[0] as NeuralwattChatModel;
 
     // Assert chat model has valid maxTokens (> 0)
     expect(chatModel.maxTokens).toBeGreaterThan(0);

@@ -95,9 +95,6 @@ describe("reasoning replay injector", () => {
     id: "nw/knobless",
   } as unknown as Model<string>;
 
-  // Fixture knob: no current catalog model carries one (the effective knob
-  // table is empty as of the 2026-10-07 validation), but the machinery must
-  // keep working for the next template-drift transition.
   const renameModel = {
     ...reasoningModel,
     id: "nw/knobbed",
@@ -116,7 +113,6 @@ describe("reasoning replay injector", () => {
       ],
     };
     const result = (await call(body)) as TestBody;
-    // Same key set and values: nothing added, nothing moved.
     expect(result).toEqual(body);
     expect(result.messages?.[1]).toEqual({
       role: "assistant",
@@ -272,23 +268,10 @@ function makeSseResponse(events: string[]): Response {
   });
 }
 
-// End-to-end through pi-ai's real openai-completions replay path: the prior
-// assistant turn carries a thinking block with the `reasoning` signature pi-ai
-// records from Neuralwatt streams (no mocks of pi-ai itself; only fetch is
-// fake). Parametrized over EVERY reasoning model in the fallback catalog,
-// stamped via the real build path (`buildNeuralwattProviderModels`) so any
-// replay knob is applied exactly as at runtime.
-//
-// With the shipped catalog data (live validation 2026-10-07) no model carries
-// a knob: the NEW wire shape for every reasoning model is `reasoning` going
-// out unchanged and NO `reasoning_content` rename — the exact opposite of the
-// old uniform-rename behavior this file used to pin.
 const REASONING_FALLBACK_MODELS: NeuralwattChatModel[] = (
   buildNeuralwattProviderModels() as NeuralwattChatModel[]
 ).filter((model) => model.reasoning);
 
-// Catalog-coverage guard: the parametrized set must be the full reasoning
-// half of the fallback catalog, and it must never silently empty.
 it("covers every reasoning model in the fallback catalog", () => {
   expect(REASONING_FALLBACK_MODELS.length).toBeGreaterThan(0);
   expect(REASONING_FALLBACK_MODELS.map((model) => model.id).sort()).toEqual(
@@ -305,7 +288,6 @@ describe("end-to-end replay through pi-ai (every reasoning fallback model)", () 
     const [model] = createOpenAiCompletionsApi().stampModels([
       fallbackModel as NeuralwattChatModel,
     ]);
-    // The real build path must not have attached a replay knob today.
     expect(fallbackModel.reasoningReplay).toBeUndefined();
 
     const turn1: AssistantMessage = {
@@ -332,7 +314,6 @@ describe("end-to-end replay through pi-ai (every reasoning fallback model)", () 
         {
           type: "thinking",
           thinking: "The user asks me to think briefly then reply with ok.",
-          // What pi-ai records when Neuralwatt streams reasoning in `reasoning`.
           thinkingSignature: "reasoning",
         },
         { type: "text", text: "ok" },

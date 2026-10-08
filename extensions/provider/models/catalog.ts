@@ -78,10 +78,6 @@ function apiModelToProviderModel(
   const compat: NonNullable<ProviderChatModelConfig["compat"]> = {
     supportsDeveloperRole: meta.capabilities.developer_role,
     maxTokensField: "max_tokens",
-    // No compat overrides: the former Qwen3.8 chat-template override was dead
-    // code (keyed by `huggingface_id`, never by `model.id`) and redundant —
-    // `reasoning_effort: "none"` disables thinking on that model, which the
-    // thinkingLevelMap already emits for `off`. Verified live 2026-10-07.
   };
 
   const contextWindow = model.max_model_len;
@@ -108,8 +104,6 @@ function apiModelToProviderModel(
     result.thinkingLevelMap = buildThinkingLevelMap(
       meta.reasoning,
     ) as ThinkingLevelMap;
-    // Kept for anthropic-messages stamping, which resolves levels through
-    // `effort_aliases`.
     result.reasoningContract = meta.reasoning;
   }
 
@@ -147,8 +141,6 @@ export function buildNeuralwattProviderModelsFromApi(
 export function buildNeuralwattProviderModelsFromStore(
   storedModels: readonly NeuralwattModel[],
 ): NeuralwattModel[] {
-  // Re-apply the decision table to chat entries so a stale knob persisted by
-  // an older build is overwritten on restore. Classifier entries pass through.
   return storedModels.map((model) =>
     isNeuralwattClassifierModel(model)
       ? model

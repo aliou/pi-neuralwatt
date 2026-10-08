@@ -25,6 +25,7 @@ export const REASONING_REPLAY_DECISIONS: Readonly<
   "qwen-3.8-27b": { kind: "no-rewrite", verified: "2026-10-07" },
   "qwen-3.8-27b-flex": { kind: "no-rewrite", verified: "2026-10-07" },
   "mimo-v2.6-pro": { kind: "no-rewrite", verified: "2026-10-07" },
+  "mimo-v2.6-pro-flex": { kind: "no-rewrite", verified: "2026-10-07" },
   "nw-large": { kind: "no-rewrite", verified: "2026-10-07" },
   "nw-large-flex": { kind: "no-rewrite", verified: "2026-10-07" },
   "nw-flash": { kind: "no-rewrite", verified: "2026-10-07" },

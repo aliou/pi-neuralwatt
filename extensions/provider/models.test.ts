@@ -66,8 +66,6 @@ describe("Neuralwatt models", () => {
 
     for (const model of reasoningModels) {
       expect(model.thinkingLevelMap, model.id).toBeDefined();
-      // Every key must be explicit: Pi treats absence (undefined) as enabled
-      // for non-xhigh/max levels, so a derived map must never leave holes.
       for (const level of allLevels) {
         expect(model.thinkingLevelMap, `${model.id}.${level}`).toHaveProperty(
           level,
@@ -153,7 +151,6 @@ describe("reasoning replay decisions (issue #111 CI invariant)", () => {
 
 describe("buildNeuralwattProviderModelsFromApi", () => {
   it("should exclude embeddings models and never emit maxTokens: 0", () => {
-    // Fixture: API-shaped payload with an embeddings model and a chat model
     const apiModels = [
       {
         id: "qwen3-embedding-8b",
@@ -240,26 +237,20 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
       },
     ];
 
-    // Build models from API
     const models = buildNeuralwattProviderModelsFromApi(apiModels);
 
-    // Assert embeddings model is excluded (no entries with id containing "embedding")
     const embeddingModels = models.filter((m) => m.id.includes("embedding"));
     expect(embeddingModels.length).toBe(0);
 
-    // Assert chat model is present
     const chatModels = models.filter((m) => m.id === "chat-model-7b");
     expect(chatModels.length).toBe(1);
     const chatModel = chatModels[0] as NeuralwattChatModel;
 
-    // Assert chat model has valid maxTokens (> 0)
     expect(chatModel.maxTokens).toBeGreaterThan(0);
     expect(chatModel.maxTokens).toBeLessThanOrEqual(chatModel.contextWindow);
 
-    // Assert chat model has valid cost.output (> 0)
     expect(chatModel.cost.output).toBeGreaterThan(0);
 
-    // Assert resolveMaxTokens treats 0 as null (fallback to contextWindow)
     expect(resolveMaxTokens(0, 4096)).toBe(4096);
     expect(resolveMaxTokens(null, 4096)).toBe(4096);
     expect(resolveMaxTokens(1024, 4096)).toBe(1024);
@@ -279,8 +270,6 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
           provider: "neuralwatt",
           huggingface_id: null,
           pricing: {
-            // Already-discounted flex prices; the multiplier field is
-            // provenance only and must not be applied again.
             input_per_million: 3.25,
             output_per_million: 6.5,
             cached_input_per_million: 0.65,
@@ -320,13 +309,6 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
   });
 
   it("builds qwen-3.8-27b without the (removed) dead chat-template compat override", () => {
-    // The former COMPAT_OVERRIDES entry was keyed by the huggingface_id
-    // ("Qwen/Qwen3.8-27B-FP8") instead of model.id ("qwen-3.8-27b"), so it
-    // never applied — and it was redundant anyway: `reasoning_effort: "none"`
-    // (emitted for thinking level `off` via the thinkingLevelMap) disables
-    // thinking on this model identically (live-verified 2026-10-07). This test
-    // pins that the API-built model relies on the effort path, not a
-    // chat_template_kwargs override.
     const models = buildNeuralwattProviderModelsFromApi([
       {
         id: "qwen-3.8-27b",
@@ -392,8 +374,6 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
         ? qwen.compat.chatTemplateKwargs
         : undefined,
     ).toBeUndefined();
-    // The `off` thinking level still resolves to the effort param, which is
-    // what actually disables thinking.
     expect(qwen?.thinkingLevelMap?.off).toBe("none");
   });
 });

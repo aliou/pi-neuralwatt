@@ -18,9 +18,6 @@ import {
 import type { FetchNeuralwattApiModels } from "./models/refresh";
 import { createNeuralwattProvider } from "./provider";
 
-// Fixture mirroring the real keyed /v1/models catalog (fetched 2026-10-07
-// through the Aperture neuralwatt connector with a live key): chat models,
-// an embedding model, and the clef-flash decision model.
 const chatApiModel = {
   id: "kimi-k3",
   object: "model",
@@ -61,8 +58,6 @@ const chatApiModel = {
   },
 } as NeuralwattApiModel;
 
-// Verbatim real catalog entry for the decision model. The live API sends
-// `"reasoning": null`, which the catalog type narrows to optional — cast.
 const clefFlashApiModel = {
   id: "clef-flash",
   object: "model",
@@ -188,7 +183,6 @@ describe("buildNeuralwattProviderModelsFromApi (decision models)", () => {
       clefFlashApiModel,
     ]);
 
-    // Embed models stay excluded; chat + decision are kept.
     expect(models.map((m) => m.id)).toEqual(["kimi-k3", "clef-flash"]);
 
     const classifier = models.find(isNeuralwattClassifierModel);
@@ -201,7 +195,6 @@ describe("buildNeuralwattProviderModelsFromApi (decision models)", () => {
       cost: { input: 0.18, output: 0, cacheRead: 0.018, cacheWrite: 0 },
       contextWindow: 262_128,
     });
-    // No chat-only plumbing on a classifier.
     expect(classifier).not.toHaveProperty("reasoning");
     expect(classifier).not.toHaveProperty("maxTokens");
     expect(classifier).not.toHaveProperty("compat");
@@ -236,8 +229,6 @@ describe("provider classifier registration", () => {
         expect(all.map((m) => m.id)).toEqual(["kimi-k3", "clef-flash"]);
 
         const classifier = all.find((m) => m.type === "classifier");
-        // The classifier keeps the System One api even when the chat surface
-        // is anthropic-messages.
         expect(classifier).toMatchObject({
           type: "classifier",
           api: "typesafe-system-one",
@@ -265,13 +256,11 @@ describe("provider classifier registration", () => {
       fetchApiModels,
     });
 
-    // Before refresh: static catalog is chat-only.
     expect(provider.getAllModels?.().map((m) => m.id)).toEqual(["kimi-k3"]);
 
     await provider.refreshModels?.(createContext());
 
     expect(fetchApiModels).toHaveBeenCalled();
-    // Invariant: classifiers never appear in the chat catalog.
     expect(provider.getModels().map((m) => m.id)).toEqual(["kimi-k3"]);
     expect(provider.getAllModels?.().map((m) => m.id)).toEqual([
       "kimi-k3",
@@ -319,7 +308,6 @@ describe("provider classifier registration", () => {
     await provider.refreshModels?.(context);
 
     expect(fetchApiModels).not.toHaveBeenCalled();
-    // Round-tripped from the store, still partitioned correctly.
     expect(provider.getModels().map((m) => m.id)).toEqual(["kimi-k3"]);
     expect(provider.getAllModels?.().map((m) => m.id)).toEqual([
       "kimi-k3",

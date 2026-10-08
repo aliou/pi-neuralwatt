@@ -12,7 +12,6 @@ import { NEURALWATT_MODELS } from "./public-models";
 
 export type NeuralwattChatModel = NeuralwattCompiledModel;
 
-/** Classifier entries only ever come from a keyed `/v1/models` catalog; the fallback is chat-only. */
 export type NeuralwattModel = NeuralwattChatModel | NeuralwattClassifierModel;
 
 export function isNeuralwattClassifierModel(
@@ -126,7 +125,6 @@ function apiModelToProviderModel(
   return result;
 }
 
-// Anonymous catalogs never list decision models, so the fallback is chat-only.
 export function buildNeuralwattProviderModels(): NeuralwattModel[] {
   return NEURALWATT_MODELS.map((model) => ({ ...model }));
 }
@@ -140,8 +138,6 @@ export function buildNeuralwattProviderModelsFromApi(
         m.metadata &&
         !m.metadata.deprecated &&
         !m.metadata.pricing.pricing_tbd &&
-        // Decision models compile to classifiers; exclude every other
-        // non-chat task (e.g. embeddings).
         !(
           m.metadata.capabilities.task &&
           !["chat", "completions", "decision"].includes(

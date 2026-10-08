@@ -104,7 +104,6 @@ export function createNeuralwattProvider(
         },
       },
     },
-    // Chat catalog only (drives /model): decision models are classifiers and must never appear here.
     getModels: () =>
       handler.stampModels(partitionNeuralwattModels(canonicalModels).chat),
     getAllModels: () => {

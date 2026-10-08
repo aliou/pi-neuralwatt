@@ -8,8 +8,6 @@ import {
 import type { NeuralwattClassifierModel } from "../models/build";
 import { classify, stampClassifierModels } from "./system-one";
 
-// Compiled from the real authed /v1/models entry for clef-flash (probed
-// 2026-10-07 through the Aperture neuralwatt connector).
 const clefFlash: ClassifierModel<"typesafe-system-one"> = {
   type: "classifier",
   api: "typesafe-system-one",
@@ -39,10 +37,6 @@ const sentimentContext: ClassifierContext = {
   },
 };
 
-// Raw response captured live from POST https://api.neuralwatt.com/v1/systemone
-// with model clef-flash and the context above. The answers/usage pair is the
-// System One contract; the id/object/created/truncated/energy/cost envelope
-// fields are Neuralwatt additions the classifier layer must ignore.
 const realClefFlashResponse = {
   id: "systemone-9ff99f89a8ae43148252e83a2798eb64",
   object: "systemone",
@@ -117,7 +111,6 @@ describe("classify (System One)", () => {
     expect(result.provider).toBe(NEURALWATT_PROVIDER_ID);
     expect(result.model).toBe("clef-flash");
 
-    // Per-choice probabilities are preserved verbatim.
     expect(result.answers.sentiment).toEqual({
       type: "choice",
       choice: "positive",
@@ -125,8 +118,6 @@ describe("classify (System One)", () => {
       probabilities: { positive: 0.9181, negative: 0.034, neutral: 0.0479 },
     });
 
-    // Usage from the response envelope, priced at the catalog rates
-    // (177 input tokens @ $0.18/M; the live bill was $3.2e-05).
     expect(result.usage?.input).toBe(177);
     expect(result.usage?.output).toBe(0);
     expect(result.usage?.totalTokens).toBe(177);

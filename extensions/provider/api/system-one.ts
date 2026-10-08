@@ -18,14 +18,6 @@ import {
   type NeuralwattClassifierModel,
 } from "../models/build";
 
-/**
- * Neuralwatt decision models (e.g. `clef-flash`) speak TypeSafe's System One
- * protocol: `POST {baseUrl}/systemone` with `{ model, state, questions }`,
- * answering with `{ answers, usage }` plus Neuralwatt-specific energy/cost
- * fields the classifier layer ignores. Request/reply mapping (bool ↔ `noul`,
- * per-choice probabilities, usage pricing) is pi-ai's shared System One
- * implementation; this module only carries the Neuralwatt transport.
- */
 const transport: SystemOneTransport = {
   api: NEURALWATT_SYSTEM_ONE_API,
   label: "Neuralwatt System One API",
@@ -42,11 +34,9 @@ const transport: SystemOneTransport = {
   },
 };
 
-/** Never rejects; transport, protocol, and API-shape errors come back as an error `ClassifierResult`. */
 export const classify: ClassifierFunction = (model, context, options) =>
   classifySystemOne(transport, model, context, options);
 
-/** Same stamping on every chat surface: the api stays `typesafe-system-one` even on anthropic-messages. */
 export function stampClassifierModels(
   models: NeuralwattClassifierModel[],
 ): ClassifierModel<ClassifierApi>[] {

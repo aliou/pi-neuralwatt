@@ -16,7 +16,6 @@ export type ProviderClassifierModelConfig = Extract<
 
 export const NEURALWATT_SYSTEM_ONE_API = "typesafe-system-one" as const;
 
-/** Decision models only serve `/v1/systemone`, never chat. */
 export type NeuralwattClassifierModel = ProviderClassifierModelConfig & {
   api: typeof NEURALWATT_SYSTEM_ONE_API;
 };

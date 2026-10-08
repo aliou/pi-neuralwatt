@@ -115,12 +115,7 @@ describe("reasoning replay decisions (issue #111 CI invariant)", () => {
     }
   });
 
-  it("ships an empty effective knob table (2026-10-07 validation: no model needs a rewrite)", () => {
-    // Live validation found every reasoning family renders replayed thinking
-    // under `reasoning` as-is (or drops it entirely — the moot families). If
-    // a model starts needing a knob, update its decision in
-    // models/reasoning-replay.ts with a fresh verified date AND relax this
-    // assertion consciously, then extend the e2e wire tests.
+  it("ships an empty effective knob table — to add one, update models/reasoning-replay.ts with a fresh verified date, relax this assertion, and extend the e2e wire tests", () => {
     for (const model of buildNeuralwattProviderModels()) {
       expect(
         (model as NeuralwattChatModel).reasoningReplay,

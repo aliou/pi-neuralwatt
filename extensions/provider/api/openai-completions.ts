@@ -16,20 +16,6 @@ type OpenAiCompletionsBody = {
   [key: string]: unknown;
 };
 
-/**
- * Reasoning replay injector. Replay of prior chain-of-thought is
- * per-model catalog data: the model's `reasoningReplay` knob (validated live
- * and dated — see `models/reasoning-replay.ts`) moves pi-ai's replayed
- * `reasoning` field to the knob's `field` on the wire and shallow-merges
- * `templateKwargs` into `chat_template_kwargs`. Knobless models — today all
- * of them — pass the payload through untouched: pi-ai's recorded replay
- * signature (`reasoning`) goes out unchanged.
- *
- * The `field` move is a move, not a copy: sending an empty target next to a
- * populated `reasoning` would make the gateway prefer the empty field and
- * silently drop the replay. A pre-set non-empty target wins; the duplicate is
- * dropped.
- */
 function makeReasoningReplayInjector(
   upstream?: StreamOptions["onPayload"],
 ): NonNullable<StreamOptions["onPayload"]> {
@@ -38,7 +24,6 @@ function makeReasoningReplayInjector(
     const body = (next !== undefined ? next : payload) as OpenAiCompletionsBody;
     const knob = (model as { reasoningReplay?: NeuralwattReasoningReplay })
       ?.reasoningReplay;
-    // Knobless model: catalog data says no rewrite; pass through untouched.
     if (!knob) return body;
 
     let result = body;
@@ -70,7 +55,6 @@ function makeReasoningReplayInjector(
           }
           const { reasoning, ...rest } = message;
           if (field === "reasoning") return { ...rest, reasoning };
-          // A pre-set non-empty target wins; drop the duplicate.
           const existing = rest[field];
           return typeof existing === "string" && existing.length > 0
             ? rest

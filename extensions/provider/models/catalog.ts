@@ -113,8 +113,6 @@ function apiModelToProviderModel(
     result.reasoningContract = meta.reasoning;
   }
 
-  // API-fresh models get the catalog's replay decision (no stale knob can
-  // exist here, but applying it keeps this path symmetric with the others).
   return withReasoningReplay(result);
 }
 

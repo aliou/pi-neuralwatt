@@ -24,7 +24,6 @@ export type ThinkingLevelMap = NonNullable<
   ProviderChatModelConfig["thinkingLevelMap"]
 >;
 
-/** Per-model reasoning-replay knob; applied by the openai-completions injector — see `reasoning-replay.ts`. */
 export type NeuralwattReasoningReplay = {
   field?: "reasoning" | "reasoning_content" | "reasoning_text";
   templateKwargs?: Record<string, unknown>;

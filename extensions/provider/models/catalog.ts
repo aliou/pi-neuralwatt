@@ -9,6 +9,7 @@ import {
   type ThinkingLevelMap,
 } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
+import { withReasoningReplay } from "./reasoning-replay";
 
 export type NeuralwattChatModel = NeuralwattCompiledModel;
 
@@ -35,19 +36,6 @@ export function partitionNeuralwattModels(models: readonly NeuralwattModel[]): {
   }
   return { chat, classifiers };
 }
-
-// Chat-template thinking: the API exposes a `reasoning` block, but the
-// underlying mechanism is chat_template_kwargs, so Pi needs the mapping.
-const COMPAT_OVERRIDES: Partial<
-  Record<string, Partial<NonNullable<ProviderChatModelConfig["compat"]>>>
-> = {
-  "Qwen/Qwen3.8-27B-FP8": {
-    thinkingFormat: "chat-template",
-    chatTemplateKwargs: {
-      enable_thinking: { $var: "thinking.enabled" },
-    },
-  },
-};
 
 function apiModelToClassifierModel(
   model: NeuralwattApiModel,
@@ -90,12 +78,15 @@ function apiModelToProviderModel(
   const compat: NonNullable<ProviderChatModelConfig["compat"]> = {
     supportsDeveloperRole: meta.capabilities.developer_role,
     maxTokensField: "max_tokens",
-    ...COMPAT_OVERRIDES[model.id],
+    // No compat overrides: the former Qwen3.8 chat-template override was dead
+    // code (keyed by `huggingface_id`, never by `model.id`) and redundant —
+    // `reasoning_effort: "none"` disables thinking on that model, which the
+    // thinkingLevelMap already emits for `off`. Verified live 2026-10-07.
   };
 
   const contextWindow = model.max_model_len;
 
-  const result: NeuralwattModel = {
+  const result: NeuralwattChatModel = {
     id: model.id,
     name: meta.display_name ?? model.id,
     reasoning,
@@ -122,11 +113,13 @@ function apiModelToProviderModel(
     result.reasoningContract = meta.reasoning;
   }
 
-  return result;
+  // API-fresh models get the catalog's replay decision (no stale knob can
+  // exist here, but applying it keeps this path symmetric with the others).
+  return withReasoningReplay(result);
 }
 
 export function buildNeuralwattProviderModels(): NeuralwattModel[] {
-  return NEURALWATT_MODELS.map((model) => ({ ...model }));
+  return NEURALWATT_MODELS.map((model) => withReasoningReplay({ ...model }));
 }
 
 export function buildNeuralwattProviderModelsFromApi(
@@ -156,5 +149,11 @@ export function buildNeuralwattProviderModelsFromApi(
 export function buildNeuralwattProviderModelsFromStore(
   storedModels: readonly NeuralwattModel[],
 ): NeuralwattModel[] {
-  return storedModels.map((model) => ({ ...model }));
+  // Re-apply the decision table to chat entries so a stale knob persisted by
+  // an older build is overwritten on restore. Classifier entries pass through.
+  return storedModels.map((model) =>
+    isNeuralwattClassifierModel(model)
+      ? model
+      : withReasoningReplay({ ...model }),
+  );
 }

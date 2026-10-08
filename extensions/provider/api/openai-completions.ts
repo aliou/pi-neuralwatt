@@ -5,23 +5,30 @@ import {
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
+import type { NeuralwattReasoningReplay } from "../models/build";
 import type { NeuralwattChatModel } from "../models/catalog";
 import type { AnyStreamSimple } from "../stream-simple";
 import type { NeuralwattApiHandler } from "./types";
 
 type OpenAiCompletionsBody = {
   messages?: Array<Record<string, unknown>>;
+  chat_template_kwargs?: unknown;
   [key: string]: unknown;
 };
 
 /**
- * Neuralwatt streams chain-of-thought in the `reasoning` field, and pi-ai
- * replays prior thinking under the field name it recorded from the stream —
- * also `reasoning`. The served chat templates only render `reasoning_content`
- * (verified against the Kimi K3 template), so replayed thinking never reaches
- * the model. Rename the replayed field on the wire. This is a move, not a
- * copy: sending an empty `reasoning_content` next to a populated `reasoning`
- * makes the gateway prefer the empty field and silently drops the replay.
+ * Reasoning replay injector (issue #111). Replay of prior chain-of-thought is
+ * per-model catalog data: the model's `reasoningReplay` knob (validated live
+ * and dated — see `models/reasoning-replay.ts`) moves pi-ai's replayed
+ * `reasoning` field to the knob's `field` on the wire and shallow-merges
+ * `templateKwargs` into `chat_template_kwargs`. Knobless models — today all
+ * of them — pass the payload through untouched: pi-ai's recorded replay
+ * signature (`reasoning`) goes out unchanged.
+ *
+ * The `field` move is a move, not a copy: sending an empty target next to a
+ * populated `reasoning` would make the gateway prefer the empty field and
+ * silently drop the replay. A pre-set non-empty target wins; the duplicate is
+ * dropped.
  */
 function makeReasoningReplayInjector(
   upstream?: StreamOptions["onPayload"],
@@ -29,23 +36,50 @@ function makeReasoningReplayInjector(
   return async (payload, model) => {
     const next = await upstream?.(payload, model);
     const body = (next !== undefined ? next : payload) as OpenAiCompletionsBody;
-    const messages = body.messages;
-    if (!Array.isArray(messages)) return body;
+    const knob = (model as { reasoningReplay?: NeuralwattReasoningReplay })
+      ?.reasoningReplay;
+    // Knobless model: catalog data says no rewrite; pass through untouched.
+    if (!knob) return body;
 
-    return {
-      ...body,
-      messages: messages.map((message) => {
-        if (message?.role !== "assistant" || !("reasoning" in message)) {
-          return message;
-        }
-        const { reasoning, ...rest } = message;
-        // A pre-set non-empty reasoning_content wins; drop the duplicate.
-        return typeof rest.reasoning_content === "string" &&
-          rest.reasoning_content.length > 0
-          ? rest
-          : { ...rest, reasoning_content: reasoning };
-      }),
-    };
+    let result = body;
+
+    if (
+      knob.templateKwargs &&
+      typeof knob.templateKwargs === "object" &&
+      Object.keys(knob.templateKwargs).length > 0
+    ) {
+      result = {
+        ...result,
+        chat_template_kwargs: {
+          ...(typeof body.chat_template_kwargs === "object" &&
+          body.chat_template_kwargs !== null
+            ? (body.chat_template_kwargs as Record<string, unknown>)
+            : {}),
+          ...knob.templateKwargs,
+        },
+      };
+    }
+
+    if (knob.field && Array.isArray(result.messages)) {
+      const field = knob.field;
+      result = {
+        ...result,
+        messages: result.messages.map((message) => {
+          if (message?.role !== "assistant" || !("reasoning" in message)) {
+            return message;
+          }
+          const { reasoning, ...rest } = message;
+          if (field === "reasoning") return { ...rest, reasoning };
+          // A pre-set non-empty target wins; drop the duplicate.
+          const existing = rest[field];
+          return typeof existing === "string" && existing.length > 0
+            ? rest
+            : { ...rest, [field]: reasoning };
+        }),
+      };
+    }
+
+    return result;
   };
 }
 

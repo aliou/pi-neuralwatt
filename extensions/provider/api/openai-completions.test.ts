@@ -11,7 +11,11 @@ import {
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
-import type { NeuralwattChatModel } from "../models/catalog";
+import type { NeuralwattReasoningReplay } from "../models/build";
+import {
+  buildNeuralwattProviderModels,
+  type NeuralwattChatModel,
+} from "../models/catalog";
 import { NEURALWATT_MODELS } from "../models/public-models";
 import type { AnyStreamSimple } from "../stream-simple";
 import { createOpenAiCompletionsApi } from "./openai-completions";
@@ -62,12 +66,15 @@ describe("stamping", () => {
   });
 });
 
-function captureStreamSimpleCall(options?: SimpleStreamOptions) {
+function captureStreamSimpleCall(
+  model: Model<string>,
+  options?: SimpleStreamOptions,
+) {
   const fake = vi.fn<AnyStreamSimple>(() =>
     createAssistantMessageEventStream(),
   );
   createOpenAiCompletionsApi({ streamSimple: fake }).streamSimple(
-    { id: "nw/reasoning" } as Model<string>,
+    model,
     normalizeContext({ messages: [] }),
     options,
   );
@@ -83,8 +90,43 @@ interface TestBody {
 }
 
 describe("reasoning replay injector", () => {
-  it("renames replayed `reasoning` to `reasoning_content` on assistant messages", async () => {
-    const result = (await captureStreamSimpleCall()({
+  const knoblessModel = {
+    ...reasoningModel,
+    id: "nw/knobless",
+  } as unknown as Model<string>;
+
+  // Fixture knob: no current catalog model carries one (the effective knob
+  // table is empty as of the 2026-10-07 validation), but the machinery must
+  // keep working for the next template-drift transition.
+  const renameModel = {
+    ...reasoningModel,
+    id: "nw/knobbed",
+    reasoningReplay: {
+      field: "reasoning_content",
+    } satisfies NeuralwattReasoningReplay,
+  } as unknown as Model<string>;
+
+  it("passes payloads through untouched for knobless models (default = no rewrite)", async () => {
+    const call = captureStreamSimpleCall(knoblessModel);
+    const body = {
+      model: "nw/knobless",
+      messages: [
+        { role: "user", content: "hi" },
+        { role: "assistant", content: "ok", reasoning: "thinking text" },
+      ],
+    };
+    const result = (await call(body)) as TestBody;
+    // Same key set and values: nothing added, nothing moved.
+    expect(result).toEqual(body);
+    expect(result.messages?.[1]).toEqual({
+      role: "assistant",
+      content: "ok",
+      reasoning: "thinking text",
+    });
+  });
+
+  it("moves replayed `reasoning` to the knob's field for knobbed models", async () => {
+    const result = (await captureStreamSimpleCall(renameModel)({
       messages: [
         { role: "user", content: "hi" },
         { role: "assistant", content: "ok", reasoning: "thinking text" },
@@ -99,15 +141,10 @@ describe("reasoning replay injector", () => {
     expect("reasoning" in result.messages![1]).toBe(false);
   });
 
-  it("moves the field instead of copying it, so an empty reasoning_content never shadows the replay", async () => {
-    const result = (await captureStreamSimpleCall()({
+  it("is a move, not a copy: the `reasoning` key is gone from the message", async () => {
+    const result = (await captureStreamSimpleCall(renameModel)({
       messages: [{ role: "assistant", content: "ok", reasoning: "t" }],
     })) as TestBody;
-    expect(result.messages?.[0]).toEqual({
-      role: "assistant",
-      content: "ok",
-      reasoning_content: "t",
-    });
     expect(Object.keys(result.messages?.[0] ?? {}).sort()).toEqual([
       "content",
       "reasoning_content",
@@ -115,8 +152,8 @@ describe("reasoning replay injector", () => {
     ]);
   });
 
-  it("keeps an existing non-empty reasoning_content and drops the duplicate", async () => {
-    const result = (await captureStreamSimpleCall()({
+  it("keeps an existing non-empty target and drops the duplicate", async () => {
+    const result = (await captureStreamSimpleCall(renameModel)({
       messages: [
         {
           role: "assistant",
@@ -133,9 +170,45 @@ describe("reasoning replay injector", () => {
     });
   });
 
-  it("leaves non-assistant messages and other fields untouched", async () => {
-    const body = {
-      model: "nw/reasoning",
+  it("shallow-merges templateKwargs into existing chat_template_kwargs without renaming reasoning", async () => {
+    const kwargsModel = {
+      ...reasoningModel,
+      id: "nw/kwargs",
+      reasoningReplay: {
+        templateKwargs: { clear_thinking: false },
+      } satisfies NeuralwattReasoningReplay,
+    } as unknown as Model<string>;
+    const result = (await captureStreamSimpleCall(kwargsModel)({
+      chat_template_kwargs: { enable_thinking: true },
+      messages: [{ role: "assistant", content: "ok", reasoning: "t" }],
+    })) as TestBody;
+    expect(result.chat_template_kwargs).toEqual({
+      enable_thinking: true,
+      clear_thinking: false,
+    });
+    expect(result.messages?.[0]).toEqual({
+      role: "assistant",
+      content: "ok",
+      reasoning: "t",
+    });
+  });
+
+  it("creates chat_template_kwargs when absent", async () => {
+    const kwargsModel = {
+      ...reasoningModel,
+      id: "nw/kwargs",
+      reasoningReplay: {
+        templateKwargs: { clear_thinking: false },
+      } satisfies NeuralwattReasoningReplay,
+    } as unknown as Model<string>;
+    const result = (await captureStreamSimpleCall(kwargsModel)({
+      messages: [],
+    })) as TestBody;
+    expect(result.chat_template_kwargs).toEqual({ clear_thinking: false });
+  });
+
+  it("leaves non-assistant messages untouched when a knob renames", async () => {
+    const result = (await captureStreamSimpleCall(renameModel)({
       messages: [
         { role: "user", content: "hi" },
         {
@@ -145,9 +218,7 @@ describe("reasoning replay injector", () => {
         },
         { role: "tool", content: "result", tool_call_id: "call_1" },
       ],
-    };
-    const result = (await captureStreamSimpleCall()(body)) as TestBody;
-    expect(result.model).toBe("nw/reasoning");
+    })) as TestBody;
     expect(result.messages?.[0]).toEqual({ role: "user", content: "hi" });
     expect(result.messages?.[1]).toEqual({
       role: "assistant",
@@ -161,17 +232,21 @@ describe("reasoning replay injector", () => {
     });
   });
 
-  it("passes through bodies without a messages array", async () => {
-    const body = { model: "nw/reasoning" };
-    const result = (await captureStreamSimpleCall()(body)) as TestBody;
+  it("passes through bodies without a messages array (field knob only)", async () => {
+    const body = { model: "nw/knobbed" };
+    const result = (await captureStreamSimpleCall(renameModel)(
+      body,
+    )) as TestBody;
     expect(result).toBe(body);
   });
 
-  it("chains a caller onPayload and renames on its replacement", async () => {
+  it("chains a caller onPayload and applies the knob on its replacement", async () => {
     const upstream = vi.fn(async () => ({
       messages: [{ role: "assistant", content: "ok", reasoning: "t" }],
     }));
-    const call = captureStreamSimpleCall({ onPayload: upstream } as never);
+    const call = captureStreamSimpleCall(renameModel, {
+      onPayload: upstream,
+    } as never);
     const result = (await call({ model: "x" })) as TestBody;
     expect(upstream).toHaveBeenCalledOnce();
     expect(result.messages?.[0]).toEqual({
@@ -199,14 +274,39 @@ function makeSseResponse(events: string[]): Response {
 
 // End-to-end through pi-ai's real openai-completions replay path: the prior
 // assistant turn carries a thinking block with the `reasoning` signature pi-ai
-// recorded from the K3 stream (no mocks of pi-ai itself; only fetch is fake).
-describe("end-to-end replay through pi-ai", () => {
-  it("sends prior thinking as reasoning_content and no reasoning key", async () => {
-    const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3");
-    if (!k3) throw new Error("kimi-k3 missing from the fallback catalog");
+// records from Neuralwatt streams (no mocks of pi-ai itself; only fetch is
+// fake). Parametrized over EVERY reasoning model in the fallback catalog,
+// stamped via the real build path (`buildNeuralwattProviderModels`) so any
+// replay knob is applied exactly as at runtime.
+//
+// With the shipped catalog data (live validation 2026-10-07) no model carries
+// a knob: the NEW wire shape for every reasoning model is `reasoning` going
+// out unchanged and NO `reasoning_content` rename — the exact opposite of the
+// old uniform-rename behavior this file used to pin.
+const REASONING_FALLBACK_MODELS: NeuralwattChatModel[] = (
+  buildNeuralwattProviderModels() as NeuralwattChatModel[]
+).filter((model) => model.reasoning);
+
+// Catalog-coverage guard: the parametrized set must be the full reasoning
+// half of the fallback catalog, and it must never silently empty.
+it("covers every reasoning model in the fallback catalog", () => {
+  expect(REASONING_FALLBACK_MODELS.length).toBeGreaterThan(0);
+  expect(REASONING_FALLBACK_MODELS.map((model) => model.id).sort()).toEqual(
+    NEURALWATT_MODELS.filter((model) => model.reasoning)
+      .map((model) => model.id)
+      .sort(),
+  );
+});
+
+describe("end-to-end replay through pi-ai (every reasoning fallback model)", () => {
+  it.each(
+    REASONING_FALLBACK_MODELS.map((model) => [model.id, model] as const),
+  )("%s sends prior thinking as `reasoning` unchanged, with no reasoning_content", async (_id, fallbackModel) => {
     const [model] = createOpenAiCompletionsApi().stampModels([
-      k3 as NeuralwattChatModel,
+      fallbackModel as NeuralwattChatModel,
     ]);
+    // The real build path must not have attached a replay knob today.
+    expect(fallbackModel.reasoningReplay).toBeUndefined();
 
     const turn1: AssistantMessage = {
       role: "assistant",
@@ -232,7 +332,7 @@ describe("end-to-end replay through pi-ai", () => {
         {
           type: "thinking",
           thinking: "The user asks me to think briefly then reply with ok.",
-          // What pi-ai records when K3 streams reasoning in `reasoning`.
+          // What pi-ai records when Neuralwatt streams reasoning in `reasoning`.
           thinkingSignature: "reasoning",
         },
         { type: "text", text: "ok" },
@@ -308,9 +408,8 @@ describe("end-to-end replay through pi-ai", () => {
     expect(replayed).toEqual({
       role: "assistant",
       content: "ok",
-      reasoning_content:
-        "The user asks me to think briefly then reply with ok.",
+      reasoning: "The user asks me to think briefly then reply with ok.",
     });
-    expect("reasoning" in (replayed ?? {})).toBe(false);
+    expect("reasoning_content" in (replayed ?? {})).toBe(false);
   });
 });

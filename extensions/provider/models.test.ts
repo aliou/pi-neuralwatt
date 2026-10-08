@@ -1,15 +1,20 @@
+import { ok as assert } from "node:assert";
 import { describe, expect, it } from "vitest";
 import { NEURALWATT_MODELS } from "./models";
 import {
   buildAnthropicThinkingLevelMap,
   buildThinkingLevelMap,
+  type NeuralwattCompiledModel,
   type NeuralwattReasoningMapSource,
   resolveMaxTokens,
 } from "./models/build";
 import {
+  buildNeuralwattProviderModels,
   buildNeuralwattProviderModelsFromApi,
+  buildNeuralwattProviderModelsFromStore,
   type NeuralwattChatModel,
 } from "./models/catalog";
+import { REASONING_REPLAY_DECISIONS } from "./models/reasoning-replay";
 
 describe("Neuralwatt models", () => {
   it("should never allow more output tokens than context", () => {
@@ -68,6 +73,85 @@ describe("Neuralwatt models", () => {
           level,
         );
       }
+    }
+  });
+});
+
+describe("reasoning replay decisions (issue #111 CI invariant)", () => {
+  it("gives every reasoning catalog model a dated decision", () => {
+    for (const model of NEURALWATT_MODELS.filter((m) => m.reasoning)) {
+      const decision = REASONING_REPLAY_DECISIONS[model.id];
+      expect(
+        decision,
+        `${model.id} is missing a reasoningReplay decision`,
+      ).toBeDefined();
+      expect(decision?.verified, `${model.id}.verified`).toMatch(
+        /^\d{4}-\d{2}-\d{2}$/,
+      );
+    }
+  });
+
+  it("never gives non-reasoning models a decision", () => {
+    for (const model of NEURALWATT_MODELS.filter((m) => !m.reasoning)) {
+      expect(REASONING_REPLAY_DECISIONS[model.id], model.id).toBeUndefined();
+    }
+  });
+
+  it("only keys decisions on known reasoning fallback models (exact ids, no prefix matches)", () => {
+    const reasoningIds = new Set(
+      NEURALWATT_MODELS.filter((m) => m.reasoning).map((m) => m.id),
+    );
+    for (const id of Object.keys(REASONING_REPLAY_DECISIONS)) {
+      expect(reasoningIds.has(id), id).toBe(true);
+    }
+  });
+
+  it("documents why moot decisions cannot be fixed by a knob", () => {
+    for (const [id, decision] of Object.entries(REASONING_REPLAY_DECISIONS)) {
+      if (decision.kind === "moot") {
+        expect(decision.note, id).toBeTruthy();
+        expect(decision.knob, id).toBeUndefined();
+      }
+    }
+  });
+
+  it("ships an empty effective knob table (2026-10-07 validation: no model needs a rewrite)", () => {
+    // Live validation found every reasoning family renders replayed thinking
+    // under `reasoning` as-is (or drops it entirely — the moot families). If
+    // a model starts needing a knob, update its decision in
+    // models/reasoning-replay.ts with a fresh verified date AND relax this
+    // assertion consciously, then extend the e2e wire tests.
+    for (const model of buildNeuralwattProviderModels()) {
+      expect(
+        (model as NeuralwattChatModel).reasoningReplay,
+        model.id,
+      ).toBeUndefined();
+    }
+  });
+
+  it("strips stale stored knobs on store restore (withReasoningReplay overwrites)", () => {
+    const stale = { ...NEURALWATT_MODELS[0] } as NeuralwattCompiledModel;
+    stale.reasoningReplay = { field: "reasoning_content" };
+    const restored = buildNeuralwattProviderModelsFromStore([stale]);
+    expect(
+      (restored[0] as NeuralwattChatModel | undefined)?.reasoningReplay,
+    ).toBeUndefined();
+  });
+
+  it("leaves non-reasoning models knobless even with a stale stored knob", () => {
+    const fast = NEURALWATT_MODELS.find((m) => !m.reasoning);
+    assert(fast !== undefined, "fallback has a non-reasoning model");
+    const stale = { ...fast } as NeuralwattCompiledModel;
+    stale.reasoningReplay = { field: "reasoning_text" };
+    const restored = buildNeuralwattProviderModelsFromStore([stale]);
+    expect(
+      (restored[0] as NeuralwattChatModel | undefined)?.reasoningReplay,
+    ).toBeUndefined();
+  });
+
+  it("keeps the catalog's chat-only fallback (no classifiers from buildNeuralwattProviderModels)", () => {
+    for (const model of buildNeuralwattProviderModels()) {
+      expect(model.type).toBeUndefined();
     }
   });
 });
@@ -238,6 +322,84 @@ describe("buildNeuralwattProviderModelsFromApi", () => {
     expect(flexModel?.cost.input).toBe(3.25);
     expect(flexModel?.cost.output).toBe(6.5);
     expect(flexModel?.cost.cacheRead).toBe(0.65);
+  });
+
+  it("builds qwen-3.8-27b without the (removed) dead chat-template compat override", () => {
+    // The former COMPAT_OVERRIDES entry was keyed by the huggingface_id
+    // ("Qwen/Qwen3.8-27B-FP8") instead of model.id ("qwen-3.8-27b"), so it
+    // never applied — and it was redundant anyway: `reasoning_effort: "none"`
+    // (emitted for thinking level `off` via the thinkingLevelMap) disables
+    // thinking on this model identically (live-verified 2026-10-07). This test
+    // pins that the API-built model relies on the effort path, not a
+    // chat_template_kwargs override.
+    const models = buildNeuralwattProviderModelsFromApi([
+      {
+        id: "qwen-3.8-27b",
+        object: "model",
+        created: 1234567890,
+        owned_by: "neuralwatt",
+        max_model_len: 262128,
+        metadata: {
+          display_name: "Qwen 3.8 27B",
+          description: null,
+          provider: "neuralwatt",
+          huggingface_id: "Qwen/Qwen3.8-27B-FP8",
+          pricing: {
+            input_per_million: 0.45,
+            output_per_million: 3.2,
+            cached_input_per_million: 0.25,
+            cached_output_per_million: null,
+            currency: "USD",
+            pricing_tbd: false,
+            service_tier: "standard",
+            flex_discount_multiplier: null,
+          },
+          capabilities: {
+            tools: true,
+            json_mode: true,
+            vision: true,
+            reasoning: true,
+            reasoning_effort: true,
+            streaming: true,
+            system_role: true,
+            developer_role: false,
+            task: "chat",
+          },
+          reasoning: {
+            supported_efforts: ["xhigh", "medium", "low", "none"],
+            mandatory: false,
+            effort_aliases: { max: "xhigh", high: "xhigh", minimal: "low" },
+            default_enabled: true,
+            default_effort: "xhigh",
+          },
+          limits: {
+            max_context_length: 262128,
+            max_output_tokens: 131072,
+            max_images: null,
+          },
+          deprecated: false,
+          deprecated_message: null,
+        },
+      },
+    ]);
+
+    const qwen = models.find((m) => m.id === "qwen-3.8-27b") as
+      | NeuralwattChatModel
+      | undefined;
+    expect(qwen).toBeDefined();
+    expect(
+      qwen?.compat && "thinkingFormat" in qwen.compat
+        ? qwen.compat.thinkingFormat
+        : undefined,
+    ).toBeUndefined();
+    expect(
+      qwen?.compat && "chatTemplateKwargs" in qwen.compat
+        ? qwen.compat.chatTemplateKwargs
+        : undefined,
+    ).toBeUndefined();
+    // The `off` thinking level still resolves to the effort param, which is
+    // what actually disables thinking.
+    expect(qwen?.thinkingLevelMap?.off).toBe("none");
   });
 });
 

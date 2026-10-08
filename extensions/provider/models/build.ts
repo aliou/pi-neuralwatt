@@ -25,12 +25,26 @@ export type ThinkingLevelMap = NonNullable<
 >;
 
 /**
+ * Per-model reasoning-replay knob (issue #111). Replay of prior chain-of-thought
+ * is catalog data, never prefix matching: a knob moves pi-ai's replayed
+ * `reasoning` field to `field` on the wire (openai-completions surface only)
+ * and shallow-merges `templateKwargs` into `chat_template_kwargs`. Absent knob
+ * = default no rewrite: pi-ai's recorded replay signature goes out unchanged.
+ */
+export type NeuralwattReasoningReplay = {
+  field?: "reasoning" | "reasoning_content" | "reasoning_text";
+  templateKwargs?: Record<string, unknown>;
+};
+
+/**
  * A compiled provider model plus the reasoning contract it was compiled from,
  * retained for anthropic-messages map derivation. Rides the models store
  * (JSON passthrough); stripped from stamped runtime models.
  */
 export type NeuralwattCompiledModel = ProviderChatModelConfig & {
   reasoningContract?: NeuralwattReasoningMapSource;
+  /** Applied by the openai-completions payload injector; see `reasoning-replay.ts`. */
+  reasoningReplay?: NeuralwattReasoningReplay;
 };
 
 export interface NeuralwattCost {

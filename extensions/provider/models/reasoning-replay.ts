@@ -1,7 +1,7 @@
 import type { NeuralwattCompiledModel } from "./build";
 
 /**
- * A dated reasoning-replay decision for one catalog model (issue #111).
+ * A dated reasoning-replay decision for one catalog model.
  *
  * Replay of prior chain-of-thought is catalog data, never prefix matching:
  * every reasoning model carries an explicit, live-validated decision, and
@@ -24,22 +24,17 @@ export interface ReasoningReplayDecision {
   verified: string;
   /** Optional human-readable detail (e.g. why a decision is moot). */
   note?: string;
-  /**
-   * The knob applied to the model, if any. Empty today: live validation
-   * (2026-10-07) found no model needing a rewrite — the effective knob table
-   * is empty and every reasoning model replays as `reasoning`, unchanged.
-   */
+  /** The knob applied to the model, if any — none ships today. */
   knob?: NeuralwattCompiledModel["reasoningReplay"];
 }
 
 /**
- * Validated against live Neuralwatt serving on 2026-10-07 (replay-validation
- * lane, wave 1): every reasoning family renders replayed thinking under both
- * `reasoning` and `reasoning_content` identically (rename optional → no
- * rewrite), except the three "moot" families whose templates drop replayed
- * thinking entirely. Keyed by exact `model.id` — never prefix-matched
- * (`kimi-k3-fast` is a non-reasoning model and must never inherit `kimi-k3`'s
- * decision).
+ * Validated against live Neuralwatt serving on 2026-10-07: every reasoning
+ * family renders replayed thinking under both `reasoning` and
+ * `reasoning_content` identically, except the three "moot" families whose
+ * templates drop replayed thinking entirely. Keyed by exact `model.id` —
+ * never prefix-matched (`kimi-k3-fast` is non-reasoning and must never
+ * inherit `kimi-k3`'s decision).
  */
 export const REASONING_REPLAY_DECISIONS: Readonly<
   Record<string, ReasoningReplayDecision>

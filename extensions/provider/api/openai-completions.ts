@@ -17,7 +17,7 @@ type OpenAiCompletionsBody = {
 };
 
 /**
- * Reasoning replay injector (issue #111). Replay of prior chain-of-thought is
+ * Reasoning replay injector. Replay of prior chain-of-thought is
  * per-model catalog data: the model's `reasoningReplay` knob (validated live
  * and dated — see `models/reasoning-replay.ts`) moves pi-ai's replayed
  * `reasoning` field to the knob's `field` on the wire and shallow-merges

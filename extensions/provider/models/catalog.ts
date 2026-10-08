@@ -10,14 +10,9 @@ import {
 } from "./build";
 import { NEURALWATT_MODELS } from "./public-models";
 
-/** Chat model configs; the only kind the chat API surfaces can stamp. */
 export type NeuralwattChatModel = NeuralwattCompiledModel;
 
-/**
- * Canonical catalog entries: chat models plus decision models compiled as
- * classifiers. The offline fallback (`public-models.ts`) is chat-only;
- * classifier entries only ever come from a keyed `/v1/models` catalog.
- */
+/** Classifier entries only ever come from a keyed `/v1/models` catalog; the fallback is chat-only. */
 export type NeuralwattModel = NeuralwattChatModel | NeuralwattClassifierModel;
 
 export function isNeuralwattClassifierModel(
@@ -26,12 +21,6 @@ export function isNeuralwattClassifierModel(
   return model.type === "classifier";
 }
 
-/**
- * Split a canonical catalog into its chat and classifier halves. Chat API
- * surfaces stamp chat entries only; classifiers are stamped by
- * `stampClassifierModels` (`api/system-one.ts`) so they land in
- * `getAllModels()` but never in `getModels()`.
- */
 export function partitionNeuralwattModels(models: readonly NeuralwattModel[]): {
   chat: NeuralwattChatModel[];
   classifiers: NeuralwattClassifierModel[];
@@ -61,11 +50,6 @@ const COMPAT_OVERRIDES: Partial<
   },
 };
 
-/**
- * Compile a `task: "decision"` catalog entry into a classifier model. Decision
- * models serve one-shot classifications over `/v1/systemone`; they never
- * stream chat, so they get no reasoning/thinking/compat plumbing.
- */
 function apiModelToClassifierModel(
   model: NeuralwattApiModel,
 ): NeuralwattClassifierModel {
@@ -142,10 +126,7 @@ function apiModelToProviderModel(
   return result;
 }
 
-/**
- * Offline fallback catalog. Contains chat models only: anonymous catalogs
- * never list decision models, so there is no fallback classifier.
- */
+// Anonymous catalogs never list decision models, so the fallback is chat-only.
 export function buildNeuralwattProviderModels(): NeuralwattModel[] {
   return NEURALWATT_MODELS.map((model) => ({ ...model }));
 }

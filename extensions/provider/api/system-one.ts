@@ -42,19 +42,11 @@ const transport: SystemOneTransport = {
   },
 };
 
-/**
- * Classify through `POST {baseUrl}/systemone`. Never rejects: transport,
- * protocol, and API-shape errors come back as an error `ClassifierResult`
- * (pi-ai's shared runner converts them).
- */
+/** Never rejects; transport, protocol, and API-shape errors come back as an error `ClassifierResult`. */
 export const classify: ClassifierFunction = (model, context, options) =>
   classifySystemOne(transport, model, context, options);
 
-/**
- * Stamp compiled decision models for registration. Classifier stamping is the
- * same on every chat surface: the api stays `typesafe-system-one` even when
- * the provider's chat surface is anthropic-messages.
- */
+/** Same stamping on every chat surface: the api stays `typesafe-system-one` even on anthropic-messages. */
 export function stampClassifierModels(
   models: NeuralwattClassifierModel[],
 ): ClassifierModel<ClassifierApi>[] {

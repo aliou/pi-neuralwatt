@@ -104,11 +104,9 @@ export function createNeuralwattProvider(
         },
       },
     },
-    // Chat catalog only (drives /model). Decision models are classifiers and
-    // must never appear here.
+    // Chat catalog only (drives /model): decision models are classifiers and must never appear here.
     getModels: () =>
       handler.stampModels(partitionNeuralwattModels(canonicalModels).chat),
-    // Full catalog: surface-stamped chat models plus System One classifiers.
     getAllModels: () => {
       const { chat, classifiers } = partitionNeuralwattModels(canonicalModels);
       return [
@@ -116,8 +114,6 @@ export function createNeuralwattProvider(
         ...stampClassifierModels(classifiers),
       ];
     },
-    // System One classification (api/typesafe-system-one). Never rejects; an
-    // unsupported classifier api comes back as an error result.
     classify: (model, context, options) => classify(model, context, options),
     refreshModels: async (context) => {
       const models = await refreshCatalog(context);

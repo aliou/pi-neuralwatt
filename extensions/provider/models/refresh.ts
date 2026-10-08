@@ -50,11 +50,6 @@ export type FetchNeuralwattApiModels = (
   signal?: AbortSignal,
 ) => Promise<readonly NeuralwattApiModel[]>;
 
-/**
- * pi 0.99 widened `ModelsStoreEntry.models` to `AnyModel[]` (chat / image /
- * classifier). This extension only ever persists its own chat configs, so
- * store reads cast back to them.
- */
 function asStoredChatModels(models: readonly AnyModel[]): NeuralwattModel[] {
   return models as unknown as NeuralwattModel[];
 }

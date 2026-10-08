@@ -1,6 +1,6 @@
 // Neuralwatt is OpenAI-compatible, but the OpenAI SDK throws on non-2xx
 // responses before Pi's after_provider_response hook can see the raw headers.
-// We inject a per-request `options.fetch` wrapper (pi-ai >= 0.83) so 429
+// We inject a per-request `options.fetch` wrapper so 429
 // rate-limit headers can be captured before the SDK turns them into a generic
 // error, and tee successful SSE bodies for live quota comments, while still
 // delegating normal streaming behavior to Pi's provider implementation.
@@ -30,13 +30,7 @@ export type AnyStreamSimple = (
 ) => AssistantMessageEventStream;
 
 export interface NeuralwattStreamCallbacks {
-  /** Live quota SSE comment lines teed from successful stream responses. */
   onSseQuota: (line: string) => void;
-  /**
-   * Parsed rate-limit headers from a 429 response (`undefined` when the 429
-   * carries no layer-specific headers). Feeds `pendingRateLimitInfo`, which
-   * the `message_end` handler turns into a detailed rewrite.
-   */
   onRateLimit: (info: NeuralwattRateLimitInfo | undefined) => void;
 }
 

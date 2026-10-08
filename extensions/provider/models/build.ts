@@ -4,11 +4,6 @@ import type {
   NeuralwattReasoningEffort,
 } from "../../../src/types/models-api";
 
-/**
- * Chat-only slice of pi-coding-agent's `ProviderModelConfig` union (chat /
- * image / classifier since pi 0.99). The extension only ever compiles chat
- * models, so every catalog type narrows to this member.
- */
 export type ProviderChatModelConfig = Extract<
   ProviderModelConfig,
   { type?: "chat" }

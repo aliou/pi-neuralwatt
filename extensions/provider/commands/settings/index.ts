@@ -14,6 +14,7 @@ import {
   NEURALWATT_CONFIG_UPDATED_EVENT,
   type NeuralwattFeatureId,
 } from "../../../../src/events";
+import { ApiBaseUrlEditor } from "./api-base-url-editor";
 
 export interface RegisterNeuralwattSettingsOptions {
   getLoadedFeatures: () => Set<NeuralwattFeatureId>;
@@ -62,15 +63,16 @@ export function registerNeuralwattSettings(
   options: RegisterNeuralwattSettingsOptions,
 ): void {
   const { getLoadedFeatures } = options;
-  // The provider stamps `provider.api` at extension load; a saved change only
-  // reaches it after `/reload`.
+  // The provider stamps `provider.api` and assembles against the configured
+  // base at extension load; a saved change only reaches it after `/reload`.
   let pendingApi: NeuralwattApi | undefined;
+  let pendingApiBaseUrl: string | undefined;
 
   registerSettingsCommand<NeuralwattConfig, ResolvedNeuralwattConfig>(pi, {
     commandName: "neuralwatt:settings",
     title: "Neuralwatt Settings",
     configStore: configLoader,
-    buildSections: (tabConfig, resolved): SettingsSection[] => {
+    buildSections: (tabConfig, resolved, buildCtx): SettingsSection[] => {
       const loaded = getLoadedFeatures();
       return [
         {
@@ -80,9 +82,40 @@ export function registerNeuralwattSettings(
               id: "api",
               label: "API",
               description:
-                "Serve models via the OpenAI-compatible chat/completions endpoint or the Anthropic-compatible /v1/messages endpoint",
+                "Serve models via the OpenAI completions endpoint or the Anthropic endpoint",
               currentValue: tabConfig?.provider?.api ?? resolved.provider.api,
               values: ["openai-completions", "anthropic-messages"],
+            },
+            {
+              id: "apiBaseUrl",
+              label: "API base URL",
+              description:
+                "Base URL for API requests; empty uses the default upstream",
+              currentValue: tabConfig?.provider?.apiBaseUrl || "(not set)",
+              submenu: (current, submenuDone, submenuCtx) => {
+                const display = (value: string) => value || "(not set)";
+                return new ApiBaseUrlEditor({
+                  initial: current === "(not set)" ? "" : current,
+                  defaultBaseUrl: resolved.provider.apiBaseUrl,
+                  theme: buildCtx.theme,
+                  requestRender: submenuCtx.requestRender,
+                  onSubmit: (value) => {
+                    const updated = structuredClone(
+                      tabConfig ?? {},
+                    ) as NeuralwattConfig;
+                    updated.provider = { ...updated.provider };
+                    if (value) {
+                      updated.provider.apiBaseUrl = value;
+                    } else {
+                      delete updated.provider.apiBaseUrl;
+                    }
+                    buildCtx.setDraft(updated);
+                    pendingApiBaseUrl = value;
+                    submenuDone(display(value));
+                  },
+                  onCancel: () => submenuDone(display(current)),
+                });
+              },
             },
           ],
         },
@@ -165,9 +198,12 @@ export function registerNeuralwattSettings(
     },
     onSave: async (ctx) => {
       emitConfigUpdated(pi);
-      if (pendingApi === undefined) return;
+      if (pendingApi === undefined && pendingApiBaseUrl === undefined) {
+        return;
+      }
       pendingApi = undefined;
-      ctx.ui.notify("Run /reload to apply the new API", "info");
+      pendingApiBaseUrl = undefined;
+      ctx.ui.notify("Run /reload to apply the new provider settings", "info");
     },
   });
 }

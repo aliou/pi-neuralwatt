@@ -1,3 +1,4 @@
+import { configuredApiBaseUrl } from "../config/loader";
 import type {
   NeuralwattApiModel,
   NeuralwattApiModelsResponse,
@@ -5,7 +6,6 @@ import type {
 import type { NeuralwattQuotas } from "../types/quota-api";
 import type { QuotasResult } from "../types/quota-result";
 
-const BASE_URL = "https://api.neuralwatt.com/v1";
 const FETCH_TIMEOUT_MS = 15_000;
 
 function authHeaders(apiKey: string | undefined): Record<string, string> {
@@ -31,7 +31,7 @@ async function neuralwattFetch(
   signal?: AbortSignal,
   headers?: Record<string, string>,
 ): Promise<Response> {
-  return fetch(`${BASE_URL}${path}`, {
+  return fetch(`${configuredApiBaseUrl()}${path}`, {
     headers: { ...authHeaders(apiKey), ...headers },
     signal: combineSignals(signal),
   });

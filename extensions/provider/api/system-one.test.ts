@@ -8,6 +8,14 @@ import {
 import type { NeuralwattClassifierModel } from "../models/build";
 import { classify, stampClassifierModels } from "./system-one";
 
+const configuredBase = vi.hoisted(() => ({
+  current: "https://api.neuralwatt.com/v1",
+}));
+
+vi.mock("../../../src/config/loader", () => ({
+  configuredApiBaseUrl: () => configuredBase.current,
+}));
+
 const clefFlash: ClassifierModel<"typesafe-system-one"> = {
   type: "classifier",
   api: "typesafe-system-one",
@@ -300,5 +308,31 @@ describe("stampClassifierModels", () => {
 
     const [stamped] = stampClassifierModels([compiled]);
     expect(stamped.baseUrl).toBe("https://custom.example.com/v1");
+  });
+});
+
+describe("classify api base fallback", () => {
+  it("falls back to the configured api base URL for models without a baseUrl", async () => {
+    configuredBase.current = "https://gateway.example.com/v1";
+    const baseless: NeuralwattClassifierModel = {
+      type: "classifier",
+      api: "typesafe-system-one",
+      id: "clef-flash",
+      name: "Clef Flash",
+      input: ["text"],
+      cost: { input: 0.18, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 262_128,
+    };
+    const [stamped] = stampClassifierModels([baseless]);
+    expect(stamped.baseUrl).toBe("https://gateway.example.com/v1");
+
+    const fetchMock = okFetch(realClefFlashResponse);
+    await classify(stamped, sentimentContext, {
+      apiKey: "test-key",
+      fetch: fetchMock as never,
+    });
+
+    const [url] = fetchMock.mock.calls[0] as unknown as [URL];
+    expect(String(url)).toBe("https://gateway.example.com/v1/systemone");
   });
 });

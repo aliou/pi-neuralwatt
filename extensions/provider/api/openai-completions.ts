@@ -1,7 +1,7 @@
 import type { StreamOptions } from "@earendil-works/pi-ai";
 import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
+import { configuredApiBaseUrl } from "../../../src/config/loader";
 import {
-  NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
@@ -67,7 +67,7 @@ export function createOpenAiCompletionsApi(options?: {
           ...compiled,
           api: "openai-completions" as const,
           provider: NEURALWATT_PROVIDER_ID,
-          baseUrl: model.baseUrl ?? NEURALWATT_BASE_URL,
+          baseUrl: model.baseUrl ?? configuredApiBaseUrl(),
           headers: NEURALWATT_REQUEST_HEADERS,
         };
       }),

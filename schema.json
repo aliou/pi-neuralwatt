@@ -76,6 +76,10 @@
         "api": {
           "$ref": "#/definitions/NeuralwattApi",
           "description": "Which API serves model requests."
+        },
+        "apiBaseUrl": {
+          "type": "string",
+          "description": "Fallback base URL for Neuralwatt API calls, used only by models that carry no baseUrl of their own (models.json, custom providers, and proxy routing all take precedence) and by the extension's own catalog and quota fetches. Defaults to the direct upstream."
         }
       },
       "additionalProperties": false

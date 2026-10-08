@@ -1,7 +1,7 @@
 import type { StreamOptions } from "@earendil-works/pi-ai";
 import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
+import { configuredApiBaseUrl } from "../../../src/config/loader";
 import {
-  NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
@@ -77,7 +77,7 @@ function stampAnthropicModels(models: NeuralwattChatModel[]) {
       ...compiled,
       api: "anthropic-messages" as const,
       provider: NEURALWATT_PROVIDER_ID,
-      baseUrl: toMessagesBaseUrl(model.baseUrl ?? NEURALWATT_BASE_URL),
+      baseUrl: toMessagesBaseUrl(model.baseUrl ?? configuredApiBaseUrl()),
       headers: NEURALWATT_REQUEST_HEADERS,
       compat: {
         forceAdaptiveThinking: true,

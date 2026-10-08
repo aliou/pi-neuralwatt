@@ -80,9 +80,9 @@ Extensions self-register via `neuralwatt:extensions:register` events when the pr
 ## Provider Configuration
 
 - Provider name: `neuralwatt`
-- Base URL: `https://api.neuralwatt.com/v1`
+- Base URL: `https://api.neuralwatt.com/v1`, overridable via `provider.apiBaseUrl`. The configured base drives the catalog and quota fetches and is the fallback for models that carry no `baseUrl` of their own; models.json overrides, custom providers, and proxy routing take precedence. Trailing slashes are stripped; non-http(s) values fall back to the default.
 - API: `openai-completions`
-- Auth: the provider owns its standalone auth on the registered pi-ai `Provider`: `resolve` reads the stored credential first, then the `NEURALWATT_API_KEY` env var, and never fails — without a key it resolves to an anonymous empty key so catalog refresh succeeds. `check` stays strict: without a real key the provider reports unconfigured and its models stay hidden from `/model`
+- Auth: the provider owns its standalone auth on the registered pi-ai `Provider`: `resolve` reads the stored credential first, then the `NEURALWATT_API_KEY` env var, and never fails — without a key it resolves to the `-` placeholder (neutral for gateways that inject credentials server-side) so catalog refresh and classifier calls succeed. `check` stays strict: without a real key the provider reports unconfigured and its models stay hidden from `/model`
 - All models use `maxTokensField: "max_tokens"` and `supportsDeveloperRole: false`
 
 ## Quota Tracking
@@ -118,7 +118,7 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
 - **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
 
-The provider itself cannot be disabled. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
+The provider itself cannot be disabled. `provider.apiBaseUrl` is a free-text row that live-probes `<base>/models` before saving; empty resets to the direct upstream. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
 
 ## Model catalog
 

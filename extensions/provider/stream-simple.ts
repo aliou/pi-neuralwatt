@@ -16,7 +16,7 @@ import type {
   SimpleStreamOptions,
   TranscriptContext,
 } from "@earendil-works/pi-ai";
-import { NEURALWATT_BASE_URL } from "./constants";
+import { configuredApiBaseUrl } from "../../src/config/loader";
 import {
   type NeuralwattRateLimitInfo,
   parseRateLimitHeaders,
@@ -70,7 +70,8 @@ export function wrapNeuralwattStreamSimple(
   callbacks: NeuralwattStreamCallbacks,
 ): AnyStreamSimple {
   return (model, context, options = {}) => {
-    const providerOrigin = new URL(model.baseUrl ?? NEURALWATT_BASE_URL).origin;
+    const providerOrigin = new URL(model.baseUrl ?? configuredApiBaseUrl())
+      .origin;
     const callerFetch = options.fetch;
 
     const neuralwattFetch: FetchFunction = async (input, init) => {

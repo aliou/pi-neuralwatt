@@ -100,7 +100,9 @@ export function createNeuralwattProvider(
           if (envKey) {
             return { auth: { apiKey: envKey }, source: NEURALWATT_API_KEY_ENV };
           }
-          return { auth: { apiKey: "" }, source: "anonymous" };
+          // pi-ai rejects empty keys before dispatch; "-" is the neutral
+          // placeholder that gateways strip or replace server-side.
+          return { auth: { apiKey: "-" }, source: "anonymous" };
         },
       },
     },

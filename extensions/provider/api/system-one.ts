@@ -8,8 +8,8 @@ import {
   isRecord,
   type SystemOneTransport,
 } from "@earendil-works/pi-ai/api/system-one-shared";
+import { configuredApiBaseUrl } from "../../../src/config/loader";
 import {
-  NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
@@ -44,7 +44,7 @@ export function stampClassifierModels(
     ...model,
     api: NEURALWATT_SYSTEM_ONE_API,
     provider: NEURALWATT_PROVIDER_ID,
-    baseUrl: model.baseUrl ?? NEURALWATT_BASE_URL,
+    baseUrl: model.baseUrl ?? configuredApiBaseUrl(),
     headers: NEURALWATT_REQUEST_HEADERS,
   }));
 }

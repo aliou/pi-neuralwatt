@@ -169,7 +169,7 @@ describe("auth.apiKey.resolve", () => {
       ctx: authCtx(),
       signal: new AbortController().signal,
     });
-    expect(result).toEqual({ auth: { apiKey: "" }, source: "anonymous" });
+    expect(result).toEqual({ auth: { apiKey: "-" }, source: "anonymous" });
   });
 
   it("honors the abort signal", async () => {

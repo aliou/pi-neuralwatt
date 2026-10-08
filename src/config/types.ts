@@ -23,6 +23,14 @@ export type NeuralwattApi = "openai-completions" | "anthropic-messages";
 export interface NeuralwattProviderConfig {
   /** Which API serves model requests. */
   api?: NeuralwattApi;
+
+  /**
+   * Fallback base URL for Neuralwatt API calls, used only by models that
+   * carry no baseUrl of their own (models.json, custom providers, and proxy
+   * routing all take precedence) and by the extension's own catalog and
+   * quota fetches. Defaults to the direct upstream.
+   */
+  apiBaseUrl?: string;
 }
 
 export interface NeuralwattConfig {
@@ -54,5 +62,6 @@ export interface ResolvedNeuralwattConfig {
   };
   provider: {
     api: NeuralwattApi;
+    apiBaseUrl: string;
   };
 }

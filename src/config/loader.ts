@@ -33,6 +33,7 @@ function normalizeResolvedConfig(
     },
     provider: {
       api: resolveApi(config.provider?.api),
+      apiBaseUrl: resolveApiBaseUrl(config.provider?.apiBaseUrl),
     },
   };
 }
@@ -42,6 +43,30 @@ export function resolveApi(value: string | undefined): NeuralwattApi {
     return value;
   }
   return DEFAULT_CONFIG.provider.api;
+}
+
+export function resolveApiBaseUrl(value: string | undefined): string {
+  const trimmed = value?.trim().replace(/\/+$/u, "");
+  if (!trimmed) {
+    return DEFAULT_CONFIG.provider.apiBaseUrl;
+  }
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return DEFAULT_CONFIG.provider.apiBaseUrl;
+    }
+  } catch {
+    return DEFAULT_CONFIG.provider.apiBaseUrl;
+  }
+  return trimmed;
+}
+
+export function configuredApiBaseUrl(): string {
+  try {
+    return configLoader.getConfig().provider.apiBaseUrl;
+  } catch {
+    return DEFAULT_CONFIG.provider.apiBaseUrl;
+  }
 }
 
 export const configLoader = new ConfigLoader<

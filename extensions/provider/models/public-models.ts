@@ -1,8 +1,8 @@
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import {
   buildNeuralwattFamily,
   type NeuralwattModelFamily,
   type NeuralwattVariantSpec,
+  type ProviderChatModelConfig,
 } from "./build";
 
 // Public models returned by https://api.neuralwatt.com/v1/models.
@@ -500,6 +500,6 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
 // `costMultiplier: 0.65` per variant.
 // https://docs.neuralwatt.com/guides/flex-tier.md
 
-export const NEURALWATT_MODELS: ProviderModelConfig[] = FAMILIES.flatMap(
+export const NEURALWATT_MODELS: ProviderChatModelConfig[] = FAMILIES.flatMap(
   ([family, variants]) => buildNeuralwattFamily(family, variants),
 );

@@ -1,9 +1,6 @@
-import type {
-  Context,
-  Model,
-  SimpleStreamOptions,
-} from "@earendil-works/pi-ai";
+import type { Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
+import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import { describe, expect, it, vi } from "vitest";
 import {
   NEURALWATT_BASE_URL,
@@ -94,7 +91,7 @@ function captureStreamSimpleCall(options?: SimpleStreamOptions) {
   );
   createAnthropicMessagesApi({ streamSimple: fake }).streamSimple(
     { id: "nw/static" } as Model<string>,
-    { messages: [] } as Context,
+    normalizeContext({ messages: [] }),
     options,
   );
   const captured = fake.mock.calls[0]?.[2]?.onPayload;

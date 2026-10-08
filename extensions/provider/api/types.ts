@@ -1,10 +1,10 @@
 import type {
   Api,
   AssistantMessageEventStream,
-  Context,
   Model,
   SimpleStreamOptions,
   StreamOptions,
+  TranscriptContext,
 } from "@earendil-works/pi-ai";
 import type { NeuralwattModel } from "../models/catalog";
 
@@ -13,12 +13,12 @@ export interface NeuralwattApiHandler {
   stampModels(models: NeuralwattModel[]): Model<Api>[];
   stream(
     model: Model<Api>,
-    context: Context,
+    context: TranscriptContext,
     options?: StreamOptions,
   ): AssistantMessageEventStream;
   streamSimple(
     model: Model<Api>,
-    context: Context,
+    context: TranscriptContext,
     options?: SimpleStreamOptions,
   ): AssistantMessageEventStream;
 }

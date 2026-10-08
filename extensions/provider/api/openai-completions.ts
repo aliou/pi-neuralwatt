@@ -74,10 +74,10 @@ export function createOpenAiCompletionsApi(options?: {
     stream: (model, context, streamOptions) =>
       stream(model, context, withReasoningReplay(streamOptions) as never),
     streamSimple: (model, context, simpleOptions) =>
-      (options?.streamSimple ?? streamSimple)(
+      ((options?.streamSimple ?? streamSimple) as AnyStreamSimple)(
         model,
         context,
-        withReasoningReplay(simpleOptions) as never,
+        withReasoningReplay(simpleOptions),
       ),
   };
 }

@@ -4,6 +4,7 @@ import type {
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
+import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import type { NeuralwattApiModel } from "../../src/types/models-api";
@@ -358,7 +359,7 @@ describe("api delegation", () => {
 
     provider.streamSimple(
       provider.getModels()[0],
-      { messages: [] } as never,
+      normalizeContext({ messages: [] }),
       { onPayload } as never,
     );
 
@@ -383,7 +384,10 @@ describe("api delegation", () => {
       },
     });
 
-    provider.streamSimple(provider.getModels()[0], { messages: [] } as never);
+    provider.streamSimple(
+      provider.getModels()[0],
+      normalizeContext({ messages: [] }),
+    );
 
     expect(messagesStream).toHaveBeenCalledOnce();
     expect(openaiStream).not.toHaveBeenCalled();

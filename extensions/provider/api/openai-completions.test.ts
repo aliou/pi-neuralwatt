@@ -1,10 +1,10 @@
 import type {
   AssistantMessage,
-  Context,
   Model,
   SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
+import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   NEURALWATT_BASE_URL,
@@ -68,7 +68,7 @@ function captureStreamSimpleCall(options?: SimpleStreamOptions) {
   );
   createOpenAiCompletionsApi({ streamSimple: fake }).streamSimple(
     { id: "nw/reasoning" } as Model<string>,
-    { messages: [] } as Context,
+    normalizeContext({ messages: [] }),
     options,
   );
   const captured = fake.mock.calls[0]?.[2]?.onPayload;
@@ -240,7 +240,7 @@ describe("end-to-end replay through pi-ai", () => {
       timestamp: 1,
     };
 
-    const context: Context = {
+    const context = normalizeContext({
       messages: [
         {
           role: "user",
@@ -254,7 +254,7 @@ describe("end-to-end replay through pi-ai", () => {
           timestamp: 2,
         },
       ],
-    };
+    });
 
     let capturedBody: Record<string, unknown> | undefined;
     const fetchMock = vi.fn(

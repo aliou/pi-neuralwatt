@@ -1,8 +1,8 @@
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import {
   buildThinkingLevelMap,
   type NeuralwattCompiledModel,
+  type ProviderChatModelConfig,
   resolveMaxTokens,
   type ThinkingLevelMap,
 } from "./build";
@@ -13,7 +13,7 @@ export type NeuralwattModel = NeuralwattCompiledModel;
 // Chat-template thinking: the API exposes a `reasoning` block, but the
 // underlying mechanism is chat_template_kwargs, so Pi needs the mapping.
 const COMPAT_OVERRIDES: Partial<
-  Record<string, Partial<NonNullable<ProviderModelConfig["compat"]>>>
+  Record<string, Partial<NonNullable<ProviderChatModelConfig["compat"]>>>
 > = {
   "Qwen/Qwen3.8-27B-FP8": {
     thinkingFormat: "chat-template",
@@ -32,7 +32,7 @@ function apiModelToProviderModel(model: NeuralwattApiModel): NeuralwattModel {
 
   const reasoning = meta.capabilities.reasoning;
 
-  const compat: NonNullable<ProviderModelConfig["compat"]> = {
+  const compat: NonNullable<ProviderChatModelConfig["compat"]> = {
     supportsDeveloperRole: meta.capabilities.developer_role,
     maxTokensField: "max_tokens",
     ...COMPAT_OVERRIDES[model.id],

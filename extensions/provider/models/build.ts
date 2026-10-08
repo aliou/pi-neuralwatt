@@ -4,8 +4,13 @@ import type {
   NeuralwattReasoningEffort,
 } from "../../../src/types/models-api";
 
+export type ProviderChatModelConfig = Extract<
+  ProviderModelConfig,
+  { type?: "chat" }
+>;
+
 export type ThinkingLevelMap = NonNullable<
-  ProviderModelConfig["thinkingLevelMap"]
+  ProviderChatModelConfig["thinkingLevelMap"]
 >;
 
 /**
@@ -13,7 +18,7 @@ export type ThinkingLevelMap = NonNullable<
  * retained for anthropic-messages map derivation. Rides the models store
  * (JSON passthrough); stripped from stamped runtime models.
  */
-export type NeuralwattCompiledModel = ProviderModelConfig & {
+export type NeuralwattCompiledModel = ProviderChatModelConfig & {
   reasoningContract?: NeuralwattReasoningMapSource;
 };
 
@@ -157,7 +162,7 @@ export function buildNeuralwattModel(
 ): NeuralwattCompiledModel {
   const vision = variant.vision ?? family.vision;
 
-  const compat: NonNullable<ProviderModelConfig["compat"]> = {
+  const compat: NonNullable<ProviderChatModelConfig["compat"]> = {
     supportsDeveloperRole: false,
     maxTokensField: "max_tokens",
   };

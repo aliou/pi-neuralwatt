@@ -206,20 +206,108 @@ describe("classify (System One)", () => {
     });
   });
 
-  it("returns an error result instead of rejecting without an API key", async () => {
+  it("uses the anonymous placeholder without an API key", async () => {
+    const fetchMock = okFetch(realClefFlashResponse);
     const result = await classify(clefFlash, sentimentContext, {
-      fetch: okFetch(realClefFlashResponse) as never,
+      fetch: fetchMock as never,
     });
 
+    expect(result.stopReason).toBe("stop");
+    const [, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer -");
+  });
+
+  it("merges headers case-insensitively and allows removing authorization", async () => {
+    const fetchMock = okFetch(realClefFlashResponse);
+    await classify(
+      {
+        ...clefFlash,
+        headers: { Authorization: "Bearer gateway", "X-Test": "model" },
+      },
+      sentimentContext,
+      {
+        fetch: fetchMock as never,
+        headers: { authorization: null, "x-test": "caller" },
+      },
+    );
+    const [, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.has("authorization")).toBe(false);
+    expect(headers.get("x-test")).toBe("caller");
+    expect(headers.get("content-type")).toBe("application/json");
+  });
+
+  it("honors payload and response hooks", async () => {
+    const fetchMock = okFetch(realClefFlashResponse);
+    const onResponse = vi.fn();
+    const payload = { model: "clef-flash", state: {}, questions: {} };
+    await classify(clefFlash, sentimentContext, {
+      fetch: fetchMock as never,
+      onPayload: () => payload,
+      onResponse,
+    });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual(payload);
+    expect(onResponse).toHaveBeenCalledWith(
+      { status: 200, headers: { "content-type": "application/json" } },
+      clefFlash,
+    );
+  });
+
+  it("rejects images before making a request", async () => {
+    const fetchMock = okFetch(realClefFlashResponse);
+    const context: ClassifierContext = {
+      ...sentimentContext,
+      images: [{ type: "image", data: "", mimeType: "image/png" }],
+    };
+    const result = await classify(clefFlash, context, {
+      fetch: fetchMock as never,
+    });
     expect(result.stopReason).toBe("error");
-    expect(result.errorMessage).toContain("No API key");
-    expect(result.api).toBe("typesafe-system-one");
-    expect(result.answers).toEqual({});
+    expect(result.errorMessage).toBe(
+      "Neuralwatt classifier does not support image input",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns aborted without making a request for an aborted signal", async () => {
+    const fetchMock = okFetch(realClefFlashResponse);
+    const result = await classify(clefFlash, sentimentContext, {
+      fetch: fetchMock as never,
+      signal: AbortSignal.abort(),
+    });
+    expect(result.stopReason).toBe("aborted");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("combines the timeout with the caller signal", async () => {
+    const fetchMock = okFetch(realClefFlashResponse);
+    const controller = new AbortController();
+    await classify(clefFlash, sentimentContext, {
+      fetch: fetchMock as never,
+      signal: controller.signal,
+      timeoutMs: 1_000,
+    });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(init.signal).not.toBe(controller.signal);
+    expect(init.signal?.aborted).toBe(false);
+    controller.abort();
+    expect(init.signal?.aborted).toBe(true);
   });
 
   it("returns an error result on HTTP failures instead of rejecting", async () => {
     const fetchMock = vi.fn(
-      async () => new Response("upstream boom", { status: 500 }),
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "upstream boom",
+              type: "server_error",
+              code: "internal_error",
+            },
+          }),
+          { status: 500 },
+        ),
     );
 
     const result = await classify(clefFlash, sentimentContext, {
@@ -231,6 +319,25 @@ describe("classify (System One)", () => {
     expect(result.stopReason).toBe("error");
     expect(result.errorMessage).toContain("Neuralwatt System One API");
     expect(result.errorMessage).toContain("500");
+    expect(result.errorMessage).toContain("upstream boom");
+  });
+
+  it("reads System One request validation errors", async () => {
+    const result = await classify(clefFlash, sentimentContext, {
+      fetch: (async () =>
+        new Response(
+          JSON.stringify({
+            detail:
+              "'questions' must be a non-empty object of question id to question",
+          }),
+          { status: 400 },
+        )) as never,
+    });
+    expect(result.stopReason).toBe("error");
+    expect(result.errorMessage).toContain("400");
+    expect(result.errorMessage).toContain(
+      "'questions' must be a non-empty object",
+    );
   });
 
   it("returns an error result when an answer is missing from the response", async () => {
@@ -248,6 +355,73 @@ describe("classify (System One)", () => {
 
     expect(result.stopReason).toBe("error");
     expect(result.errorMessage).toContain("sentiment");
+    expect(result.usage?.input).toBe(10);
+    expect(result.answers).toEqual({});
+  });
+
+  it.each([
+    { type: "score", score: 1, confidence: 0.9 },
+    {
+      type: "choice",
+      choice: 1,
+      probabilities: { positive: 0.9 },
+      confidence: 0.9,
+    },
+    {
+      type: "choice",
+      choice: "positive",
+      probabilities: { positive: "0.9" },
+      confidence: 0.9,
+    },
+    {
+      type: "choice",
+      choice: "positive",
+      probabilities: { positive: 0.9 },
+      confidence: "0.9",
+    },
+  ])("rejects mistyped answers without losing usage: %j", async (answer) => {
+    const result = await classify(clefFlash, sentimentContext, {
+      fetch: okFetch({
+        answers: { sentiment: answer },
+        usage: { input_tokens: 10, output_tokens: 0 },
+      }) as never,
+    });
+    expect(result.stopReason).toBe("error");
+    expect(result.answers).toEqual({});
+    expect(result.usage?.input).toBe(10);
+  });
+
+  it.each([
+    null,
+    [],
+    {},
+    "invalid",
+  ])("rejects responses with malformed usage: %j", async (usage) => {
+    const result = await classify(clefFlash, sentimentContext, {
+      fetch: okFetch({ ...realClefFlashResponse, usage }) as never,
+    });
+    expect(result.stopReason).toBe("error");
+    expect(result.answers).toEqual({});
+    expect(result.usage).toBeUndefined();
+  });
+
+  it("accepts a response without usage", async () => {
+    const result = await classify(clefFlash, sentimentContext, {
+      fetch: okFetch({ answers: realClefFlashResponse.answers }) as never,
+    });
+    expect(result.stopReason).toBe("stop");
+    expect(result.usage).toBeUndefined();
+  });
+
+  it("rejects invalid token counts", async () => {
+    const result = await classify(clefFlash, sentimentContext, {
+      fetch: okFetch({
+        ...realClefFlashResponse,
+        usage: { input_tokens: -1, output_tokens: "2" },
+      }) as never,
+    });
+    expect(result.stopReason).toBe("error");
+    expect(result.usage).toBeUndefined();
   });
 
   it("rejects models stamped with another classifier api", async () => {

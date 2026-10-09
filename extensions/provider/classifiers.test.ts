@@ -212,10 +212,7 @@ describe("buildNeuralwattProviderModelsFromApi (decision models)", () => {
   });
 });
 
-// Temporarily skipped: the classifier wiring in provider.ts is disabled until
-// pi-ai/pi resolve the `@earendil-works/pi-ai/api/system-one-shared` load
-// failure (issue #123). Re-enable together with the provider wiring.
-describe.skip("provider classifier registration", () => {
+describe("provider classifier registration", () => {
   for (const api of ["openai-completions", "anthropic-messages"] as const) {
     describe(`on ${api}`, () => {
       it("exposes classifiers in getAllModels() but never in getModels()", () => {

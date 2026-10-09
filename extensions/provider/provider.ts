@@ -2,7 +2,11 @@ import type { Provider } from "@earendil-works/pi-ai";
 import type { NeuralwattApi } from "../../src/config";
 import { createAnthropicMessagesApi } from "./api/anthropic-messages";
 import { createOpenAiCompletionsApi } from "./api/openai-completions";
-import { classify, stampClassifierModels } from "./api/system-one";
+// Temporarily disabled: this module imports the deep subpath
+// `@earendil-works/pi-ai/api/system-one-shared`, which pi's extension loader
+// cannot resolve, crashing extension load on pi 1.1.0 (issue #123).
+// Restore once pi-ai re-exports the module or the loader virtualizes subpaths.
+// import { classify, stampClassifierModels } from "./api/system-one";
 import type { NeuralwattApiHandler } from "./api/types";
 import {
   NEURALWATT_API_KEY_ENV,
@@ -109,13 +113,12 @@ export function createNeuralwattProvider(
     getModels: () =>
       handler.stampModels(partitionNeuralwattModels(canonicalModels).chat),
     getAllModels: () => {
-      const { chat, classifiers } = partitionNeuralwattModels(canonicalModels);
-      return [
-        ...handler.stampModels(chat),
-        ...stampClassifierModels(classifiers),
-      ];
+      // Classifiers temporarily disabled, see issue #123.
+      const { chat } = partitionNeuralwattModels(canonicalModels);
+      return handler.stampModels(chat);
     },
-    classify: (model, context, options) => classify(model, context, options),
+    // Temporarily disabled, see issue #123.
+    // classify: (model, context, options) => classify(model, context, options),
     refreshModels: async (context) => {
       const models = await refreshCatalog(context);
       await context.publish({

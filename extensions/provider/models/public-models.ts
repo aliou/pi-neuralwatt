@@ -105,17 +105,6 @@ const KIMI_K3: NeuralwattModelFamily = {
   },
 };
 
-// MoonshotAI. K2.7 Code has mandatory reasoning with no selectable efforts
-// (`supported_efforts: []`), so `buildThinkingLevelMap` nulls out every level.
-const KIMI_K2_7_CODE: NeuralwattModelFamily = {
-  cost: { input: 0.95, output: 4.0, cacheRead: 0.095 },
-  vision: true,
-  reasoningMetadata: {
-    supported_efforts: [],
-    mandatory: true,
-  },
-};
-
 // Xiaomi. MiMo-V2.6-Pro only has two reasoning behaviors: `high` (default)
 // and `none`; the API aliases every other effort onto those, with `minimal`
 // landing on `none`.
@@ -330,35 +319,6 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
         id: "kimi-k3-flex",
         name: "Kimi K3 (flex)",
         contextWindow: 1048560,
-        maxOutputTokens: null,
-        reasoning: true,
-        costMultiplier: 0.65,
-      },
-    ],
-  ],
-  [
-    KIMI_K2_7_CODE,
-    [
-      {
-        id: "kimi-k2.7-code",
-        name: "Kimi K2.7 Code",
-        contextWindow: 262128,
-        maxOutputTokens: null,
-        reasoning: true,
-      },
-      {
-        // K2.7 Code cannot disable thinking; the -fast variant caps the
-        // reasoning budget (~64 tokens) rather than turning it off.
-        id: "kimi-k2.7-code-fast",
-        name: "Kimi K2.7 Code Fast",
-        contextWindow: 262128,
-        maxOutputTokens: null,
-        reasoning: true,
-      },
-      {
-        id: "kimi-k2.7-code-flex",
-        name: "Kimi K2.7 Code (flex)",
-        contextWindow: 262128,
         maxOutputTokens: null,
         reasoning: true,
         costMultiplier: 0.65,

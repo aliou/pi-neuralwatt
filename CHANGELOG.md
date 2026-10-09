@@ -1,5 +1,18 @@
 # @aliou/pi-extension-template
 
+## 0.17.0
+
+### Minor Changes
+
+- 53c4e26: Add `provider.apiBaseUrl` config. It sets the base URL for the extension's catalog and quota requests and is the fallback for models that carry no `baseUrl` of their own — models.json overrides, custom providers, and proxy routing all take precedence. Defaults to the direct upstream.
+- bbca292: Migrate to pi 1.0.0. The provider extension now injects a per-request `options.fetch` wrapper (pi-ai >= 0.83) instead of swapping `globalThis.fetch`, so 429 rate-limit headers are still captured and successful SSE bodies are still teed for live quota comments without touching the global fetch. Stream signatures use `TranscriptContext`, the model catalog narrows `ProviderModelConfig` to its chat member (`ProviderChatModelConfig`), and the peer floor moves to `@earendil-works/pi-ai` / `@earendil-works/pi-coding-agent` `>=0.86.0`. No user-facing behavior change.
+- 99b9ee8: Support Neuralwatt decision models as Pi classifiers. Key-scoped `/v1/models` catalogs now compile `task: "decision"` entries (e.g. `clef-flash`) into classifier models stamped with the `typesafe-system-one` classifier API, served through a new System One module that posts `{ model, state, questions }` to `/v1/systemone` and returns pi-ai `ClassifierResult` answers with per-choice probabilities. Classifiers appear in `getAllModels()` (and `models.classify()` / `models.getAvailableOfType("classifier")`) but never in the chat-only `getModels()`, so `/model` is unaffected. The offline fallback catalog stays chat-only. Requires pi 1.0.0: the peer floor for `@earendil-works/pi-ai` and `@earendil-works/pi-coding-agent` moves to `>=1.0.0`.
+
+### Patch Changes
+
+- 3ccee9c: Refetch the model catalog when `provider.apiBaseUrl` changes. The cached catalog was keyed only by auth scope, so after switching to a gateway pi kept the upstream catalog for up to four hours and missed models only the gateway serves, such as the `clef-flash` classifier.
+- a8f8f15: Fix provider loading on pi 1.1.0 by replacing the deep pi-ai import with a minimal Neuralwatt System One client. Restore classifier registration.
+
 ## 0.16.3
 
 ### Patch Changes

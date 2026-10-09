@@ -5,6 +5,7 @@ import type {
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
+import { NEURALWATT_BASE_URL } from "../constants";
 import {
   buildNeuralwattProviderModelsFromApi,
   buildNeuralwattProviderModelsFromStore,
@@ -89,7 +90,9 @@ function scopedStored(
   return {
     models,
     checkedAt,
-    ...(scope !== "legacy" ? { catalogKey: `${scope} v2` } : {}),
+    ...(scope !== "legacy"
+      ? { catalogKey: `${scope} v2 ${NEURALWATT_BASE_URL}` }
+      : {}),
   };
 }
 
@@ -368,7 +371,9 @@ describe("createNeuralwattRefreshModels", () => {
       },
     });
 
-    expect((writes[0] as { catalogKey?: string }).catalogKey).toBe("key v2");
+    expect((writes[0] as { catalogKey?: string }).catalogKey).toBe(
+      `key v2 ${NEURALWATT_BASE_URL}`,
+    );
   });
 
   it("refetches when the store is stale (beyond TTL)", async () => {
@@ -378,6 +383,23 @@ describe("createNeuralwattRefreshModels", () => {
     await refresh(
       createContext({
         stored: scopedStored([], "public", Date.now() - MODEL_STORE_TTL_MS - 1),
+      }),
+    );
+
+    expect(fetchApiModels).toHaveBeenCalled();
+  });
+
+  it("refetches when the store was fetched from another base URL", async () => {
+    const fetchApiModels = vi.fn(async () => [apiModel]);
+    const refresh = createRefresh({ fetchApiModels });
+
+    await refresh(
+      createContext({
+        stored: {
+          models: [],
+          checkedAt: Date.now(),
+          catalogKey: "public v2 https://gateway.example/v1",
+        } as ModelsStoreEntry,
       }),
     );
 

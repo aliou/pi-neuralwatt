@@ -296,7 +296,7 @@ describe("refreshModels", () => {
             },
           ],
           checkedAt: Date.now(),
-          catalogKey: "public v2",
+          catalogKey: `public v2 ${NEURALWATT_BASE_URL}`,
         },
       }),
     );
@@ -329,7 +329,7 @@ describe("refreshModels", () => {
             },
           ],
           checkedAt: Date.now(),
-          catalogKey: "public v2",
+          catalogKey: `public v2 ${NEURALWATT_BASE_URL}`,
         },
       }),
     );

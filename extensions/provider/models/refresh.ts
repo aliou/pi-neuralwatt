@@ -3,6 +3,7 @@ import type {
   ModelsStoreEntry,
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
+import { configuredApiBaseUrl } from "../../../src/config/loader";
 import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import type {
   buildNeuralwattProviderModels,
@@ -18,7 +19,8 @@ export const MODEL_STORE_TTL_MS = 4 * 60 * 60 * 1000;
  * key-scoped catalog (preview, grant-gated, private models), so an entry
  * stamped "public" must not shadow a keyed refresh — and a key-scoped entry
  * must not be replayed for an anonymous user. Matches the anonymous-key
- * convention in src/lib/neuralwatt-api.ts (authHeaders).
+ * convention in src/lib/neuralwatt-api.ts (authHeaders). The base URL is part
+ * of the key because a gateway can serve a different catalog than upstream.
  */
 const CATALOG_SCOPE_VERSION = "v2";
 type CatalogScope = "public" | "key";
@@ -31,18 +33,15 @@ function catalogScope(apiKey: string | undefined): CatalogScope {
     : "public";
 }
 
-function storedCatalogKey(entry: ScopedModelsStoreEntry): string | undefined {
-  return entry.catalogKey;
+function catalogKey(scope: CatalogScope): string {
+  return `${scope} ${CATALOG_SCOPE_VERSION} ${configuredApiBaseUrl()}`;
 }
 
 function catalogKeyMatches(
   entry: ScopedModelsStoreEntry | undefined,
   scope: CatalogScope,
 ): boolean {
-  return (
-    entry !== undefined &&
-    storedCatalogKey(entry) === `${scope} ${CATALOG_SCOPE_VERSION}`
-  );
+  return entry !== undefined && entry.catalogKey === catalogKey(scope);
 }
 
 export type FetchNeuralwattApiModels = (
@@ -99,7 +98,7 @@ export function createNeuralwattRefreshModels(
       const entry: ScopedModelsStoreEntry = {
         models: models as unknown as ModelsStoreEntry["models"],
         checkedAt: Date.now(),
-        catalogKey: `${scope} ${CATALOG_SCOPE_VERSION}`,
+        catalogKey: catalogKey(scope),
       };
       await context.publish({ persist: entry }).catch(() => undefined);
       context.signal.throwIfAborted();

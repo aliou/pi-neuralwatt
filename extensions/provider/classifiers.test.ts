@@ -295,7 +295,7 @@ describe("provider classifier registration", () => {
     const stored: ModelsStoreEntry & { catalogKey?: string } = {
       models: [storedChat as never, storedClassifier as never],
       checkedAt: Date.now(),
-      catalogKey: "key v2",
+      catalogKey: `key v2 ${NEURALWATT_BASE_URL}`,
     };
     const { provider, fetchApiModels } = createProvider({
       fetchApiModels: async () => {

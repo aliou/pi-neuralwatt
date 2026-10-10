@@ -93,10 +93,18 @@ export default async function (pi: ExtensionAPI) {
   // subscribe in session_start (capturing the fresh ctx in the closure) and
   // unsubscribe in session_shutdown, before the ctx can go stale.
   function handleQuotas(ctx: ExtensionContext, data: unknown): void {
-    if (!isActive() || !subCoreReady || !enabled) return;
+    if (!isActive() || !enabled) return;
     if (!data || typeof data !== "object") return;
     const { quotas } = data as NeuralwattQuotasUpdatedPayload;
-    emitUsage(quotas);
+
+    // pi draws the bar through the `sub-core` extension, so wait until it has
+    // signalled ready and feed it the usage. omp has no sub-core and renders
+    // `ctx.ui.setStatus` itself (the status line), so it must not wait for a
+    // readiness event that never arrives.
+    if (hasPiProviderRuntime) {
+      if (!subCoreReady) return;
+      emitUsage(quotas);
+    }
 
     ctx.ui.setStatus("neuralwatt-usage", formatStatus(quotas, ctx.ui.theme));
   }
@@ -107,7 +115,9 @@ export default async function (pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     unsubscribeQuotas?.();
-    currentProvider = ctx.model?.provider;
+    currentProvider = hasPiProviderRuntime
+      ? ctx.model?.provider
+      : currentModelProvider(ctx);
     unsubscribeQuotas = pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data) =>
       handleQuotas(ctx, data),
     );
@@ -132,8 +142,11 @@ export default async function (pi: ExtensionAPI) {
       if (provider === currentProvider) return;
       currentProvider = provider;
 
-      if (subCoreReady && isActive() && enabled) {
+      // No sub-core on omp, so there is no readiness to wait for.
+      if (isActive() && enabled) {
         requestQuotas();
+      } else {
+        ctx.ui.setStatus("neuralwatt-usage", undefined);
       }
     });
   }

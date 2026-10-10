@@ -1,4 +1,3 @@
-import { getApiProvider } from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
   ModelRegistry,
@@ -19,9 +18,11 @@ import {
 } from "../../src/lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
+import { getApiProvider, hasPiProviderRuntime } from "../_shared/host-compat";
 import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import { buildNeuralwattProviderModels } from "./models";
+import { registerNeuralwattProviderForOmp } from "./omp";
 import { createNeuralwattProvider } from "./provider";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 import {
@@ -48,6 +49,29 @@ function registerNeuralwattProvider(
   streamCallbacks: NeuralwattStreamCallbacks,
 ): void {
   const staticModels = buildNeuralwattProviderModels();
+  const api = configLoader.getConfig().provider.api;
+  const fetchApiModels = async (
+    apiKey: string | undefined,
+    signal?: AbortSignal,
+  ) => {
+    const result = await fetchNeuralwattModels(apiKey, signal);
+    if (!result.success) {
+      throw new Error("Neuralwatt models API request failed");
+    }
+    return result.data;
+  };
+
+  // omp has no pi-ai provider runtime (no `getApiProvider`), so it cannot take
+  // the pi-ai `Provider` object; it gets a ProviderConfig instead (see omp.ts).
+  if (!hasPiProviderRuntime) {
+    registerNeuralwattProviderForOmp(pi, {
+      staticModels,
+      api,
+      fetchApiModels,
+      streamCallbacks,
+    });
+    return;
+  }
 
   const apiProvider = getApiProvider("openai-completions");
   const baseStreamSimple = apiProvider?.streamSimple;
@@ -68,21 +92,11 @@ function registerNeuralwattProvider(
     : undefined;
 
   pi.registerProvider(
-    createNeuralwattProvider(
-      staticModels,
-      async (apiKey, signal) => {
-        const result = await fetchNeuralwattModels(apiKey, signal);
-        if (!result.success) {
-          throw new Error("Neuralwatt models API request failed");
-        }
-        return result.data;
-      },
-      {
-        api: configLoader.getConfig().provider.api,
-        openAiStreamSimple: streamSimple,
-        messagesStreamSimple,
-      },
-    ),
+    createNeuralwattProvider(staticModels, fetchApiModels, {
+      api,
+      openAiStreamSimple: streamSimple,
+      messagesStreamSimple,
+    }),
   );
 }
 

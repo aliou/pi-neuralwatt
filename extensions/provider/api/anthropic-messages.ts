@@ -56,8 +56,10 @@ function makeReasoningInjector(
   };
 }
 
-// The Anthropic SDK appends `/v1/messages` to the client base URL.
-function toMessagesBaseUrl(baseUrl: string): string {
+// The Anthropic SDK appends `/v1/messages` to the client base URL, and omp's
+// judge client appends `/v1/systemone` to its model base URL, so both surfaces
+// need the origin root. Shared with omp.ts so the two cannot drift.
+export function toMessagesBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/v1\/?$/, "");
 }
 

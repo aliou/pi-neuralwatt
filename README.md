@@ -39,6 +39,19 @@ pi install git:github.com/aliou/pi-neuralwatt
 pi -e ./extensions/provider/index.ts
 ```
 
+### omp
+
+[omp](https://omp.sh) loads pi extensions through its legacy compat layer, and the same install works there:
+
+```bash
+omp install npm:@aliou/pi-neuralwatt
+omp -e ./extensions/provider/index.ts
+```
+
+Authenticate with `/login neuralwatt` (paste your API key; it is validated against the gateway and stored in omp's credential store) or with `NEURALWATT_API_KEY` (omp resolves the env var natively). A saved login takes precedence over the env var. The `~/.pi/agent/auth.json` entry is read by pi only, not omp.
+
+Streaming runs through omp's own openai-completions / anthropic-messages transports, registered under a provider-scoped api id. omp lacks the pi-only hooks the provider relies on, so the equivalent behaviour is done at the transport level instead: the per-request `fetch` wrapper stamps the session's `X-NW-Conversation-ID` on every Neuralwatt request and rewrites 429 / context-overflow error messages before omp's transport parses them, and the quota-warnings and sub-bar extensions observe model switches by diffing omp's live session model (`ctx.models.current()`) across turns.
+
 ## Usage
 
 Once installed, select `neuralwatt` as your provider and choose from available models:

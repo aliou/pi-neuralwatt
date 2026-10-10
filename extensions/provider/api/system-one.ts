@@ -10,8 +10,8 @@ import type {
 import { calculateCost } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { Type } from "typebox";
-import { Check, Parse, ParseError } from "typebox/value";
 import { configuredApiBaseUrl } from "../../../src/config/loader";
+import { Check, Parse, ParseError } from "../../_shared/host-compat";
 import {
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,

@@ -26,6 +26,7 @@ extensions/
   provider/
     index.ts                            # Provider extension entry point; registers the provider + quota flows (always loaded)
     provider.ts                         # pi-ai Provider assembly: auth resolution, model stamping, stream delegation
+    omp.ts                              # omp ProviderConfig assembly: provider-scoped custom api over the shared api handler, plus the `/login neuralwatt` oauth flow
     provider.test.ts                    # Provider tests (auth resolution, catalog swap)
     commands/settings/index.ts          # /neuralwatt:settings command
     models/
@@ -50,6 +51,7 @@ extensions/
     snapshot.ts                         # Usage snapshot builder
   _shared/
     auth.ts                             # API key resolution (auth.json -> env var)
+    host-compat.ts                      # pi/omp capability detection: pi-ai provider shim + schema value helpers
 src/
   config/
     types.ts                            # Config schema types

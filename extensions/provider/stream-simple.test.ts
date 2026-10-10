@@ -291,3 +291,135 @@ describe("wrapNeuralwattStreamSimple (e2e, real pi-ai streamSimple)", () => {
     expect(doneEvent.message.stopReason).toBe("stop");
   });
 });
+
+// omp takes the transport-level path (opt-in flags); pi keeps the default
+// (before_provider_headers / message_end). These exercise both.
+describe("wrapNeuralwattStreamSimple (omp transport options)", () => {
+  function injectBase(): {
+    base: AnyStreamSimple;
+    injected: () => typeof fetch | undefined;
+  } {
+    let injectedFetch: typeof fetch | undefined;
+    return {
+      base: (_model, _context, options) => {
+        injectedFetch = options?.fetch;
+        return createAssistantMessageEventStream();
+      },
+      injected: () => injectedFetch,
+    };
+  }
+
+  it("stamps X-NW-Conversation-ID from options.sessionId when enabled", async () => {
+    const callerFetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        makeSseResponse(["data: [DONE]"]),
+    );
+    const { base, injected } = injectBase();
+    const wrapped = wrapNeuralwattStreamSimple(
+      base,
+      { onSseQuota: () => {}, onRateLimit: () => {} },
+      { conversationIdHeader: true },
+    );
+    wrapped(model, transcript, { fetch: callerFetch, sessionId: "sess-123" });
+
+    await injected()?.("https://api.neuralwatt.com/v1/chat/completions");
+    const init = callerFetch.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get("X-NW-Conversation-ID")).toBe(
+      "sess-123",
+    );
+  });
+
+  it("leaves the request untouched without the omp flag (pi path)", async () => {
+    const callerFetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        makeSseResponse(["data: [DONE]"]),
+    );
+    const { base, injected } = injectBase();
+    const wrapped = wrapNeuralwattStreamSimple(base, {
+      onSseQuota: () => {},
+      onRateLimit: () => {},
+    });
+    wrapped(model, transcript, { fetch: callerFetch, sessionId: "sess-123" });
+
+    await injected()?.("https://api.neuralwatt.com/v1/chat/completions");
+    const init = callerFetch.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get("X-NW-Conversation-ID")).toBeNull();
+  });
+
+  it("rewrites a 429 body from the response headers when enabled", async () => {
+    const callerFetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(null, {
+          status: 429,
+          headers: {
+            "Retry-After": "0",
+            "X-Concurrent-Limit-Dimension": "model",
+            "X-Concurrent-Limit-Active": "3",
+            "X-Concurrent-Limit-Max": "2",
+          },
+        }),
+    );
+    const { base, injected } = injectBase();
+    const wrapped = wrapNeuralwattStreamSimple(
+      base,
+      { onSseQuota: () => {}, onRateLimit: () => {} },
+      { rewriteErrorBody: true },
+    );
+    wrapped(model, transcript, { fetch: callerFetch });
+
+    const response = await injected()?.(
+      "https://api.neuralwatt.com/v1/chat/completions",
+    );
+    const text = (await response?.text()) ?? "";
+    // No leading "429 ": the transport prefixes the status.
+    expect(text).toContain('"message":"rate limit: ');
+    expect(text).toContain(
+      "Concurrent request limit reached (3/2 active, model-scoped)",
+    );
+  });
+
+  it("rewrites a context-overflow body with the compaction prefix when enabled", async () => {
+    const overflow = "This request exceeds model's maximum context length";
+    const callerFetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(JSON.stringify({ error: { message: overflow } }), {
+          status: 400,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    const { base, injected } = injectBase();
+    const wrapped = wrapNeuralwattStreamSimple(
+      base,
+      { onSseQuota: () => {}, onRateLimit: () => {} },
+      { rewriteErrorBody: true },
+    );
+    wrapped(model, transcript, { fetch: callerFetch });
+
+    const response = await injected()?.(
+      "https://api.neuralwatt.com/v1/chat/completions",
+    );
+    const body = JSON.parse((await response?.text()) ?? "{}") as {
+      error?: { message?: string };
+    };
+    expect(body.error?.message).toBe(`context_length_exceeded: ${overflow}`);
+  });
+
+  it("leaves a 429 body alone without the omp flag (pi path)", async () => {
+    const callerFetch = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(null, { status: 429 }),
+    );
+    const { base, injected } = injectBase();
+    const wrapped = wrapNeuralwattStreamSimple(base, {
+      onSseQuota: () => {},
+      onRateLimit: () => {},
+    });
+    wrapped(model, transcript, { fetch: callerFetch });
+
+    const response = await injected()?.(
+      "https://api.neuralwatt.com/v1/chat/completions",
+    );
+    expect(response?.status).toBe(429);
+    expect(await response?.text()).toBe("");
+  });
+});

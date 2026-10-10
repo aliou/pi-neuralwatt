@@ -45,9 +45,6 @@ extensions/
   quota-warnings/
     index.ts                            # Extension entry (checks config, listens for events)
     notifier.ts                         # Low quota / overage warning logic
-  sub-bar-integration/
-    index.ts                            # Extension entry (checks config, sub-bar + status bar)
-    snapshot.ts                         # Usage snapshot builder
   _shared/
     auth.ts                             # API key resolution (auth.json -> env var)
 src/
@@ -116,9 +113,10 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 `/neuralwatt:settings` allows toggling:
 - **Quota command** (`quotaCommand.enabled`) - Show/hide `/neuralwatt:quota` command
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
-- **Sub-bar integration** (`subBarIntegration.enabled`) - Show/hide usage in status bar
 
 The provider itself cannot be disabled. `provider.apiBaseUrl` is a free-text row that live-probes `<base>/models` before saving; empty resets to the direct upstream. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
+
+The built-in sub-bar integration was removed; it lives on as a standalone one-off gist extension (frozen, not kept up to date): test with `pi -e https://gist.github.com/aliou/9939544f3c5a4f917b0a8e5c0497cdb2`, install with `pi install https://gist.github.com/aliou/9939544f3c5a4f917b0a8e5c0497cdb2`. A config migration drops `subBarIntegration` and points users at the gist.
 
 ## Model catalog
 

@@ -16,10 +16,6 @@
           "$ref": "#/definitions/NeuralwattQuotaWarningsConfig",
           "description": "Quota warning feature."
         },
-        "subBarIntegration": {
-          "$ref": "#/definitions/NeuralwattSubBarIntegrationConfig",
-          "description": "Sub-bar/status-bar integration feature."
-        },
         "provider": {
           "$ref": "#/definitions/NeuralwattProviderConfig",
           "description": "Provider behavior (API surface)."
@@ -35,7 +31,7 @@
               "pattern": "^\\d{1,15}(\\.\\d{1,15})?(\\.\\d{1,15})?$"
             }
           ],
-          "description": "Config schema version, stamped by migrations. Current version: 0.12.0."
+          "description": "Config schema version, stamped by migrations."
         }
       },
       "additionalProperties": false
@@ -56,16 +52,6 @@
         "enabled": {
           "type": "boolean",
           "description": "Show quota warnings when credits or energy are low."
-        }
-      },
-      "additionalProperties": false
-    },
-    "NeuralwattSubBarIntegrationConfig": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Show usage in the sub-bar / status bar."
         }
       },
       "additionalProperties": false

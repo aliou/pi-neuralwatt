@@ -9,9 +9,6 @@ export const DEFAULT_CONFIG: ResolvedNeuralwattConfig = {
   quotaWarnings: {
     enabled: true,
   },
-  subBarIntegration: {
-    enabled: true,
-  },
   provider: {
     api: "openai-completions",
     apiBaseUrl: NEURALWATT_API_BASE_URL,

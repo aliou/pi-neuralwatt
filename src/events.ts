@@ -1,10 +1,7 @@
 import type { ResolvedNeuralwattConfig } from "./config";
 import type { NeuralwattQuotas } from "./types/quota-api";
 
-export type NeuralwattFeatureId =
-  | "quotaCommand"
-  | "quotaWarnings"
-  | "subBarIntegration";
+export type NeuralwattFeatureId = "quotaCommand" | "quotaWarnings";
 
 export const NEURALWATT_EXTENSIONS_REQUEST_EVENT =
   "neuralwatt:extensions:request" as const;

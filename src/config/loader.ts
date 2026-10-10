@@ -26,11 +26,6 @@ function normalizeResolvedConfig(
       enabled:
         config.quotaWarnings?.enabled ?? DEFAULT_CONFIG.quotaWarnings.enabled,
     },
-    subBarIntegration: {
-      enabled:
-        config.subBarIntegration?.enabled ??
-        DEFAULT_CONFIG.subBarIntegration.enabled,
-    },
     provider: {
       api: resolveApi(config.provider?.api),
       apiBaseUrl: resolveApiBaseUrl(config.provider?.apiBaseUrl),

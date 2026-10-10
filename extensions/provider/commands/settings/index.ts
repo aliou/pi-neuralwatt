@@ -142,16 +142,6 @@ export function registerNeuralwattSettings(
               ),
               loaded.has("quotaWarnings"),
             ),
-            featureRow(
-              "subBarIntegration",
-              "Sub-bar integration",
-              "Toggle integration with the status bar and sub-core",
-              featureValue(
-                tabConfig?.subBarIntegration,
-                resolved.subBarIntegration.enabled,
-              ),
-              loaded.has("subBarIntegration"),
-            ),
           ],
         },
       ];
@@ -186,11 +176,6 @@ export function registerNeuralwattSettings(
           return {
             ...config,
             quotaWarnings: { ...config.quotaWarnings, enabled },
-          };
-        case "subBarIntegration":
-          return {
-            ...config,
-            subBarIntegration: { ...config.subBarIntegration, enabled },
           };
         default:
           return null;

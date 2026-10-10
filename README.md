@@ -75,10 +75,6 @@ https://github.com/user-attachments/assets/a8994940-c467-4744-a0f2-833cb63923ff
 
 When enabled, the extension notifies you when credits or energy are running low. When you have an active subscription, only energy warnings fire (credits are on-demand top-up only). Warnings use escalation on severity transitions and have a cooldown for `warning` level.
 
-### Sub-bar Integration
-
-When a Neuralwatt model is active, the footer status bar shows live quota usage (credits and energy). The status updates after each response and on session start.
-
 ## Settings
 
 Configure features with `/neuralwatt:settings`:
@@ -86,7 +82,6 @@ Configure features with `/neuralwatt:settings`:
 - **API** — Choose between `openai-completions` (default) and `anthropic-messages`; applies on `/reload`
 - **Quota command** — Show/hide `/neuralwatt:quota`
 - **Quota warnings** — Enable/disable low quota notifications
-- **Sub-bar integration** — Show/hide usage in status bar
 
 The provider itself cannot be disabled — it is always loaded.
 

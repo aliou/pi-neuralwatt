@@ -8,11 +8,6 @@ export interface NeuralwattQuotaWarningsConfig {
   enabled?: boolean;
 }
 
-export interface NeuralwattSubBarIntegrationConfig {
-  /** Show usage in the sub-bar / status bar. */
-  enabled?: boolean;
-}
-
 /**
  * Neuralwatt serves every chat model twice: on an OpenAI-compatible
  * `chat/completions` endpoint and on a vLLM-backed Anthropic-compatible
@@ -43,9 +38,6 @@ export interface NeuralwattConfig {
   /** Quota warning feature. */
   quotaWarnings?: NeuralwattQuotaWarningsConfig;
 
-  /** Sub-bar/status-bar integration feature. */
-  subBarIntegration?: NeuralwattSubBarIntegrationConfig;
-
   /** Provider behavior (API surface). */
   provider?: NeuralwattProviderConfig;
 }
@@ -55,9 +47,6 @@ export interface ResolvedNeuralwattConfig {
     enabled: boolean;
   };
   quotaWarnings: {
-    enabled: boolean;
-  };
-  subBarIntegration: {
     enabled: boolean;
   };
   provider: {

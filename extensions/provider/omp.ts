@@ -19,6 +19,7 @@ import type {
 import type { NeuralwattApi } from "../../src/config";
 import { configuredApiBaseUrl } from "../../src/config/loader";
 import { fetchNeuralwattModels } from "../../src/lib/neuralwatt-api";
+import { toMessagesBaseUrl } from "./api/anthropic-messages";
 import {
   NEURALWATT_API_KEY_ENV,
   NEURALWATT_PROVIDER_ID,
@@ -55,6 +56,15 @@ export function registerNeuralwattProviderForOmp(
   const { staticModels, api, fetchApiModels, streamCallbacks } = options;
   const customApi = `${NEURALWATT_PROVIDER_ID}-${api}`;
 
+  // omp's model materializer (`resolveProviderBaseUrl`) overwrites every
+  // model's own baseUrl with the provider-level one, and a runtime
+  // `registerProvider` call cannot exempt apis via `baseUrlApis`. The provider
+  // baseUrl is therefore the origin root, which suits the `typesafe` judge
+  // (`<origin>/v1/systemone`) and the anthropic SDK (`<origin>/v1/messages`);
+  // the openai-completions surface, whose SDK appends `/chat/completions`, gets
+  // its `/v1` root back here before delegating.
+  const originRoot = toMessagesBaseUrl(configuredApiBaseUrl());
+
   // omp dispatches our custom api inside its own per-provider in-flight
   // limiter (`withProviderInFlightLimit`, keyed by model.provider). Delegating
   // to omp's top-level streamSimple would acquire a second slot under the same
@@ -63,7 +73,12 @@ export function registerNeuralwattProviderForOmp(
   // `resolveProviderInFlightLimit` read `{}` and skip the limiter.
   const streamViaOmp: AnyStreamSimple = (model, context, simpleOptions) =>
     (ompStreamSimple as unknown as AnyStreamSimple)(
-      { ...model, api },
+      {
+        ...model,
+        api,
+        baseUrl:
+          api === "anthropic-messages" ? originRoot : configuredApiBaseUrl(),
+      },
       context,
       // `maxInFlightRequests` is omp-only (absent from pi-ai 1.1.0's
       // SimpleStreamOptions): an empty map makes the nested call skip omp's
@@ -91,18 +106,39 @@ export function registerNeuralwattProviderForOmp(
     messagesStreamSimple: streamWithQuotas,
   });
 
-  // Re-tag the stamped models with the provider-scoped api id so omp routes
-  // them back through this extension's custom api.
-  const stampModels = (models: NeuralwattModel[]) =>
-    handler
-      .stampModels(partitionNeuralwattModels(models).chat)
-      .map((model) => ({ ...model, api: customApi }));
+  // Re-tag the stamped chat models with the provider-scoped api id so omp
+  // routes them back through this extension's custom api. Decision models
+  // become omp `judge` models on omp's native `typesafe` api, which posts the
+  // same `{ model, state, questions }` body to `${baseUrl}/v1/systemone`; it
+  // appends `/v1` itself, so the baseUrl is the origin root.
+  const stampModels = (models: NeuralwattModel[]) => {
+    const { chat, classifiers } = partitionNeuralwattModels(models);
+    return [
+      ...handler
+        .stampModels(chat)
+        .map((model) => ({ ...model, api: customApi })),
+      ...classifiers.map(({ type: _type, ...model }) => ({
+        ...model,
+        api: "typesafe",
+        kind: "judge",
+        provider: NEURALWATT_PROVIDER_ID,
+        baseUrl: originRoot,
+        headers: NEURALWATT_REQUEST_HEADERS,
+        reasoning: false,
+        supportsTools: false,
+        maxTokens: null,
+      })),
+    ];
+  };
 
   // omp's ProviderConfig is a superset of pi's (fetchDynamicModels replaces
   // refreshModels, and `oauth.login` may return a plain API-key string); the
   // cast bridges the two extension host type spaces.
   const config = {
-    baseUrl: configuredApiBaseUrl(),
+    // The origin root, not `/v1`: omp forces this onto every model (see above),
+    // and the judge's `<origin>/v1/systemone` and anthropic's
+    // `<origin>/v1/messages` line up against the root, not `/v1`.
+    baseUrl: originRoot,
     api: customApi,
     apiKey: NEURALWATT_API_KEY_ENV,
     headers: NEURALWATT_REQUEST_HEADERS,

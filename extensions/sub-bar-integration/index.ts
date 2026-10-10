@@ -19,6 +19,10 @@ import {
   percentEnergyRemaining,
 } from "../../src/utils/quota-bar";
 import { formatKwh, formatUsd } from "../../src/utils/quota-format";
+import {
+  currentModelProvider,
+  hasPiProviderRuntime,
+} from "../_shared/host-compat";
 import { toUsageSnapshot } from "./snapshot";
 
 function formatStatus(quotas: NeuralwattQuotas, theme: Theme): string {
@@ -116,6 +120,23 @@ export default async function (pi: ExtensionAPI) {
       requestQuotas();
     }
   });
+
+  // omp has no `model_select` event (its internal model_changed event is not
+  // delivered to extensions). Observe the live session model at each turn
+  // boundary instead and run the same refresh the pi handler above runs. The
+  // provider diff makes a repeat observation a no-op. Gated so pi keeps taking
+  // the `model_select` path unchanged.
+  if (!hasPiProviderRuntime) {
+    pi.on("turn_start", (_event, ctx) => {
+      const provider = currentModelProvider(ctx);
+      if (provider === currentProvider) return;
+      currentProvider = provider;
+
+      if (subCoreReady && isActive() && enabled) {
+        requestQuotas();
+      }
+    });
+  }
 
   pi.on("session_shutdown", () => {
     unsubscribeQuotas?.();

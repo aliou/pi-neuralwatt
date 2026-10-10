@@ -11,6 +11,10 @@ import {
   type NeuralwattConfigUpdatedPayload,
   type NeuralwattQuotasUpdatedPayload,
 } from "../../src/events";
+import {
+  currentModelProvider,
+  hasPiProviderRuntime,
+} from "../_shared/host-compat";
 import { checkQuotas, clearAlertState } from "./notifier";
 
 export default async function (pi: ExtensionAPI) {
@@ -59,6 +63,17 @@ export default async function (pi: ExtensionAPI) {
   pi.on("model_select", (_event, ctx) => {
     currentProvider = ctx.model?.provider;
   });
+
+  // omp has no `model_select` event (its internal model_changed event is not
+  // delivered to extensions). Observe the live session model at each turn
+  // boundary instead and apply the same provider update the pi handler above
+  // does. Gated so pi keeps taking the `model_select` path unchanged.
+  if (!hasPiProviderRuntime) {
+    pi.on("turn_start", (_event, ctx) => {
+      const provider = currentModelProvider(ctx);
+      if (provider !== currentProvider) currentProvider = provider;
+    });
+  }
 
   pi.on("session_before_switch", (_event, ctx) => {
     currentProvider = ctx.model?.provider;

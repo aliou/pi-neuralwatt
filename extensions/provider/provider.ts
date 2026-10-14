@@ -31,7 +31,8 @@ export interface NeuralwattProviderOptions {
   messagesStreamSimple?: AnyStreamSimple;
 }
 
-function createApiHandler(
+/** Shared with omp.ts so both hosts stamp models and inject payloads identically. */
+export function createApiHandler(
   api: NeuralwattApi,
   options?: NeuralwattProviderOptions,
 ): NeuralwattApiHandler {

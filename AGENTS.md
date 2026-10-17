@@ -6,67 +6,9 @@ Pi extension providing a Neuralwatt inference API provider.
 
 Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. The model catalog is built at runtime from the `/v1/models` API response; a hardcoded fallback in `extensions/provider/models/public-models.ts` covers offline first start.
 
-## Stack
-
-- TypeScript (strict mode), pnpm, Biome, Changesets
-
-## Scripts
-
-- `pnpm typecheck` - Type check
-- `pnpm lint` - Lint
-- `pnpm format` - Format code
-- `pnpm test` - Run deterministic tests (invariants, derivation, unit tests)
-- `pnpm check:models` - Compare the offline fallback table against the live API
-- `pnpm changeset` - Create changeset for versioning
-
 ## Structure
 
-```
-extensions/
-  provider/
-    index.ts                            # Provider extension entry point; registers the provider + quota flows (always loaded)
-    provider.ts                         # pi-ai Provider assembly: auth resolution, model stamping, stream delegation
-    provider.test.ts                    # Provider tests (auth resolution, catalog swap)
-    commands/settings/index.ts          # /neuralwatt:settings command
-    models/
-      index.ts                          # Re-exports
-      catalog.ts                        # API-driven catalog builder + overrides (chat-template compat)
-      build.ts                          # Shared model builder utilities (thinkingLevelMap identity + anthropic alias-resolving, maxTokens)
-      public-models.ts                  # Offline fallback model table (first start without network)
-      refresh.ts                        # TTL-based model refresh (fetch → build → persist | failure → fallback)
-      refresh.test.ts                   # Refresh tests (anonymous key, placeholder key, TTL, abort, failure)
-  command-quotas/
-    index.ts                            # Extension entry (checks config, registers command)
-    command.ts                          # /neuralwatt:quota command handler
-    components/
-      quotas-display.ts                 # TUI component (tabs, input)
-      quota-tabs.ts                     # Tab rendering (subscription, credits, usage & key)
-      progress-bar.ts                   # TUI progress bar renderer
-  quota-warnings/
-    index.ts                            # Extension entry (checks config, listens for events)
-    notifier.ts                         # Low quota / overage warning logic
-  _shared/
-    auth.ts                             # API key resolution (auth.json -> env var)
-src/
-  config/
-    types.ts                            # Config schema types
-    defaults.ts                         # Default resolved config
-    loader.ts                           # ConfigLoader setup
-    migration/index.ts                  # Config migrations (each typed against its own historical shape)
-  events.ts                             # Extension event constants, payloads, header parsing
-  lib/
-    neuralwatt-api.ts                   # Neuralwatt API helpers (anonymous-safe auth)
-  types/
-    models-api.ts                       # /v1/models response types
-    quota-api.ts                        # /v1/quota response types
-    quota-result.ts                     # Quota fetch result types
-  utils/
-    quota-format.ts                     # USD, kWh, token number formatters
-    quota-bar.ts                        # Quota severity and percent helpers
-.agents/skills/
-  neuralwatt-models/
-    SKILL.md                            # Skill for updating the static fallback model list (dev only)
-```
+Three feature extensions plus shared code. `extensions/provider/` is the always-loaded provider extension (catalog building, refresh, settings); `extensions/command-quotas/` serves `/neuralwatt:quota`; `extensions/quota-warnings/` emits low-quota notifications. `src/` holds config types/loader/migrations, event constants, API types, and quota formatting/severity helpers. The offline fallback model table lives in `extensions/provider/models/public-models.ts`; `.agents/skills/neuralwatt-models/` covers keeping it in sync.
 
 ## Extension loading
 

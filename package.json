@@ -69,6 +69,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check:models": "tsx scripts/check-models.ts",
+    "check:pricing": "tsx scripts/check-pricing.ts",
     "check:changesets": "tsx scripts/check-changesets.ts",
     "gen:schema": "pi-settings-schema -p src/config/types.ts -t NeuralwattConfig -o schema.json",
     "check:schema": "pi-settings-schema -p src/config/types.ts -t NeuralwattConfig -o schema.json --check",

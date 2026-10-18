@@ -1,5 +1,6 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
+import { planPricing } from "../../../src/lib/plan-pricing";
 import type { NeuralwattQuotas } from "../../../src/types/quota-api";
 import {
   percentCreditsRemaining,
@@ -38,6 +39,17 @@ export function renderSubscriptionTab(
   lines.push(
     labelValue("Billing", sub.billing_interval ?? "\u2014", maxWidth, theme),
   );
+  const pricing = planPricing(sub.plan);
+  if (pricing) {
+    lines.push(
+      labelValue(
+        "Price",
+        `${formatUsd(pricing.priceMonthlyUsd)} / ${sub.billing_interval ?? "month"}`,
+        maxWidth,
+        theme,
+      ),
+    );
+  }
   lines.push(
     labelValue("Auto-renew", sub.auto_renew ? "yes" : "no", maxWidth, theme),
   );

@@ -1,4 +1,5 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { resolveOverageRate } from "../../src/lib/plan-pricing";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import { formatKwh, formatUsd } from "../../src/utils/quota-format";
 
@@ -7,38 +8,6 @@ export type WarningSeverity = "warning" | "critical";
 const COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
 const LOW_PCT = 25;
 const CRITICAL_PCT = 10;
-
-/** $/kWh by plan on a monthly interval. docs.neuralwatt.com/billing/faq */
-const OVERAGE_RATES_MONTHLY = {
-  basic: 8.5,
-  standard: 8.0,
-  pro: 7.5,
-  max: 7.0,
-} as const;
-/** $/kWh by plan on an annual interval. */
-const OVERAGE_RATES_ANNUAL = {
-  basic: 7.08,
-  standard: 6.67,
-  pro: 6.25,
-  max: 5.83,
-} as const;
-/** Pay-as-you-go, verified on portal.neuralwatt.com/pricing. */
-const OVERAGE_RATE_PER_KWH_UNSUBSCRIBED = 10;
-/** Unknown plan on a subscription: fall back to the Standard monthly rate. */
-const OVERAGE_RATE_PER_KWH_UNKNOWN_SUBSCRIBED = 8.0;
-
-function resolveOverageRate(sub: NeuralwattQuotas["subscription"]): number {
-  if (!sub) return OVERAGE_RATE_PER_KWH_UNSUBSCRIBED;
-  const plan = sub.plan.toLowerCase();
-  const table =
-    sub.billing_interval === "year"
-      ? OVERAGE_RATES_ANNUAL
-      : OVERAGE_RATES_MONTHLY;
-  return (
-    (table as Record<string, number>)[plan] ??
-    OVERAGE_RATE_PER_KWH_UNKNOWN_SUBSCRIBED
-  );
-}
 
 interface AlertState {
   lastSeverity: WarningSeverity;
@@ -179,11 +148,7 @@ function overageWarning(progress: OverageProgress): PendingWarning {
  *   no subscription, no cap             → balance credits
  *
  * Overage cost is derived from kWh usage: subscribed pays a per-plan rate
- * ($7.00–$8.50/kWh by plan and billing interval) for kWh beyond the included
- * quota; unsubscribed pays $10/kWh for all usage. There is no overage-spent
- * counter in the API, so progress is computed. Note `kwh_used` is the
- * *charged* energy — flex usage bills at 0.65× kWh — so the "kWh over" figure
- * is billed kWh, not physical consumption.
+ * for kWh beyond the included quota; unsubscribed pays $10/kWh for all usage.
  *
  * Usage totals (monthly/lifetime cost in USD) are deliberately not used as a
  * threshold basis — they are not directly tied to the subscription's kWh quota.

@@ -17,6 +17,7 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 - `pnpm format` - Format code
 - `pnpm test` - Run deterministic tests (invariants, derivation, unit tests)
 - `pnpm check:models` - Compare the offline fallback table against the live API
+- `pnpm check:pricing` - Compare the hardcoded plan pricing table against Neuralwatt's public pricing sources
 - `pnpm changeset` - Create changeset for versioning
 
 ## Structure
@@ -56,6 +57,7 @@ src/
   events.ts                             # Extension event constants, payloads, header parsing
   lib/
     neuralwatt-api.ts                   # Neuralwatt API helpers (anonymous-safe auth)
+    plan-pricing.ts                     # Plan pricing table (price, kWh, overage rates) + overage rate resolution
   types/
     models-api.ts                       # /v1/models response types
     quota-api.ts                        # /v1/quota response types
@@ -128,7 +130,7 @@ When `provider.api` is `anthropic-messages`, the same canonical catalog is stamp
 
 The openai-completions surface has its own payload injector in `api/openai-completions.ts` for reasoning replay: the API streams chain-of-thought in `reasoning`, pi-ai records that field name as the thinking signature and replays prior thinking under it, but the served chat templates render only `reasoning_content`, so the injector renames the field on the wire. It is a move, not a copy — the gateway prefers an empty `reasoning_content` over a populated `reasoning` when both are present.
 
-Drift between the fallback and the live API is a non-blocking, notify-me concern (the runtime syncs from the API). `scripts/check-models.ts` (`pnpm check:models`) compares them and exits 1 with a markdown report on drift; the `model-sync` workflow runs it twice daily and opens a `model-sync` issue. The deterministic invariant, derivation, and unit tests in `models.test.ts` stay in the blocking CI suite.
+Drift between the fallback and the live API is a non-blocking, notify-me concern (the runtime syncs from the API). `scripts/check-models.ts` (`pnpm check:models`) compares them and exits 1 with a markdown report on drift; the `model-sync` workflow runs it twice daily and opens a `model-sync` issue. The same pattern guards plan pricing: `scripts/check-pricing.ts` (`pnpm check:pricing`) diffs `src/lib/plan-pricing.ts` against the public pricing page and Billing FAQ, plus a best-effort live `/v1/quota` allowance cross-check that sends `NEURALWATT_API_KEY` as a header when set and never requires it; `NEURALWATT_API_BASE_URL` overrides the quota base so CI routes it through the Aperture connector (`http://aperture-qa/v1/connectors/neuralwatt`), same as pi-ts-aperture. The `pricing-sync` workflow runs it daily and opens a `pricing-sync` issue. The deterministic invariant, derivation, and unit tests in `models.test.ts` stay in the blocking CI suite.
 
 ### Tests vs drift check
 

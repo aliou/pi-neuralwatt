@@ -41,20 +41,20 @@ pi -e ./extensions/provider/index.ts
 
 ## Usage
 
-Once installed, select `neuralwatt` as your provider and choose from available models:
+Once installed, select `neuralwatt` as your provider and pick a model:
 
 ```
-/model neuralwatt meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+/model neuralwatt kimi-k3
 ```
 
 ### API surface
 
-Neuralwatt serves every model on two APIs. Pick one via `/neuralwatt:settings` → **API** (or set `provider.api` in the extension config):
+Neuralwatt serves every model on two APIs. Pick one in `/neuralwatt:settings` → **API** (or set `provider.api` in the extension config):
 
-- `openai-completions` (default) — the OpenAI-compatible `chat/completions` endpoint;
-- `anthropic-messages` — the Anthropic-compatible `POST /v1/messages` endpoint (vLLM-backed), which streams native tool use and thinking blocks.
+- `openai-completions` (default): the OpenAI-compatible `chat/completions` endpoint.
+- `anthropic-messages`: the Anthropic-compatible `POST /v1/messages` endpoint, which streams native tool use and thinking blocks.
 
-The setting swaps the whole provider (same model ids on both sides) and applies on `/reload`. Usage/cost accounting and quota tracking work on both surfaces: per-request quota headers only exist on chat-completions responses, while `/v1/messages` streams carry the same data as `: energy` / `: cost` SSE comments.
+Both use the same model ids. The setting applies on `/reload`. Cost, energy, and quota tracking work on both.
 
 ### Quota Command
 
@@ -65,82 +65,48 @@ Check your API usage at a glance:
 ```
 
 The quota command shows three tabs:
-- **Subscription** (when subscribed) — plan details, energy quota with progress bar, billing period
-- **Credits** — credit balance with progress bar, accounting method
-- **Usage & Key** — monthly usage (cost, requests, tokens, energy), API key info, key allowance, rate limits
+- **Subscription** (when subscribed): plan details, energy quota with progress bar, billing period
+- **Credits**: credit balance with progress bar, accounting method
+- **Usage & Key**: monthly usage (cost, requests, tokens, energy), API key info, key allowance, rate limits
 
 https://github.com/user-attachments/assets/a8994940-c467-4744-a0f2-833cb63923ff
 
 ### Quota Warnings
 
-When enabled, the extension notifies you when credits or energy are running low. When you have an active subscription, only energy warnings fire (credits are on-demand top-up only). Warnings use escalation on severity transitions and have a cooldown for `warning` level.
+When enabled, the extension notifies you when credits or energy are running low. With an active subscription, only energy warnings fire (credits are on-demand top-up only).
 
 ## Settings
 
 Configure features with `/neuralwatt:settings`:
 
 - **API** — Choose between `openai-completions` (default) and `anthropic-messages`; applies on `/reload`
+- **API base URL** — Send requests to a different base URL, such as a gateway; empty uses the Neuralwatt API
 - **Quota command** — Show/hide `/neuralwatt:quota`
 - **Quota warnings** — Enable/disable low quota notifications
 
 The provider itself cannot be disabled — it is always loaded.
 
-Configuration uses nested per-feature sections. Existing flat config files are migrated automatically, with a backup written next to the migrated config.
+## Model list
 
-### Model Refresh
-
-Neuralwatt registers its public models without network access. Opening `/model` refreshes the catalog from the API in the background (authenticated when an API key is configured). `pi update --models` forces an immediate refresh.
-
-Pi stores the complete effective Neuralwatt catalog in `~/.pi/agent/models-store.json` for offline startup. Current hardcoded public definitions remain authoritative when cached models are restored.
-
-## Adding or Updating Models
-
-Public models are hardcoded in `extensions/provider/models/public-models.ts` and validated against the live API. To update:
-
-1. Run `pnpm test` — it fetches `/v1/models` and compares against hardcoded definitions
-2. Fix any discrepancies (missing models, changed context windows)
-3. Re-run `pnpm test` to confirm
+The extension ships a built-in model list, so it works offline on first start. Pi refreshes the catalog from the Neuralwatt API in the background (authenticated when an API key is configured, so key-scoped models appear too) and caches it in `~/.pi/agent/models-store.json`. `pi update --models` forces a refresh.
 
 ## Development
-
-### Setup
 
 ```bash
 git clone https://github.com/aliou/pi-neuralwatt.git
 cd pi-neuralwatt
-
-# Install dependencies (sets up pre-commit hooks)
-pnpm install && pnpm prepare
-```
-
-Pre-commit hooks run on every commit:
-- TypeScript type checking
-- Biome linting
-- Biome formatting with auto-fix
-
-### Commands
-
-```bash
-# Type check
+pnpm install
 pnpm run typecheck
-
-# Lint
 pnpm run lint
-
-# Format
-pnpm run format
-
-# Test
 pnpm run test
+pnpm run check:models   # compare the built-in model list with the live API
 ```
 
-## Release
-
-This repository uses [Changesets](https://github.com/changesets/changesets) for versioning.
+The pre-commit hook runs typecheck, lint, the lockfile check, and the changeset check. Releases use [Changesets](https://github.com/changesets/changesets).
 
 ## Requirements
 
-- Pi coding agent v0.80.8+
+- Pi coding agent 1.0 or later
 - Neuralwatt API key (configured in `~/.pi/agent/auth.json` or via `NEURALWATT_API_KEY`)
 
 ## Links

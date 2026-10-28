@@ -5,7 +5,7 @@ import type {
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, assert, describe, expect, it, vi } from "vitest";
 import {
   NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
@@ -96,7 +96,8 @@ describe("reasoning replay injector", () => {
       content: "ok",
       reasoning_content: "thinking text",
     });
-    expect("reasoning" in result.messages![1]).toBe(false);
+    assert(result.messages?.[1]);
+    expect("reasoning" in result.messages[1]).toBe(false);
   });
 
   it("moves the field instead of copying it, so an empty reasoning_content never shadows the replay", async () => {

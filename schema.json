@@ -16,6 +16,10 @@
           "$ref": "#/definitions/NeuralwattQuotaWarningsConfig",
           "description": "Quota warning feature."
         },
+        "hostedTools": {
+          "$ref": "#/definitions/NeuralwattHostedToolsConfig",
+          "description": "Hosted tools (gateway-resolved nw_* tools)."
+        },
         "provider": {
           "$ref": "#/definitions/NeuralwattProviderConfig",
           "description": "Provider behavior (API surface)."
@@ -52,6 +56,16 @@
         "enabled": {
           "type": "boolean",
           "description": "Show quota warnings when credits or energy are low."
+        }
+      },
+      "additionalProperties": false
+    },
+    "NeuralwattHostedToolsConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Offer Neuralwatt hosted tools on OpenAI-surface requests."
         }
       },
       "additionalProperties": false

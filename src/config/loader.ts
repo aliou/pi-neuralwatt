@@ -26,6 +26,7 @@ function normalizeResolvedConfig(
       enabled:
         config.quotaWarnings?.enabled ?? DEFAULT_CONFIG.quotaWarnings.enabled,
     },
+    hostedTools: config.hostedTools,
     provider: {
       api: resolveApi(config.provider?.api),
       apiBaseUrl: resolveApiBaseUrl(config.provider?.apiBaseUrl),
@@ -61,6 +62,14 @@ export function configuredApiBaseUrl(): string {
     return configLoader.getConfig().provider.apiBaseUrl;
   } catch {
     return DEFAULT_CONFIG.provider.apiBaseUrl;
+  }
+}
+
+export function hostedToolsOptOut(): boolean {
+  try {
+    return configLoader.getConfig().hostedTools?.enabled === false;
+  } catch {
+    return false;
   }
 }
 

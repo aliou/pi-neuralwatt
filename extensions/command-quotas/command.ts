@@ -12,10 +12,14 @@ function missingAuthMessage(): string {
   return `Neuralwatt quota requires an API key. Add credentials to ${authPath} or set the NEURALWATT_API_KEY environment variable.`;
 }
 
-export function registerQuotasCommand(pi: ExtensionAPI): void {
+export function registerQuotasCommand(
+  pi: ExtensionAPI,
+  isEnabled: () => boolean,
+): void {
   pi.registerCommand("neuralwatt:quota", {
     description: "Display Neuralwatt API usage and quota",
     handler: async (_args, ctx) => {
+      if (!isEnabled()) return;
       const apiKey = await getNeuralwattApiKey(ctx.modelRegistry);
       if (!apiKey) {
         ctx.ui.notify(missingAuthMessage(), "warning");

@@ -12,7 +12,7 @@ Three feature extensions plus shared code. `extensions/provider/` is the always-
 
 ## Extension loading
 
-Each extension in `pi.extensions` is loaded independently by Pi. They all call `await configLoader.load()` at startup (idempotent). The provider extension is always loaded and registers settings. Feature extensions check config at startup and listen for `neuralwatt:config:updated` events to toggle behavior at runtime.
+Each extension in `pi.extensions` is loaded independently by Pi. They all call `await configLoader.load()` followed by `bindProjectConfig(pi, configLoader)` at startup. Setup reads global settings; project settings apply at `session_start` only when Pi trusts the project. The provider extension is always loaded and registers settings. The quota command and quota warnings read trusted-aware config at session startup and listen for `neuralwatt:config:updated` events. The quota command checks its live enabled state when invoked.
 
 Extensions self-register via `neuralwatt:extensions:register` events when the provider requests them (`neuralwatt:extensions:request`). This lets the settings UI show which features are actually loaded.
 
@@ -53,7 +53,7 @@ Usage totals (monthly/lifetime cost in USD) are deliberately not used as a thres
 ## Settings
 
 `/neuralwatt:settings` allows toggling:
-- **Quota command** (`quotaCommand.enabled`) - Show/hide `/neuralwatt:quota` command
+- **Quota command** (`quotaCommand.enabled`) - Enable/disable `/neuralwatt:quota` execution
 - **Quota warnings** (`quotaWarnings.enabled`) - Enable/disable low quota notifications
 
 The provider itself cannot be disabled. `provider.apiBaseUrl` is a free-text row that live-probes `<base>/models` before saving; empty resets to the direct upstream. Settings can also be changed via `pi config`. Existing flat config files are migrated to the nested shape automatically.
@@ -66,7 +66,7 @@ The catalog is built from `/v1/models` at runtime by `extensions/provider/models
 
 `catalog.ts` applies per-model overrides: chat-template compat for Qwen3.8. Flex pricing ships discounted in `/v1/models`; the fallback mirrors it via `costMultiplier: 0.65` per `-flex` variant. See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
 
-When `provider.api` is `anthropic-messages`, the same canonical catalog is stamped at read time by `api/anthropic-messages.ts` (origin-root baseUrl because the Anthropic SDK appends `/v1/messages` itself, `forceAdaptiveThinking` compat, thinking map built by `buildAnthropicThinkingLevelMap` from the reasoning contract's `supported_efforts` + `effort_aliases`; aliases are needed here because vLLM's effort enum accepts only native values). Reasoning off is expressed as `chat_template_kwargs.enable_thinking=false` by that module's payload injector, because the vLLM-backed endpoint accepts but ignores `thinking:{type:"disabled"}`. The api is resolved once at extension load; `/neuralwatt:settings` tells the user to run `/reload` after changing it.
+When `provider.api` is `anthropic-messages`, the same canonical catalog is stamped at read time by `api/anthropic-messages.ts` (origin-root baseUrl because the Anthropic SDK appends `/v1/messages` itself, `forceAdaptiveThinking` compat, thinking map built by `buildAnthropicThinkingLevelMap` from the reasoning contract's `supported_efforts` + `effort_aliases`; aliases are needed here because vLLM's effort enum accepts only native values). Reasoning off is expressed as `chat_template_kwargs.enable_thinking=false` by that module's payload injector, because the vLLM-backed endpoint accepts but ignores `thinking:{type:"disabled"}`. The api is resolved at extension load from global settings and re-registered at session startup if trusted project settings select a different API; `/neuralwatt:settings` tells the user to run `/reload` after changing it.
 
 The openai-completions surface has its own payload injector in `api/openai-completions.ts` for reasoning replay: the API streams chain-of-thought in `reasoning`, pi-ai records that field name as the thinking signature and replays prior thinking under it, but the served chat templates render only `reasoning_content`, so the injector renames the field on the wire. It is a move, not a copy — the gateway prefers an empty `reasoning_content` over a populated `reasoning` when both are present.
 

@@ -177,7 +177,6 @@ describe("flatToNestedConfigMigration", () => {
   });
 
   it("provides migration messages through ConfigLoader.drainMessages", async () => {
-    const cwd = process.cwd();
     const dir = await mkdtemp(join(tmpdir(), "neuralwatt-loader-"));
     tempDirs.push(dir);
     const configDir = join(dir, ".pi/extensions");
@@ -188,23 +187,21 @@ describe("flatToNestedConfigMigration", () => {
       "utf-8",
     );
 
-    try {
-      process.chdir(dir);
-      const loader = new ConfigLoader<
-        NeuralwattConfig,
-        ResolvedNeuralwattConfig
-      >("neuralwatt", DEFAULT_CONFIG, {
+    const loader = new ConfigLoader<NeuralwattConfig, ResolvedNeuralwattConfig>(
+      "neuralwatt",
+      DEFAULT_CONFIG,
+      {
         scopes: ["local"],
         migrations: [flatToNestedConfigMigration as never],
-      });
+      },
+    );
 
-      await loader.load();
+    await loader.load();
+    expect(loader.drainMessages()).toEqual([]);
+    await loader.loadProject({ cwd: dir, isProjectTrusted: () => true });
 
-      expect(loader.drainMessages()).toEqual([
-        "Config migrated to the nested format. A backup was written next to the original config file.",
-      ]);
-    } finally {
-      process.chdir(cwd);
-    }
+    expect(loader.drainMessages()).toEqual([
+      "Config migrated to the nested format. A backup was written next to the original config file.",
+    ]);
   });
 });

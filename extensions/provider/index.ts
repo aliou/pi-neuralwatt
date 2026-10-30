@@ -1,3 +1,4 @@
+import { bindProjectConfig } from "@aliou/pi-utils-settings";
 import { getApiProvider } from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
@@ -88,6 +89,7 @@ function registerNeuralwattProvider(
 
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
+  bindProjectConfig(pi, configLoader);
 
   let latestQuotas: NeuralwattQuotas | undefined;
 
@@ -109,12 +111,14 @@ export default async function (pi: ExtensionAPI) {
   // text with actionable details from Neuralwatt's response headers.
   let pendingRateLimitInfo: NeuralwattRateLimitInfo | undefined;
 
-  registerNeuralwattProvider(pi, {
+  const streamCallbacks: NeuralwattStreamCallbacks = {
     onSseQuota: handleSseQuota,
     onRateLimit: (info) => {
       pendingRateLimitInfo = info;
     },
-  });
+  };
+  let registeredApi = configLoader.getConfig().provider.api;
+  registerNeuralwattProvider(pi, streamCallbacks);
 
   const loadedFeatures = new Set<NeuralwattFeatureId>();
 
@@ -233,6 +237,11 @@ export default async function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", async (_event, ctx) => {
+    const api = configLoader.getConfig().provider.api;
+    if (api !== registeredApi) {
+      registerNeuralwattProvider(pi, streamCallbacks);
+      registeredApi = api;
+    }
     currentModelRegistry = ctx.modelRegistry;
     pendingRateLimitInfo = undefined;
     const messages = [...new Set(configLoader.drainMessages())];

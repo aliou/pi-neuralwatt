@@ -1,3 +1,4 @@
+import { bindProjectConfig } from "@aliou/pi-utils-settings";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -15,6 +16,7 @@ import { checkQuotas, clearAlertState } from "./notifier";
 
 export default async function (pi: ExtensionAPI) {
   await configLoader.load();
+  bindProjectConfig(pi, configLoader);
 
   let enabled = configLoader.getConfig().quotaWarnings.enabled;
   let currentProvider: string | undefined;
@@ -46,6 +48,7 @@ export default async function (pi: ExtensionAPI) {
   }
 
   pi.on("session_start", async (_event, ctx) => {
+    enabled = configLoader.getConfig().quotaWarnings.enabled;
     unsubscribeQuotas?.();
     currentProvider = ctx.model?.provider;
     unsubscribeQuotas = pi.events.on(NEURALWATT_QUOTAS_UPDATED_EVENT, (data) =>

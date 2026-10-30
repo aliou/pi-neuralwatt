@@ -5,3 +5,4 @@ export const NEURALWATT_REQUEST_HEADERS = {
   Referer: "https://pi.dev",
   "X-Title": "npm:@aliou/pi-neuralwatt",
 };
+export const NEURALWATT_TOOLS_OPT_OUT_HEADER = "X-NW-Tools-Opt-Out";

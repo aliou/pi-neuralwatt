@@ -117,6 +117,19 @@ export function registerNeuralwattSettings(
                 });
               },
             },
+            {
+              id: "hostedTools",
+              label: "Hosted tools",
+              description:
+                "Offer Neuralwatt hosted tools on OpenAI-surface requests; disabled sends an opt-out header with every request",
+              currentValue: featureValue(
+                tabConfig?.hostedTools,
+                resolved.hostedTools?.enabled ?? true,
+              )
+                ? "enabled"
+                : "disabled",
+              values: ["enabled", "disabled"],
+            },
           ],
         },
         {
@@ -159,6 +172,19 @@ export function registerNeuralwattSettings(
           ...config,
           provider: { ...config.provider, api: newValue },
         };
+      }
+
+      if (id === "hostedTools") {
+        if (newValue !== "enabled" && newValue !== "disabled") {
+          return null;
+        }
+        const updated = { ...config };
+        if (newValue === "disabled") {
+          updated.hostedTools = { ...config.hostedTools, enabled: false };
+        } else {
+          delete updated.hostedTools;
+        }
+        return updated;
       }
 
       if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {

@@ -5,16 +5,33 @@ import type {
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  assert,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { hostedToolsOptOut } from "../../../src/config/loader";
 import {
   NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
+  NEURALWATT_TOOLS_OPT_OUT_HEADER,
 } from "../constants";
 import type { NeuralwattChatModel } from "../models/catalog";
 import { NEURALWATT_MODELS } from "../models/public-models";
 import type { AnyStreamSimple } from "../stream-simple";
 import { createOpenAiCompletionsApi } from "./openai-completions";
+
+vi.mock("../../../src/config/loader", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../src/config/loader")>()),
+  hostedToolsOptOut: vi.fn(() => false),
+}));
+
+const optOutMock = vi.mocked(hostedToolsOptOut);
 
 const canonicalModel: NeuralwattChatModel = {
   id: "nw/static",
@@ -62,6 +79,18 @@ describe("stamping", () => {
   });
 });
 
+function captureStreamSimpleOptions(options?: SimpleStreamOptions) {
+  const fake = vi.fn<AnyStreamSimple>(() =>
+    createAssistantMessageEventStream(),
+  );
+  createOpenAiCompletionsApi({ streamSimple: fake }).streamSimple(
+    { id: "nw/static" } as Model<string>,
+    normalizeContext({ messages: [] }),
+    options,
+  );
+  return fake.mock.calls[0]?.[2];
+}
+
 function captureStreamSimpleCall(options?: SimpleStreamOptions) {
   const fake = vi.fn<AnyStreamSimple>(() =>
     createAssistantMessageEventStream(),
@@ -96,7 +125,8 @@ describe("reasoning replay injector", () => {
       content: "ok",
       reasoning_content: "thinking text",
     });
-    expect("reasoning" in result.messages![1]).toBe(false);
+    assert(result.messages?.[1]);
+    expect("reasoning" in result.messages[1]).toBe(false);
   });
 
   it("moves the field instead of copying it, so an empty reasoning_content never shadows the replay", async () => {
@@ -178,6 +208,26 @@ describe("reasoning replay injector", () => {
       role: "assistant",
       content: "ok",
       reasoning_content: "t",
+    });
+  });
+});
+
+describe("hosted tools opt-out header", () => {
+  beforeEach(() => {
+    optOutMock.mockReturnValue(false);
+  });
+
+  it("sends no opt-out header while hosted tools are enabled", () => {
+    const passed = captureStreamSimpleOptions();
+    expect(passed?.headers?.[NEURALWATT_TOOLS_OPT_OUT_HEADER]).toBeUndefined();
+  });
+
+  it("adds the opt-out header when hosted tools are disabled, keeping caller headers", () => {
+    optOutMock.mockReturnValue(true);
+    const passed = captureStreamSimpleOptions({ headers: { "X-Trace": "1" } });
+    expect(passed?.headers).toEqual({
+      "X-Trace": "1",
+      [NEURALWATT_TOOLS_OPT_OUT_HEADER]: "true",
     });
   });
 });
@@ -312,5 +362,56 @@ describe("end-to-end replay through pi-ai", () => {
         "The user asks me to think briefly then reply with ok.",
     });
     expect("reasoning" in (replayed ?? {})).toBe(false);
+  });
+
+  it("sends the opt-out header on the wire when hosted tools are disabled", async () => {
+    optOutMock.mockReturnValue(true);
+    const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3");
+    if (!k3) throw new Error("kimi-k3 missing from the fallback catalog");
+    const [model] = createOpenAiCompletionsApi().stampModels([
+      k3 as NeuralwattChatModel,
+    ]);
+
+    const context = normalizeContext({
+      messages: [{ role: "user", content: "ok", timestamp: 0 }],
+    });
+
+    let capturedHeaders: Headers | undefined;
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedHeaders = new Headers(init?.headers);
+        return makeSseResponse([
+          JSON.stringify({
+            id: "chatcmpl-x",
+            object: "chat.completion.chunk",
+            created: 1,
+            model: model.id,
+            choices: [
+              {
+                index: 0,
+                delta: { role: "assistant", content: "ok" },
+                finish_reason: null,
+              },
+            ],
+          }),
+          JSON.stringify({
+            id: "chatcmpl-x",
+            object: "chat.completion.chunk",
+            created: 1,
+            model: model.id,
+            choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+          }),
+        ]);
+      },
+    );
+    globalThis.fetch = fetchMock as never;
+
+    const stream = createOpenAiCompletionsApi().streamSimple(model, context, {
+      apiKey: "test-key",
+    });
+    await stream.result();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(capturedHeaders?.get(NEURALWATT_TOOLS_OPT_OUT_HEADER)).toBe("true");
   });
 });

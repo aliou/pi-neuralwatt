@@ -15,6 +15,14 @@ export interface NeuralwattQuotaWarningsConfig {
  */
 export type NeuralwattApi = "openai-completions" | "anthropic-messages";
 
+export interface NeuralwattHostedToolsConfig {
+  /**
+   * Offer Neuralwatt hosted tools on OpenAI-surface requests. Unset leaves
+   * them alone; false sends the opt-out header with every request.
+   */
+  enabled?: boolean;
+}
+
 export interface NeuralwattProviderConfig {
   /** Which API serves model requests. */
   api?: NeuralwattApi;
@@ -38,6 +46,8 @@ export interface NeuralwattConfig {
   /** Quota warning feature. */
   quotaWarnings?: NeuralwattQuotaWarningsConfig;
 
+  /** Hosted tools (gateway-resolved nw_* tools). */
+  hostedTools?: NeuralwattHostedToolsConfig;
   /** Provider behavior (API surface). */
   provider?: NeuralwattProviderConfig;
 }
@@ -49,6 +59,7 @@ export interface ResolvedNeuralwattConfig {
   quotaWarnings: {
     enabled: boolean;
   };
+  hostedTools?: NeuralwattHostedToolsConfig;
   provider: {
     api: NeuralwattApi;
     apiBaseUrl: string;

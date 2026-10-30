@@ -1,9 +1,13 @@
 import type { StreamOptions } from "@earendil-works/pi-ai";
 import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
-import { configuredApiBaseUrl } from "../../../src/config/loader";
+import {
+  configuredApiBaseUrl,
+  hostedToolsOptOut,
+} from "../../../src/config/loader";
 import {
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
+  NEURALWATT_TOOLS_OPT_OUT_HEADER,
 } from "../constants";
 import type { NeuralwattChatModel } from "../models/catalog";
 import type { AnyStreamSimple } from "../stream-simple";
@@ -49,6 +53,22 @@ function makeReasoningReplayInjector(
   };
 }
 
+type StreamRequestOptions = {
+  onPayload?: StreamOptions["onPayload"];
+  headers?: StreamOptions["headers"];
+};
+
+function withOptOutHeader(options?: StreamRequestOptions) {
+  if (!hostedToolsOptOut()) return options;
+  return {
+    ...options,
+    headers: {
+      ...options?.headers,
+      [NEURALWATT_TOOLS_OPT_OUT_HEADER]: "true",
+    },
+  };
+}
+
 export function createOpenAiCompletionsApi(options?: {
   streamSimple?: AnyStreamSimple;
 }): NeuralwattApiHandler {
@@ -72,12 +92,16 @@ export function createOpenAiCompletionsApi(options?: {
         };
       }),
     stream: (model, context, streamOptions) =>
-      stream(model, context, withReasoningReplay(streamOptions) as never),
+      stream(
+        model,
+        context,
+        withOptOutHeader(withReasoningReplay(streamOptions)) as never,
+      ),
     streamSimple: (model, context, simpleOptions) =>
       ((options?.streamSimple ?? streamSimple) as AnyStreamSimple)(
         model,
         context,
-        withReasoningReplay(simpleOptions),
+        withOptOutHeader(withReasoningReplay(simpleOptions)),
       ),
   };
 }

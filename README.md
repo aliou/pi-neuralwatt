@@ -106,7 +106,7 @@ The pre-commit hook runs typecheck, lint, the lockfile check, and the changeset 
 
 ## Requirements
 
-- Pi coding agent 1.0 or later
+- Pi coding agent 1.4 or later
 - Neuralwatt API key (configured in `~/.pi/agent/auth.json` or via `NEURALWATT_API_KEY`)
 
 ## Links

@@ -4,11 +4,11 @@ Pi extension providing a Neuralwatt inference API provider.
 
 ## Purpose
 
-Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. The model catalog is built at runtime from the `/v1/models` API response; a hardcoded fallback in `extensions/provider/models/public-models.ts` covers offline first start.
+Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](https://api.neuralwatt.com/v1), an OpenAI-compatible inference API with energy transparency. The model catalog is built at runtime from the `/v1/models` API response; a hardcoded fallback in `src/models/public-models.ts` covers offline first start.
 
 ## Structure
 
-Three feature extensions plus shared code. `extensions/provider/` is the always-loaded provider extension (catalog building, refresh, settings); `extensions/command-quotas/` serves `/neuralwatt:quota`; `extensions/quota-warnings/` emits low-quota notifications. `src/` holds config types/loader/migrations, event constants, API types, and quota formatting/severity helpers. The offline fallback model table lives in `extensions/provider/models/public-models.ts`; `.agents/skills/neuralwatt-models/` covers keeping it in sync.
+Three feature extensions share the provider core. Keep settings loading and migrations in `extensions/_shared/config/`. Keep `src/` free of imports from `extensions/`, Pi coding-agent, Pi TUI, settings/UI helpers, and Node built-ins. Inject live settings and API streams from the host. The offline fallback model table lives in `src/models/public-models.ts`; `.agents/skills/neuralwatt-models/` covers keeping it in sync.
 
 ## Extension loading
 
@@ -62,7 +62,7 @@ The built-in sub-bar integration was removed; it lives on as a standalone one-of
 
 ## Model catalog
 
-The catalog is built from `/v1/models` at runtime by `extensions/provider/models/catalog.ts`. `NEURALWATT_MODELS` in `public-models.ts` is the offline fallback for first start only.
+The catalog is built from `/v1/models` at runtime by `src/models/catalog.ts`. `NEURALWATT_MODELS` in `public-models.ts` is the offline fallback for first start only.
 
 `catalog.ts` applies per-model overrides: chat-template compat for Qwen3.8. Flex pricing ships discounted in `/v1/models`; the fallback mirrors it via `costMultiplier: 0.65` per `-flex` variant. See `.agents/skills/neuralwatt-models/SKILL.md` for keeping the fallback in sync.
 
@@ -74,7 +74,7 @@ Drift between the fallback and the live API is a non-blocking, notify-me concern
 
 ### Tests vs drift check
 
-`extensions/provider/models.test.ts` holds only deterministic tests against the local fallback data: invariants (unique IDs, `maxTokens <= contextWindow`, required fields, no `thinkingLevelMap` holes), flex pricing, `thinkingLevelMap` derivation, and `buildThinkingLevelMap` unit tests. The live-API comparison lives in `scripts/check-models.ts`, not the test suite, so upstream changes never break PR CI.
+`src/models.test.ts` holds only deterministic tests against the local fallback data: invariants (unique IDs, `maxTokens <= contextWindow`, required fields, no `thinkingLevelMap` holes), flex pricing, `thinkingLevelMap` derivation, and `buildThinkingLevelMap` unit tests. The live-API comparison lives in `scripts/check-models.ts`, not the test suite, so upstream changes never break PR CI.
 
 ### Config migrations
 

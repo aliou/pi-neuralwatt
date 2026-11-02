@@ -1,18 +1,18 @@
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import type { Api, ClassifierModel, Model } from "@earendil-works/pi-ai";
 import type {
   NeuralwattApiModelReasoning,
   NeuralwattReasoningEffort,
-} from "../../../src/types/models-api";
+} from "../types/models-api";
 
-export type ProviderChatModelConfig = Extract<
-  ProviderModelConfig,
-  { type?: "chat" }
->;
+export type ProviderChatModelConfig = Omit<
+  Model<Api>,
+  "api" | "provider" | "baseUrl"
+> & { baseUrl?: string };
 
-export type ProviderClassifierModelConfig = Extract<
-  ProviderModelConfig,
-  { type: "classifier" }
->;
+export type ProviderClassifierModelConfig = Omit<
+  ClassifierModel<"typesafe-system-one">,
+  "api" | "provider" | "baseUrl"
+> & { baseUrl?: string };
 
 export const NEURALWATT_SYSTEM_ONE_API = "typesafe-system-one" as const;
 

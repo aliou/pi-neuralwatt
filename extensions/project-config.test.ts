@@ -40,7 +40,7 @@ const { buildQuotasFromHeaders } = await import("./provider/quota-store");
 const { default: factory } = await import("./provider/index");
 const { default: quotaFactory } = await import("./command-quotas/index");
 const { default: warningsFactory } = await import("./quota-warnings/index");
-const { configLoader } = await import("../src/config");
+const { configLoader } = await import("./_shared/config");
 
 afterEach(() => {
   vi.unstubAllGlobals();

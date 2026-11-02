@@ -4,6 +4,7 @@ import type {
   SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
+import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import {
   afterEach,
@@ -14,7 +15,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { hostedToolsOptOut } from "../../../src/config/loader";
 import {
   NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
@@ -26,12 +26,7 @@ import { NEURALWATT_MODELS } from "../models/public-models";
 import type { AnyStreamSimple } from "../stream-simple";
 import { createOpenAiCompletionsApi } from "./openai-completions";
 
-vi.mock("../../../src/config/loader", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../../src/config/loader")>()),
-  hostedToolsOptOut: vi.fn(() => false),
-}));
-
-const optOutMock = vi.mocked(hostedToolsOptOut);
+const optOutMock = vi.fn(() => false);
 
 const canonicalModel: NeuralwattChatModel = {
   id: "nw/static",
@@ -83,7 +78,10 @@ function captureStreamSimpleOptions(options?: SimpleStreamOptions) {
   const fake = vi.fn<AnyStreamSimple>(() =>
     createAssistantMessageEventStream(),
   );
-  createOpenAiCompletionsApi({ streamSimple: fake }).streamSimple(
+  createOpenAiCompletionsApi({
+    streamSimple: fake,
+    toolsOptOut: optOutMock,
+  }).streamSimple(
     { id: "nw/static" } as Model<string>,
     normalizeContext({ messages: [] }),
     options,
@@ -95,7 +93,10 @@ function captureStreamSimpleCall(options?: SimpleStreamOptions) {
   const fake = vi.fn<AnyStreamSimple>(() =>
     createAssistantMessageEventStream(),
   );
-  createOpenAiCompletionsApi({ streamSimple: fake }).streamSimple(
+  createOpenAiCompletionsApi({
+    streamSimple: fake,
+    toolsOptOut: optOutMock,
+  }).streamSimple(
     { id: "nw/reasoning" } as Model<string>,
     normalizeContext({ messages: [] }),
     options,
@@ -341,7 +342,10 @@ describe("end-to-end replay through pi-ai", () => {
     );
     globalThis.fetch = fetchMock as never;
 
-    const stream = createOpenAiCompletionsApi().streamSimple(model, context, {
+    const stream = createOpenAiCompletionsApi({
+      upstream: openAICompletionsApi(),
+      toolsOptOut: optOutMock,
+    }).streamSimple(model, context, {
       apiKey: "test-key",
       reasoning: "high",
     });
@@ -406,7 +410,10 @@ describe("end-to-end replay through pi-ai", () => {
     );
     globalThis.fetch = fetchMock as never;
 
-    const stream = createOpenAiCompletionsApi().streamSimple(model, context, {
+    const stream = createOpenAiCompletionsApi({
+      upstream: openAICompletionsApi(),
+      toolsOptOut: optOutMock,
+    }).streamSimple(model, context, {
       apiKey: "test-key",
     });
     await stream.result();

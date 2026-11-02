@@ -1,10 +1,12 @@
 import { bindProjectConfig } from "@aliou/pi-utils-settings";
-import { getApiProvider } from "@earendil-works/pi-ai/compat";
+import {
+  anthropicMessagesApi,
+  openAICompletionsApi,
+} from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
   ModelRegistry,
 } from "@earendil-works/pi-coding-agent";
-import { configLoader } from "../../src/config";
 import {
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
@@ -18,23 +20,28 @@ import {
   fetchNeuralwattModels,
   fetchQuotas,
 } from "../../src/lib/neuralwatt-api";
-import type { NeuralwattQuotas } from "../../src/types/quota-api";
-import { getNeuralwattApiKey } from "../_shared/auth";
-import { registerNeuralwattSettings } from "./commands/settings";
-import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
-import { buildNeuralwattProviderModels } from "./models";
-import { createNeuralwattProvider } from "./provider";
-import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
+import { buildNeuralwattProviderModels } from "../../src/models";
+import { createNeuralwattProvider } from "../../src/provider";
 import {
   type NeuralwattRateLimitInfo,
   normalizeNeuralwattRateLimitError,
   parseRateLimitHeaders,
-} from "./rate-limit-error";
-import { updateQuotasFromSseComment } from "./sse-quotas";
+} from "../../src/rate-limit-error";
+import { updateQuotasFromSseComment } from "../../src/sse-quotas";
 import {
   type NeuralwattStreamCallbacks,
   wrapNeuralwattStreamSimple,
-} from "./stream-simple";
+} from "../../src/stream-simple";
+import type { NeuralwattQuotas } from "../../src/types/quota-api";
+import { getNeuralwattApiKey } from "../_shared/auth";
+import { configLoader } from "../_shared/config";
+import {
+  configuredApiBaseUrl,
+  hostedToolsOptOut,
+} from "../_shared/config/loader";
+import { registerNeuralwattSettings } from "./commands/settings";
+import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
+import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
 
@@ -50,29 +57,26 @@ function registerNeuralwattProvider(
 ): void {
   const staticModels = buildNeuralwattProviderModels();
 
-  const apiProvider = getApiProvider("openai-completions");
-  const baseStreamSimple = apiProvider?.streamSimple;
-  const streamSimple = baseStreamSimple
-    ? (wrapNeuralwattStreamSimple(
-        baseStreamSimple as never,
-        streamCallbacks,
-      ) as never)
-    : undefined;
-
-  const messagesApiProvider = getApiProvider("anthropic-messages");
-  const messagesBaseStreamSimple = messagesApiProvider?.streamSimple;
-  const messagesStreamSimple = messagesBaseStreamSimple
-    ? (wrapNeuralwattStreamSimple(
-        messagesBaseStreamSimple as never,
-        streamCallbacks,
-      ) as never)
-    : undefined;
+  const openAiUpstream = openAICompletionsApi();
+  const messagesUpstream = anthropicMessagesApi();
+  const streamSimple = wrapNeuralwattStreamSimple(
+    openAiUpstream.streamSimple as never,
+    streamCallbacks,
+  ) as never;
+  const messagesStreamSimple = wrapNeuralwattStreamSimple(
+    messagesUpstream.streamSimple as never,
+    streamCallbacks,
+  ) as never;
 
   pi.registerProvider(
     createNeuralwattProvider(
       staticModels,
       async (apiKey, signal) => {
-        const result = await fetchNeuralwattModels(apiKey, signal);
+        const result = await fetchNeuralwattModels(
+          apiKey,
+          configuredApiBaseUrl(),
+          signal,
+        );
         if (!result.success) {
           throw new Error("Neuralwatt models API request failed");
         }
@@ -80,6 +84,10 @@ function registerNeuralwattProvider(
       },
       {
         api: configLoader.getConfig().provider.api,
+        baseUrl: configuredApiBaseUrl,
+        openAiUpstream,
+        messagesUpstream,
+        toolsOptOut: hostedToolsOptOut,
         openAiStreamSimple: streamSimple,
         messagesStreamSimple,
       },
@@ -256,7 +264,7 @@ export default async function (pi: ExtensionAPI) {
     if (ctx.model?.provider !== "neuralwatt") return;
     const apiKey = await getNeuralwattApiKey(ctx.modelRegistry);
     if (!apiKey) return;
-    const quotaResult = await fetchQuotas(apiKey);
+    const quotaResult = await fetchQuotas(apiKey, configuredApiBaseUrl());
     if (quotaResult.success) emitQuotas(quotaResult.data.quotas, "api");
   });
 

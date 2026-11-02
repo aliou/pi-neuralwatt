@@ -1,9 +1,9 @@
-import type { Provider } from "@earendil-works/pi-ai";
-import type { NeuralwattApi } from "../../src/config";
+import type { Provider, ProviderStreams } from "@earendil-works/pi-ai";
 import { createAnthropicMessagesApi } from "./api/anthropic-messages";
 import { createOpenAiCompletionsApi } from "./api/openai-completions";
 import { classify, stampClassifierModels } from "./api/system-one";
 import type { NeuralwattApiHandler } from "./api/types";
+import type { NeuralwattApi } from "./config";
 import {
   NEURALWATT_API_KEY_ENV,
   NEURALWATT_BASE_URL,
@@ -27,6 +27,10 @@ export { NEURALWATT_API_KEY_ENV, NEURALWATT_BASE_URL, NEURALWATT_PROVIDER_ID };
 export interface NeuralwattProviderOptions {
   /** Active API surface; resolved once. Changes need a `/reload`. */
   api?: NeuralwattApi;
+  baseUrl?: string | (() => string);
+  openAiUpstream?: ProviderStreams;
+  messagesUpstream?: ProviderStreams;
+  toolsOptOut?: () => boolean;
   openAiStreamSimple?: AnyStreamSimple;
   messagesStreamSimple?: AnyStreamSimple;
 }
@@ -35,14 +39,28 @@ function createApiHandler(
   api: NeuralwattApi,
   options?: NeuralwattProviderOptions,
 ): NeuralwattApiHandler {
+  const baseUrl = resolveBaseUrl(options);
   if (api === "anthropic-messages") {
     return createAnthropicMessagesApi({
+      upstream: options?.messagesUpstream,
+      baseUrl,
       streamSimple: options?.messagesStreamSimple,
     });
   }
   return createOpenAiCompletionsApi({
+    upstream: options?.openAiUpstream,
+    baseUrl,
+    toolsOptOut: options?.toolsOptOut,
     streamSimple: options?.openAiStreamSimple,
   });
+}
+
+function resolveBaseUrl(options?: NeuralwattProviderOptions): string {
+  const value =
+    typeof options?.baseUrl === "function"
+      ? options.baseUrl()
+      : options?.baseUrl;
+  return value ?? NEURALWATT_BASE_URL;
 }
 
 export function createNeuralwattProvider(
@@ -60,12 +78,15 @@ export function createNeuralwattProvider(
     fetchApiModels,
     buildNeuralwattProviderModelsFromApi,
     buildNeuralwattProviderModelsFromStore,
+    () => resolveBaseUrl(options),
   );
 
   return {
     id: NEURALWATT_PROVIDER_ID,
     name: "Neuralwatt",
-    baseUrl: NEURALWATT_BASE_URL,
+    get baseUrl() {
+      return resolveBaseUrl(options);
+    },
     headers: NEURALWATT_REQUEST_HEADERS,
     auth: {
       apiKey: {
@@ -107,12 +128,18 @@ export function createNeuralwattProvider(
       },
     },
     getModels: () =>
-      handler.stampModels(partitionNeuralwattModels(canonicalModels).chat),
+      createApiHandler(
+        options?.api ?? "openai-completions",
+        options,
+      ).stampModels(partitionNeuralwattModels(canonicalModels).chat),
     getAllModels: () => {
       const { chat, classifiers } = partitionNeuralwattModels(canonicalModels);
       return [
-        ...handler.stampModels(chat),
-        ...stampClassifierModels(classifiers),
+        ...createApiHandler(
+          options?.api ?? "openai-completions",
+          options,
+        ).stampModels(chat),
+        ...stampClassifierModels(classifiers, resolveBaseUrl(options)),
       ];
     },
     classify: (model, context, options) => classify(model, context, options),

@@ -11,8 +11,8 @@ import { calculateCost } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { Type } from "typebox";
 import { Check, Parse, ParseError } from "typebox/value";
-import { configuredApiBaseUrl } from "../../../src/config/loader";
 import {
+  NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
@@ -231,12 +231,13 @@ export const classify: ClassifierFunction = async (
 
 export function stampClassifierModels(
   models: NeuralwattClassifierModel[],
+  baseUrl: string = NEURALWATT_BASE_URL,
 ): ClassifierModel<ClassifierApi>[] {
   return models.map((model) => ({
     ...model,
     api: NEURALWATT_SYSTEM_ONE_API,
     provider: NEURALWATT_PROVIDER_ID,
-    baseUrl: model.baseUrl ?? configuredApiBaseUrl(),
+    baseUrl: model.baseUrl ?? baseUrl,
     headers: NEURALWATT_REQUEST_HEADERS,
   }));
 }

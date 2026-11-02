@@ -1,10 +1,6 @@
-import type { StreamOptions } from "@earendil-works/pi-ai";
-import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
+import type { ProviderStreams, StreamOptions } from "@earendil-works/pi-ai";
 import {
-  configuredApiBaseUrl,
-  hostedToolsOptOut,
-} from "../../../src/config/loader";
-import {
+  NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
   NEURALWATT_TOOLS_OPT_OUT_HEADER,
@@ -58,20 +54,31 @@ type StreamRequestOptions = {
   headers?: StreamOptions["headers"];
 };
 
-function withOptOutHeader(options?: StreamRequestOptions) {
-  if (!hostedToolsOptOut()) return options;
-  return {
-    ...options,
-    headers: {
-      ...options?.headers,
-      [NEURALWATT_TOOLS_OPT_OUT_HEADER]: "true",
-    },
-  };
-}
-
 export function createOpenAiCompletionsApi(options?: {
+  upstream?: ProviderStreams;
   streamSimple?: AnyStreamSimple;
+  baseUrl?: string;
+  toolsOptOut?: () => boolean;
 }): NeuralwattApiHandler {
+  const requireUpstream = (): ProviderStreams => {
+    if (!options?.upstream) {
+      throw new Error(
+        "createOpenAiCompletionsApi requires an upstream: pass pi-ai's openAICompletionsApi() streams",
+      );
+    }
+    return options.upstream;
+  };
+  const fallbackBaseUrl = options?.baseUrl ?? NEURALWATT_BASE_URL;
+  const withOptOutHeader = (requestOptions?: StreamRequestOptions) => {
+    if (!options?.toolsOptOut?.()) return requestOptions;
+    return {
+      ...requestOptions,
+      headers: {
+        ...requestOptions?.headers,
+        [NEURALWATT_TOOLS_OPT_OUT_HEADER]: "true",
+      },
+    };
+  };
   const withReasoningReplay = (options?: {
     onPayload?: StreamOptions["onPayload"];
   }) => ({
@@ -87,18 +94,18 @@ export function createOpenAiCompletionsApi(options?: {
           ...compiled,
           api: "openai-completions" as const,
           provider: NEURALWATT_PROVIDER_ID,
-          baseUrl: model.baseUrl ?? configuredApiBaseUrl(),
+          baseUrl: model.baseUrl ?? fallbackBaseUrl,
           headers: NEURALWATT_REQUEST_HEADERS,
         };
       }),
     stream: (model, context, streamOptions) =>
-      stream(
+      requireUpstream().stream(
         model,
         context,
         withOptOutHeader(withReasoningReplay(streamOptions)) as never,
       ),
     streamSimple: (model, context, simpleOptions) =>
-      ((options?.streamSimple ?? streamSimple) as AnyStreamSimple)(
+      (options?.streamSimple ?? requireUpstream().streamSimple)(
         model,
         context,
         withOptOutHeader(withReasoningReplay(simpleOptions)),

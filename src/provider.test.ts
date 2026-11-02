@@ -5,9 +5,7 @@ import type {
 } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
-import type { NeuralwattApiModel } from "../../src/types/models-api";
 import type { NeuralwattModel } from "./models/catalog";
 import type { FetchNeuralwattApiModels } from "./models/refresh";
 import {
@@ -18,6 +16,7 @@ import {
   type NeuralwattProviderOptions,
 } from "./provider";
 import type { AnyStreamSimple } from "./stream-simple";
+import type { NeuralwattApiModel } from "./types/models-api";
 
 const staticModel: NeuralwattModel = {
   id: "nw/static",
@@ -278,7 +277,7 @@ describe("refreshModels", () => {
     const fetchApiModels = vi.fn(async () => [fetchedApiModel]);
     const { provider } = createProvider({ fetchApiModels });
 
-    const storedModel: ProviderModelConfig = {
+    const storedModel: NeuralwattModel = {
       ...staticModel,
       id: "nw/stored",
     };
@@ -311,7 +310,7 @@ describe("refreshModels", () => {
     const fetchApiModels = vi.fn(async () => [fetchedApiModel]);
     const { provider } = createProvider({ fetchApiModels });
 
-    const storedModel: ProviderModelConfig = {
+    const storedModel: NeuralwattModel = {
       ...staticModel,
       id: "nw/stored",
     };

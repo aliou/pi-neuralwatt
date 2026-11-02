@@ -3,9 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ConfigLoader } from "@aliou/pi-utils-settings";
 import { afterEach, describe, expect, it } from "vitest";
-import packageJson from "../../../package.json";
-import { DEFAULT_CONFIG } from "../defaults";
-import type { NeuralwattConfig, ResolvedNeuralwattConfig } from "../types";
+import packageJson from "../../../../package.json";
+import { DEFAULT_CONFIG } from "../../../../src/config/defaults";
+import type {
+  NeuralwattConfig,
+  ResolvedNeuralwattConfig,
+} from "../../../../src/config/types";
 import {
   backupConfig,
   flatToNestedConfigMigration,

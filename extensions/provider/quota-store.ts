@@ -1,6 +1,7 @@
 import { parseQuotaHeaders } from "../../src/events";
 import { fetchQuotas } from "../../src/lib/neuralwatt-api";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
+import { configuredApiBaseUrl } from "../_shared/config/loader";
 
 export function buildQuotasFromHeaders(
   headers: Record<string, string>,
@@ -45,7 +46,7 @@ export async function fetchRequestedQuotas(
   apiKey: string | undefined,
 ): Promise<NeuralwattQuotas | undefined> {
   if (!apiKey) return;
-  const result = await fetchQuotas(apiKey);
+  const result = await fetchQuotas(apiKey, configuredApiBaseUrl());
   if (!result.success) return;
   return result.data.quotas;
 }

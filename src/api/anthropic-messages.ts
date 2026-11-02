@@ -1,7 +1,6 @@
-import type { StreamOptions } from "@earendil-works/pi-ai";
-import { stream, streamSimple } from "@earendil-works/pi-ai/compat";
-import { configuredApiBaseUrl } from "../../../src/config/loader";
+import type { ProviderStreams, StreamOptions } from "@earendil-works/pi-ai";
 import {
+  NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
   NEURALWATT_REQUEST_HEADERS,
 } from "../constants";
@@ -61,7 +60,7 @@ function toMessagesBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/v1\/?$/, "");
 }
 
-function stampAnthropicModels(models: NeuralwattChatModel[]) {
+function stampAnthropicModels(models: NeuralwattChatModel[], baseUrl: string) {
   return models.map((model) => {
     const { reasoningContract, ...compiled } = model;
     // No retained contract: the identity map is the alias-free special case.
@@ -77,7 +76,7 @@ function stampAnthropicModels(models: NeuralwattChatModel[]) {
       ...compiled,
       api: "anthropic-messages" as const,
       provider: NEURALWATT_PROVIDER_ID,
-      baseUrl: toMessagesBaseUrl(model.baseUrl ?? configuredApiBaseUrl()),
+      baseUrl: toMessagesBaseUrl(model.baseUrl ?? baseUrl),
       headers: NEURALWATT_REQUEST_HEADERS,
       compat: {
         forceAdaptiveThinking: true,
@@ -91,8 +90,19 @@ function stampAnthropicModels(models: NeuralwattChatModel[]) {
 }
 
 export function createAnthropicMessagesApi(options?: {
+  upstream?: ProviderStreams;
   streamSimple?: AnyStreamSimple;
+  baseUrl?: string;
 }): NeuralwattApiHandler {
+  const requireUpstream = (): ProviderStreams => {
+    if (!options?.upstream) {
+      throw new Error(
+        "createAnthropicMessagesApi requires an upstream: pass pi-ai's anthropicMessagesApi() streams",
+      );
+    }
+    return options.upstream;
+  };
+  const fallbackBaseUrl = options?.baseUrl ?? NEURALWATT_BASE_URL;
   const withReasoning = (options?: {
     onPayload?: StreamOptions["onPayload"];
   }) => ({
@@ -101,11 +111,15 @@ export function createAnthropicMessagesApi(options?: {
   });
 
   return {
-    stampModels: stampAnthropicModels,
+    stampModels: (models) => stampAnthropicModels(models, fallbackBaseUrl),
     stream: (model, context, streamOptions) =>
-      stream(model, context, withReasoning(streamOptions) as never),
+      requireUpstream().stream(
+        model,
+        context,
+        withReasoning(streamOptions) as never,
+      ),
     streamSimple: (model, context, simpleOptions) =>
-      ((options?.streamSimple ?? streamSimple) as AnyStreamSimple)(
+      (options?.streamSimple ?? requireUpstream().streamSimple)(
         model,
         context,
         withReasoning(simpleOptions),

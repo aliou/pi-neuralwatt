@@ -1,0 +1,1 @@
+export { configLoader } from "./loader";

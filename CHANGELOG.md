@@ -1,5 +1,12 @@
 # @aliou/pi-extension-template
 
+## 0.18.1
+
+### Patch Changes
+
+- feb140a: Remove DeepSeek V4 Flash family from the offline fallback models. The model and its `-flex` and `-speed` variants are no longer served by the Neuralwatt API; DeepSeek V4.1 Flash remains available.
+- 883818b: Apply project settings only after Pi trusts the project. Keep untrusted project endpoints out of catalog, quota, and prompt requests, and prevent edits to untrusted Local settings. Read quota feature toggles at runtime and apply trusted provider API selection at session startup.
+
 ## 0.18.0
 
 ### Minor Changes

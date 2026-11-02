@@ -19,6 +19,7 @@ export interface NeuralwattSubscription {
   kwh_used: number;
   kwh_remaining: number;
   in_overage: boolean;
+  kwh_reset_date?: string;
 }
 
 export interface NeuralwattQuotas {

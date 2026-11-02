@@ -16,23 +16,6 @@ import {
 // unsupported levels through the aliases. See `models.test.ts` for the drift
 // check against the live catalog.
 
-// DeepSeek V4 Flash: efforts max/high/none, not mandatory.
-// https://api-docs.deepseek.com/guides/thinking_mode/
-const DEEPSEEK_V4_FLASH: NeuralwattModelFamily = {
-  cost: { input: 0.14, output: 0.28, cacheRead: 0.028 },
-  vision: false,
-  reasoningMetadata: {
-    supported_efforts: ["max", "high", "none"],
-    mandatory: false,
-    effort_aliases: {
-      xhigh: "max",
-      medium: "high",
-      low: "high",
-      minimal: "high",
-    },
-  },
-};
-
 // DeepSeek. V4.1 Flash is vision-capable, unlike V4 Flash, and admits
 // reasoning levels up to `xhigh`. Not mandatory (off defaults).
 const DEEPSEEK_V4_1_FLASH: NeuralwattModelFamily = {
@@ -192,33 +175,6 @@ const QWEN_3_8_27B: NeuralwattModelFamily = {
 };
 
 const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
-  [
-    DEEPSEEK_V4_FLASH,
-    [
-      {
-        id: "deepseek-v4-flash",
-        name: "DeepSeek V4 Flash",
-        contextWindow: 1048560,
-        maxOutputTokens: 393216,
-        reasoning: true,
-      },
-      {
-        id: "deepseek-v4-flash-flex",
-        name: "DeepSeek V4 Flash (flex)",
-        contextWindow: 1048560,
-        maxOutputTokens: 393216,
-        reasoning: true,
-        costMultiplier: 0.65,
-      },
-      {
-        id: "deepseek-v4-flash-speed",
-        name: "DeepSeek V4 Flash (Speed)",
-        contextWindow: 1048560,
-        maxOutputTokens: 393216,
-        reasoning: true,
-      },
-    ],
-  ],
   [
     DEEPSEEK_V4_1_FLASH,
     [

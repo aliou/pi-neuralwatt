@@ -10,6 +10,8 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 
 Three feature extensions share the provider core. Keep settings loading and migrations in `extensions/_shared/config/`. Keep `src/` free of imports from `extensions/`, Pi coding-agent, Pi TUI, settings/UI helpers, and Node built-ins. Inject live settings and API streams from the host. The offline fallback model table lives in `src/models/public-models.ts`; `.agents/skills/neuralwatt-models/` covers keeping it in sync.
 
+Keep `provider/` free of extension, coding-agent, TUI, settings/UI helper, and Node imports. Keep imports side-effect free. When changing the library entry, run `pnpm build` and verify the `./provider` export loads without the coding agent.
+
 ## Extension loading
 
 Each extension in `pi.extensions` is loaded independently by Pi. They all call `await configLoader.load()` followed by `bindProjectConfig(pi, configLoader)` at startup. Setup reads global settings; project settings apply at `session_start` only when Pi trusts the project. The provider extension is always loaded and registers settings. The quota command and quota warnings read trusted-aware config at session startup and listen for `neuralwatt:config:updated` events. The quota command checks its live enabled state when invoked.

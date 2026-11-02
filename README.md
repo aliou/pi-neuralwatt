@@ -75,6 +75,29 @@ https://github.com/user-attachments/assets/a8994940-c467-4744-a0f2-833cb63923ff
 
 When enabled, the extension notifies you when credits or energy are running low. With an active subscription, only energy warnings fire (credits are on-demand top-up only).
 
+## Library use
+
+Use `@aliou/pi-neuralwatt/provider` outside the coding agent:
+
+Install the library with its runtime peers, `@earendil-works/pi-ai` and `typebox`.
+
+```ts
+import { InMemoryModelsStore } from "@earendil-works/pi-ai";
+import { createModels } from "@earendil-works/pi-ai/models";
+import createNeuralwattProvider from "@aliou/pi-neuralwatt/provider";
+
+const models = createModels({ modelsStore: new InMemoryModelsStore() });
+models.setProvider(
+  createNeuralwattProvider({
+    baseUrl: "https://gateway.example.com/v1",
+    provenance: { referer: "https://my-app.example" },
+  }),
+);
+await models.refresh();
+```
+
+All options are optional. Without credentials, the provider lists and refreshes the public catalog. `NEURALWATT_API_KEY` or a stored credential enables keyed models. The `X-NW-Conversation-ID` header comes from each request's `sessionId`. Set `provenance: { enabled: false }` to stop adding the `Referer` and conversation ID headers to inference requests.
+
 ## Settings
 
 Configure features with `/neuralwatt:settings`:

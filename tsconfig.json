@@ -10,6 +10,12 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "extensions/**/*", "scripts/**/*"],
+  "include": [
+    "src/**/*",
+    "extensions/**/*",
+    "provider/**/*",
+    "scripts/**/*",
+    "tsdown.config.ts"
+  ],
   "exclude": ["node_modules"]
 }

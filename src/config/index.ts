@@ -1,6 +1,5 @@
 export { DEFAULT_CONFIG } from "./defaults";
-export { configLoader, resolveApi } from "./loader";
-export { migrations } from "./migration";
+export { resolveApi, resolveApiBaseUrl } from "./resolve";
 export type {
   NeuralwattApi,
   NeuralwattConfig,

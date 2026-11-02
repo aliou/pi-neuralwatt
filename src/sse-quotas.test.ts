@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import {
   readQuotaCommentsFromTee,
   updateQuotasFromSseComment,
 } from "./sse-quotas";
+import type { NeuralwattQuotas } from "./types/quota-api";
 
 function quotaFixture(): NeuralwattQuotas {
   return {

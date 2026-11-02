@@ -4,16 +4,16 @@ import {
 } from "@aliou/pi-utils-settings";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { SettingItem } from "@earendil-works/pi-tui";
-import {
-  configLoader,
-  type NeuralwattApi,
-  type NeuralwattConfig,
-  type ResolvedNeuralwattConfig,
+import type {
+  NeuralwattApi,
+  NeuralwattConfig,
+  ResolvedNeuralwattConfig,
 } from "../../../../src/config";
 import {
   NEURALWATT_CONFIG_UPDATED_EVENT,
   type NeuralwattFeatureId,
 } from "../../../../src/events";
+import { configLoader } from "../../../_shared/config";
 import { ApiBaseUrlEditor } from "./api-base-url-editor";
 
 export interface RegisterNeuralwattSettingsOptions {

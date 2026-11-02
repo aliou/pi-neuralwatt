@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "./defaults";
-import { resolveApi, resolveApiBaseUrl } from "./loader";
+import { resolveApi, resolveApiBaseUrl } from "./resolve";
 
 describe("resolveApi", () => {
   it("defaults to openai-completions", () => {

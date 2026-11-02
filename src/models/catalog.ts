@@ -1,4 +1,4 @@
-import type { NeuralwattApiModel } from "../../../src/types/models-api";
+import type { NeuralwattApiModel } from "../types/models-api";
 import {
   buildThinkingLevelMap,
   NEURALWATT_SYSTEM_ONE_API,

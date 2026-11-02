@@ -1,7 +1,7 @@
 /**
  * Drift check for the offline fallback model table.
  *
- * Compares `NEURALWATT_MODELS` (extensions/provider/models/public-models.ts)
+ * Compares `NEURALWATT_MODELS` (src/models/public-models.ts)
  * against the live `/v1/models` catalog and reports any drift. The fallback is
  * only the first-start seed — the runtime catalog is built from the API — so
  * drift is a "keep the seed fresh" signal, not a build blocker. This runs on a
@@ -13,8 +13,8 @@
  *   2  the check could not run (network/HTTP/unexpected error)
  */
 
-import { NEURALWATT_MODELS } from "../extensions/provider/models";
-import { buildThinkingLevelMap } from "../extensions/provider/models/build";
+import { NEURALWATT_MODELS } from "../src/models";
+import { buildThinkingLevelMap } from "../src/models/build";
 import type { NeuralwattApiModel } from "../src/types/models-api";
 
 const API_URL = "https://api.neuralwatt.com/v1/models";
@@ -261,7 +261,7 @@ function report(discrepancies: Discrepancy[]): void {
   const sections = [
     "The offline fallback model table has drifted from the live Neuralwatt API.",
     "",
-    `Compared \`NEURALWATT_MODELS\` against ${API_URL}. Update the fallback in \`extensions/provider/models/public-models.ts\` (see \`.agents/skills/neuralwatt-models/SKILL.md\`).`,
+    `Compared \`NEURALWATT_MODELS\` against ${API_URL}. Update the fallback in \`src/models/public-models.ts\` (see \`.agents/skills/neuralwatt-models/SKILL.md\`).`,
   ];
 
   if (newModels.length > 0) {

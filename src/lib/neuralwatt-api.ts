@@ -1,4 +1,3 @@
-import { configuredApiBaseUrl } from "../config/loader";
 import type {
   NeuralwattApiModel,
   NeuralwattApiModelsResponse,
@@ -27,11 +26,12 @@ function combineSignals(signal?: AbortSignal): AbortSignal {
 
 async function neuralwattFetch(
   path: string,
+  baseUrl: string,
   apiKey: string | undefined,
   signal?: AbortSignal,
   headers?: Record<string, string>,
 ): Promise<Response> {
-  return fetch(`${configuredApiBaseUrl()}${path}`, {
+  return fetch(`${baseUrl}${path}`, {
     headers: { ...authHeaders(apiKey), ...headers },
     signal: combineSignals(signal),
   });
@@ -43,15 +43,22 @@ export type NeuralwattModelsResult =
 
 export async function fetchNeuralwattModels(
   apiKey: string | undefined,
+  baseUrl: string,
   signal?: AbortSignal,
 ): Promise<NeuralwattModelsResult> {
   const combined = combineSignals(signal);
 
   try {
-    const response = await neuralwattFetch("/models", apiKey, combined, {
-      Referer: "https://pi.dev",
-      "X-Title": "npm:@aliou/pi-neuralwatt",
-    });
+    const response = await neuralwattFetch(
+      "/models",
+      baseUrl,
+      apiKey,
+      combined,
+      {
+        Referer: "https://pi.dev",
+        "X-Title": "npm:@aliou/pi-neuralwatt",
+      },
+    );
 
     if (!response.ok) {
       return { success: false };
@@ -66,6 +73,7 @@ export async function fetchNeuralwattModels(
 
 export async function fetchQuotas(
   apiKey: string,
+  baseUrl: string,
   signal?: AbortSignal,
 ): Promise<QuotasResult> {
   if (!apiKey) {
@@ -78,7 +86,7 @@ export async function fetchQuotas(
   const combined = combineSignals(signal);
 
   try {
-    const response = await neuralwattFetch("/quota", apiKey, combined);
+    const response = await neuralwattFetch("/quota", baseUrl, apiKey, combined);
 
     if (!response.ok) {
       let message = response.statusText;

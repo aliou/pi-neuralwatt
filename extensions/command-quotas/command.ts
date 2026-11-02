@@ -5,6 +5,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { fetchQuotas } from "../../src/lib/neuralwatt-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
+import { configuredApiBaseUrl } from "../_shared/config/loader";
 import { QuotasComponent } from "./components/quotas-display";
 
 function missingAuthMessage(): string {
@@ -44,7 +45,11 @@ export function registerQuotasCommand(
         );
 
         async function loadQuotas(): Promise<void> {
-          const fetchResult = await fetchQuotas(key, controller.signal);
+          const fetchResult = await fetchQuotas(
+            key,
+            configuredApiBaseUrl(),
+            controller.signal,
+          );
           if (controller.signal.aborted) return;
           if (fetchResult.success) {
             component.setState({
@@ -75,7 +80,7 @@ export function registerQuotasCommand(
 
       // Non-interactive fallback (RPC, print, JSON modes)
       if (result === undefined) {
-        const fetchResult = await fetchQuotas(key);
+        const fetchResult = await fetchQuotas(key, configuredApiBaseUrl());
         if (!fetchResult.success) {
           ctx.ui.notify(
             JSON.stringify({ error: fetchResult.error.message }),

@@ -3,7 +3,6 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { configLoader } from "../../src/config";
 import {
   NEURALWATT_CONFIG_UPDATED_EVENT,
   NEURALWATT_EXTENSIONS_REGISTER_EVENT,
@@ -12,6 +11,7 @@ import {
   type NeuralwattConfigUpdatedPayload,
   type NeuralwattQuotasUpdatedPayload,
 } from "../../src/events";
+import { configLoader } from "../_shared/config";
 import { checkQuotas, clearAlertState } from "./notifier";
 
 export default async function (pi: ExtensionAPI) {

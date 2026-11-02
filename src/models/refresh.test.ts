@@ -2,10 +2,10 @@ import type {
   ModelsStoreEntry,
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
-import type { NeuralwattApiModel } from "../../../src/types/models-api";
 import { NEURALWATT_BASE_URL } from "../constants";
+import type { NeuralwattApiModel } from "../types/models-api";
+import type { NeuralwattModel } from "./catalog";
 import {
   buildNeuralwattProviderModelsFromApi,
   buildNeuralwattProviderModelsFromStore,
@@ -111,6 +111,7 @@ function createRefresh(options?: {
     fetchApiModels,
     buildNeuralwattProviderModelsFromApi,
     buildNeuralwattProviderModelsFromStore,
+    NEURALWATT_BASE_URL,
   );
 }
 
@@ -204,7 +205,7 @@ describe("createNeuralwattRefreshModels", () => {
     const fetchApiModels = vi.fn(async () => [apiModel]);
     const refresh = createRefresh({ fetchApiModels });
 
-    const storedModel: ProviderModelConfig = {
+    const storedModel: NeuralwattModel = {
       ...staticModel,
       id: "nw/stored",
     };
@@ -424,7 +425,7 @@ describe("createNeuralwattRefreshModels", () => {
     const fetchApiModels = vi.fn(async () => [apiModel]);
     const refresh = createRefresh({ fetchApiModels });
 
-    const storedModel: ProviderModelConfig = {
+    const storedModel: NeuralwattModel = {
       ...staticModel,
       id: "nw/stored",
     };

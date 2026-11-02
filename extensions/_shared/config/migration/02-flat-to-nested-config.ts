@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { copyFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { Migration } from "@aliou/pi-utils-settings";
-import packageJson from "../../../package.json";
+import packageJson from "../../../../package.json";
 
 /** The original flat config, replaced by per-feature sections. */
 interface FlatNeuralwattConfig {

@@ -1,19 +1,19 @@
 ---
 name: neuralwatt-models
-description: Update the offline fallback model table for the pi-neuralwatt extension. Use when adding or refreshing entries in extensions/provider/models/public-models.ts, checking Neuralwatt model availability, or syncing the fallback with the live Neuralwatt API.
+description: Update the offline fallback model table for the pi-neuralwatt extension. Use when adding or refreshing entries in src/models/public-models.ts, checking Neuralwatt model availability, or syncing the fallback with the live Neuralwatt API.
 ---
 
 # Update Neuralwatt fallback models
 
-Keep `extensions/provider/models/public-models.ts` in sync with the live
+Keep `src/models/public-models.ts` in sync with the live
 Neuralwatt API. This file is the offline fallback for first start; the live
-catalog is built from the API at runtime by `extensions/provider/models/catalog.ts`.
+catalog is built from the API at runtime by `src/models/catalog.ts`.
 
 `public-models.ts` is a declarative family/variant table. Each family holds
 shared pricing, modalities, and `reasoningMetadata`; each variant (`-fast`,
 `-flex`, `-short`, ...) only declares `id`, `name`, `contextWindow`,
 `maxOutputTokens`, `reasoning`, and any override. `buildNeuralwattFamily` in
-`extensions/provider/models/build.ts` turns those into `ProviderModelConfig`
+`src/models/build.ts` turns those into `NeuralwattCompiledModel`
 values. Add variants to the existing family rather than copying a full model
 literal.
 
@@ -24,10 +24,10 @@ Take initiative.
 Do not start by asking which model to update. First detect drift, then update whatever needs updating:
 
 1. Fetch live model data from `https://api.neuralwatt.com/v1/models`.
-2. Read the current fallback definitions in `extensions/provider/models/public-models.ts`.
+2. Read the current fallback definitions in `src/models/public-models.ts`.
 3. Check Neuralwatt portal pages for pricing and capabilities when model additions or pricing/capability changes are needed.
 4. Reconcile the differences.
-5. Edit `extensions/provider/models/public-models.ts`.
+5. Edit `src/models/public-models.ts`.
 6. Run the relevant tests.
 7. Create a changeset when model metadata changed.
 8. Commit only the relevant files.
@@ -54,8 +54,8 @@ Use these in order:
 
 Read:
 
-- `extensions/provider/models/public-models.ts`
-- `extensions/provider/models/catalog.ts` (override maps for context caps, compat)
+- `src/models/public-models.ts`
+- `src/models/catalog.ts` (override maps for context caps, compat)
 - `scripts/check-models.ts` (the drift comparison logic)
 
 Use the current file shape and comments as the formatting baseline.
@@ -151,7 +151,7 @@ compat: {
 
 Reasoning models assign `thinkingLevelMap` at the model level. The map is derived
 from the endpoint's `metadata.reasoning.supported_efforts` via `buildThinkingLevelMap`
-in `extensions/provider/models/build.ts`. Do not hand-write `thinkingLevelMap`
+in `src/models/build.ts`. Do not hand-write `thinkingLevelMap`
 literals on families. When the API exposes no `reasoning` block for a reasoning
 model, omit `reasoningMetadata` so the helper falls back to a high-only map with
 `off: null`.
@@ -163,7 +163,7 @@ model, omit `reasoningMetadata` so the helper falls back to a high-only map with
 - Remove models only when they are truly gone from Neuralwatt, not because of a temporary fetch issue.
 - Set `contextWindow` from `max_model_len` on the Neuralwatt endpoint.
 - Keep pricing from the portal or existing pricing when the portal has not changed.
-- Set `maxTokens` to `metadata.limits.max_output_tokens ?? max_model_len`. Use `resolveMaxTokens` in `extensions/provider/models/build.ts`.
+- Set `maxTokens` to `metadata.limits.max_output_tokens ?? max_model_len`. Use `resolveMaxTokens` in `src/models/build.ts`.
 - Derive `thinkingLevelMap` from `metadata.reasoning` via `buildThinkingLevelMap`.
 - Keep `reasoning`, `input`, and `fast` from portal/runtime evidence or existing conventions when the API does not expose them.
 - Do not add `compat` fields beyond current repo conventions unless live behavior requires it.
@@ -235,7 +235,7 @@ pnpm lint
 
 4. Check `git status`.
 5. Stage only relevant files, usually:
-   - `extensions/provider/models/public-models.ts`
+   - `src/models/public-models.ts`
    - `.changeset/*.md`
 6. Commit with a concise conventional commit message, for example:
 
@@ -261,10 +261,10 @@ When done, summarize:
 
 Use these exact paths in this repo:
 
-- `extensions/provider/models/public-models.ts`
-- `extensions/provider/models/catalog.ts`
-- `extensions/provider/models/build.ts`
-- `extensions/provider/models/refresh.ts`
-- `extensions/provider/models/refresh.test.ts`
-- `extensions/provider/models.test.ts` (deterministic invariant + derivation tests)
+- `src/models/public-models.ts`
+- `src/models/catalog.ts`
+- `src/models/build.ts`
+- `src/models/refresh.ts`
+- `src/models/refresh.test.ts`
+- `src/models.test.ts` (deterministic invariant + derivation tests)
 - `scripts/check-models.ts` (live-API drift check, run on a schedule)

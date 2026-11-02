@@ -1,12 +1,12 @@
 import { buildSchemaUrl, ConfigLoader } from "@aliou/pi-utils-settings";
-import packageJson from "../../package.json";
-import { DEFAULT_CONFIG } from "./defaults";
-import { migrations } from "./migration";
+import packageJson from "../../../package.json";
+import { DEFAULT_CONFIG } from "../../../src/config/defaults";
+import { resolveApi, resolveApiBaseUrl } from "../../../src/config/resolve";
 import type {
-  NeuralwattApi,
   NeuralwattConfig,
   ResolvedNeuralwattConfig,
-} from "./types";
+} from "../../../src/config/types";
+import { migrations } from "./migration";
 
 /**
  * Fill in every field the rest of the code reads. Migrations already normalized
@@ -32,29 +32,6 @@ function normalizeResolvedConfig(
       apiBaseUrl: resolveApiBaseUrl(config.provider?.apiBaseUrl),
     },
   };
-}
-
-export function resolveApi(value: string | undefined): NeuralwattApi {
-  if (value === "anthropic-messages" || value === "openai-completions") {
-    return value;
-  }
-  return DEFAULT_CONFIG.provider.api;
-}
-
-export function resolveApiBaseUrl(value: string | undefined): string {
-  const trimmed = value?.trim().replace(/\/+$/u, "");
-  if (!trimmed) {
-    return DEFAULT_CONFIG.provider.apiBaseUrl;
-  }
-  try {
-    const url = new URL(trimmed);
-    if (url.protocol !== "https:" && url.protocol !== "http:") {
-      return DEFAULT_CONFIG.provider.apiBaseUrl;
-    }
-  } catch {
-    return DEFAULT_CONFIG.provider.apiBaseUrl;
-  }
-  return trimmed;
 }
 
 export function configuredApiBaseUrl(): string {

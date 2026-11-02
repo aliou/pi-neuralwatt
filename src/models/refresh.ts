@@ -3,8 +3,7 @@ import type {
   ModelsStoreEntry,
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
-import { configuredApiBaseUrl } from "../../../src/config/loader";
-import type { NeuralwattApiModel } from "../../../src/types/models-api";
+import type { NeuralwattApiModel } from "../types/models-api";
 import type {
   buildNeuralwattProviderModels,
   buildNeuralwattProviderModelsFromApi,
@@ -33,15 +32,16 @@ function catalogScope(apiKey: string | undefined): CatalogScope {
     : "public";
 }
 
-function catalogKey(scope: CatalogScope): string {
-  return `${scope} ${CATALOG_SCOPE_VERSION} ${configuredApiBaseUrl()}`;
+function catalogKey(scope: CatalogScope, baseUrl: string): string {
+  return `${scope} ${CATALOG_SCOPE_VERSION} ${baseUrl}`;
 }
 
 function catalogKeyMatches(
   entry: ScopedModelsStoreEntry | undefined,
   scope: CatalogScope,
+  baseUrl: string,
 ): boolean {
-  return entry !== undefined && entry.catalogKey === catalogKey(scope);
+  return entry !== undefined && entry.catalogKey === catalogKey(scope, baseUrl);
 }
 
 export type FetchNeuralwattApiModels = (
@@ -64,8 +64,9 @@ function isFreshStoreEntry(
 function isUsableStoreEntry(
   entry: Readonly<ModelsStoreEntry> | undefined,
   scope: CatalogScope,
+  baseUrl: string,
 ): entry is ModelsStoreEntry {
-  return isFreshStoreEntry(entry) && catalogKeyMatches(entry, scope);
+  return isFreshStoreEntry(entry) && catalogKeyMatches(entry, scope, baseUrl);
 }
 
 export function createNeuralwattRefreshModels(
@@ -73,9 +74,11 @@ export function createNeuralwattRefreshModels(
   fetchApiModels: FetchNeuralwattApiModels,
   buildFromApi: typeof buildNeuralwattProviderModelsFromApi,
   buildFromStore: typeof buildNeuralwattProviderModelsFromStore,
+  baseUrl: string | (() => string),
 ) {
   return async (context: RefreshModelsContext): Promise<NeuralwattModel[]> => {
     context.signal.throwIfAborted();
+    const resolvedBaseUrl = typeof baseUrl === "function" ? baseUrl() : baseUrl;
     const fallback = buildFromStore(staticModels);
     try {
       const apiKey =
@@ -85,11 +88,15 @@ export function createNeuralwattRefreshModels(
       const scope = catalogScope(apiKey);
       const stored = context.stored as ScopedModelsStoreEntry | undefined;
       if (!context.allowNetwork) {
-        return stored !== undefined && catalogKeyMatches(stored, scope)
+        return stored !== undefined &&
+          catalogKeyMatches(stored, scope, resolvedBaseUrl)
           ? buildFromStore(asStoredChatModels(stored.models))
           : fallback;
       }
-      if (!context.force && isUsableStoreEntry(stored, scope)) {
+      if (
+        !context.force &&
+        isUsableStoreEntry(stored, scope, resolvedBaseUrl)
+      ) {
         return buildFromStore(asStoredChatModels(stored.models));
       }
       const apiModels = await fetchApiModels(apiKey, context.signal);
@@ -98,7 +105,7 @@ export function createNeuralwattRefreshModels(
       const entry: ScopedModelsStoreEntry = {
         models: models as unknown as ModelsStoreEntry["models"],
         checkedAt: Date.now(),
-        catalogKey: catalogKey(scope),
+        catalogKey: catalogKey(scope, resolvedBaseUrl),
       };
       await context.publish({ persist: entry }).catch(() => undefined);
       context.signal.throwIfAborted();

@@ -1,6 +1,6 @@
 import type { Model, TranscriptContext } from "@earendil-works/pi-ai";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
-import { getApiProvider } from "@earendil-works/pi-ai/compat";
+import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { normalizeContext } from "@earendil-works/pi-ai/utils/transcript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NeuralwattRateLimitInfo } from "./rate-limit-error";
@@ -197,9 +197,7 @@ describe("wrapNeuralwattStreamSimple (fake base)", () => {
 // base the production provider wraps): only fetch is fake.
 describe("wrapNeuralwattStreamSimple (e2e, real pi-ai streamSimple)", () => {
   function realBase(): AnyStreamSimple {
-    const provider = getApiProvider("openai-completions");
-    if (!provider) throw new Error("openai-completions api not registered");
-    return provider.streamSimple as AnyStreamSimple;
+    return openAICompletionsApi().streamSimple as AnyStreamSimple;
   }
 
   it("captures 429 rate-limit headers via onRateLimit and leaves globalThis.fetch untouched", async () => {

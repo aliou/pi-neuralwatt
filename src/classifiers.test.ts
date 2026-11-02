@@ -3,7 +3,6 @@ import type {
   RefreshModelsContext,
 } from "@earendil-works/pi-ai";
 import { describe, expect, it, vi } from "vitest";
-import type { NeuralwattApiModel } from "../../src/types/models-api";
 import {
   NEURALWATT_BASE_URL,
   NEURALWATT_PROVIDER_ID,
@@ -17,6 +16,7 @@ import {
 } from "./models/catalog";
 import type { FetchNeuralwattApiModels } from "./models/refresh";
 import { createNeuralwattProvider } from "./provider";
+import type { NeuralwattApiModel } from "./types/models-api";
 
 const chatApiModel = {
   id: "kimi-k3",

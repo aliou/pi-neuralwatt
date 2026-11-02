@@ -1,4 +1,8 @@
-import type { Provider, ProviderStreams } from "@earendil-works/pi-ai";
+import type {
+  Provider,
+  ProviderAuth,
+  ProviderStreams,
+} from "@earendil-works/pi-ai";
 import { createAnthropicMessagesApi } from "./api/anthropic-messages";
 import { createOpenAiCompletionsApi } from "./api/openai-completions";
 import { classify, stampClassifierModels } from "./api/system-one";
@@ -24,6 +28,48 @@ import type { AnyStreamSimple } from "./stream-simple";
 
 export { NEURALWATT_API_KEY_ENV, NEURALWATT_BASE_URL, NEURALWATT_PROVIDER_ID };
 
+export function createNeuralwattApiKeyAuth(): ProviderAuth {
+  return {
+    apiKey: {
+      name: "Neuralwatt API key",
+      login: async (interaction) => ({
+        type: "api_key",
+        key: await interaction.prompt({
+          type: "secret",
+          message: "Enter Neuralwatt API key",
+        }),
+      }),
+      check: async ({ ctx, credential }) => {
+        if (credential?.type === "api_key" && credential.key) {
+          return { type: "api_key", source: "stored credential" };
+        }
+        if (await ctx.env(NEURALWATT_API_KEY_ENV)) {
+          return { type: "api_key", source: NEURALWATT_API_KEY_ENV };
+        }
+        return { type: "api_key", source: "anonymous" };
+      },
+      resolve: async ({ ctx, credential, signal }) => {
+        signal.throwIfAborted();
+        if (credential?.type === "api_key" && credential.key) {
+          return {
+            auth: { apiKey: credential.key },
+            env: credential.env,
+            source: "stored credential",
+          };
+        }
+        const envKey = await ctx.env(NEURALWATT_API_KEY_ENV);
+        signal.throwIfAborted();
+        if (envKey) {
+          return { auth: { apiKey: envKey }, source: NEURALWATT_API_KEY_ENV };
+        }
+        // pi-ai rejects empty keys before dispatch; "-" is the neutral
+        // placeholder that gateways strip or replace server-side.
+        return { auth: { apiKey: "-" }, source: "anonymous" };
+      },
+    },
+  };
+}
+
 export interface NeuralwattProviderOptions {
   /** Active API surface; resolved once. Changes need a `/reload`. */
   api?: NeuralwattApi;
@@ -35,7 +81,7 @@ export interface NeuralwattProviderOptions {
   messagesStreamSimple?: AnyStreamSimple;
 }
 
-function createApiHandler(
+export function createApiHandler(
   api: NeuralwattApi,
   options?: NeuralwattProviderOptions,
 ): NeuralwattApiHandler {
@@ -88,45 +134,7 @@ export function createNeuralwattProvider(
       return resolveBaseUrl(options);
     },
     headers: NEURALWATT_REQUEST_HEADERS,
-    auth: {
-      apiKey: {
-        name: "Neuralwatt API key",
-        login: async (interaction) => ({
-          type: "api_key",
-          key: await interaction.prompt({
-            type: "secret",
-            message: "Enter Neuralwatt API key",
-          }),
-        }),
-        check: async ({ ctx, credential }) => {
-          if (credential?.type === "api_key" && credential.key) {
-            return { type: "api_key", source: "stored credential" };
-          }
-          if (await ctx.env(NEURALWATT_API_KEY_ENV)) {
-            return { type: "api_key", source: NEURALWATT_API_KEY_ENV };
-          }
-          return { type: "api_key", source: "anonymous" };
-        },
-        resolve: async ({ ctx, credential, signal }) => {
-          signal.throwIfAborted();
-          if (credential?.type === "api_key" && credential.key) {
-            return {
-              auth: { apiKey: credential.key },
-              env: credential.env,
-              source: "stored credential",
-            };
-          }
-          const envKey = await ctx.env(NEURALWATT_API_KEY_ENV);
-          signal.throwIfAborted();
-          if (envKey) {
-            return { auth: { apiKey: envKey }, source: NEURALWATT_API_KEY_ENV };
-          }
-          // pi-ai rejects empty keys before dispatch; "-" is the neutral
-          // placeholder that gateways strip or replace server-side.
-          return { auth: { apiKey: "-" }, source: "anonymous" };
-        },
-      },
-    },
+    auth: createNeuralwattApiKeyAuth(),
     getModels: () =>
       createApiHandler(
         options?.api ?? "openai-completions",

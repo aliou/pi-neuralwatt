@@ -1,5 +1,16 @@
 # @aliou/pi-extension-template
 
+## 0.19.0
+
+### Minor Changes
+
+- d5b189c: Add a `hostedTools.enabled` setting that, when explicitly set to `false`, sends the `X-NW-Tools-Opt-Out` header on OpenAI-surface requests to disable Neuralwatt hosted tools. Unset leaves requests untouched.
+- f029a14: Add a standalone `@aliou/pi-neuralwatt/provider` entry point with offline models, models-store-backed refresh, anonymous catalog access, and optional provenance headers. Ship built ESM and types under `dist/provider`, pin the pi-ai peer to 1.5.0, and declare typebox as an optional peer.
+
+### Patch Changes
+
+- 2b34448: Ship `CHANGELOG.md` in the npm tarball so pi can show the changelog when the extension updates.
+
 ## 0.18.1
 
 ### Patch Changes

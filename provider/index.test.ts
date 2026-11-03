@@ -177,35 +177,36 @@ describe("request provenance", () => {
       referer: "https://app.example",
     },
     { provenance: { enabled: false }, referer: null },
-  ])("sends the selected Referer: $referer", async ({
-    provenance,
-    referer,
-  }) => {
-    let headers: Headers | undefined;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-        headers = new Headers(init?.headers);
-        return new Response(
-          'data: {"choices":[{"index":0,"delta":{"role":"assistant","content":"ok"},"finish_reason":null}]}\n\n' +
-            'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n' +
-            "data: [DONE]\n\n",
-          { headers: { "content-type": "text/event-stream" } },
-        );
-      }),
-    );
-    const provider = createNeuralwattProvider({ provenance });
-    const stream = provider.streamSimple(
-      provider.getModels()[0],
-      normalizeContext({
-        messages: [{ role: "user", content: "ok", timestamp: 0 }],
-      }),
-      { apiKey: "test-key", sessionId: "test-1" },
-    );
-    expect((await stream.result()).stopReason).toBe("stop");
-    expect(headers?.get("Referer")).toBe(referer);
-    expect(headers?.get("X-NW-Conversation-ID")).toBe(
-      provenance?.enabled === false ? null : "test-1",
-    );
-  });
+  ])(
+    "sends the selected Referer: $referer",
+    async ({ provenance, referer }) => {
+      let headers: Headers | undefined;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+          headers = new Headers(init?.headers);
+          return new Response(
+            'data: {"choices":[{"index":0,"delta":{"role":"assistant","content":"ok"},"finish_reason":null}]}\n\n' +
+              'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n' +
+              "data: [DONE]\n\n",
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }),
+      );
+      const provider = createNeuralwattProvider({ provenance });
+      const stream = provider.streamSimple(
+        provider.getModels()[0],
+        normalizeContext({
+          messages: [{ role: "user", content: "ok", timestamp: 0 }],
+        }),
+        { apiKey: "test-key", sessionId: "test-1" },
+      );
+      const result = await stream.result();
+      expect(result.stopReason).toBe("stop");
+      expect(headers?.get("Referer")).toBe(referer);
+      expect(headers?.get("X-NW-Conversation-ID")).toBe(
+        provenance?.enabled === false ? null : "test-1",
+      );
+    },
+  );
 });

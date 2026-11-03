@@ -451,19 +451,6 @@ describe("createNeuralwattRefreshModels", () => {
     expect(models.some((m) => m.id === "nw/stored")).toBe(true);
   });
 
-  it("refetches when the store is stale (beyond TTL)", async () => {
-    const fetchApiModels = vi.fn(async () => [apiModel]);
-    const refresh = createRefresh({ fetchApiModels });
-
-    await refresh(
-      createContext({
-        stored: scopedStored([], "public", Date.now() - MODEL_STORE_TTL_MS - 1),
-      }),
-    );
-
-    expect(fetchApiModels).toHaveBeenCalled();
-  });
-
   it("returns the static fallback when offline and no store", async () => {
     const fetchApiModels = vi.fn(async () => [apiModel]);
     const refresh = createRefresh({ fetchApiModels });

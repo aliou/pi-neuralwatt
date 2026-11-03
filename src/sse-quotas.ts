@@ -85,13 +85,14 @@ export async function readQuotaCommentsFromTee(
     const final = decoder.decode(new Uint8Array(0), { stream: false });
     const remaining = (buffer + final).trim();
     if (remaining) onComment(remaining);
-  } catch {
+  } catch (_error) {
     // The SDK side may abort the tee; quota comments are best-effort.
+    void _error;
   } finally {
     try {
       reader.releaseLock();
-    } catch {
-      // ignore
+    } catch (_error) {
+      void _error; // Intentionally ignored - the lock may already be released.
     }
   }
 }

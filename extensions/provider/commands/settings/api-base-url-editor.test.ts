@@ -45,7 +45,8 @@ function makeEditor(initial: string) {
 describe("checkApiBase", () => {
   it("passes when the endpoint returns a catalog", async () => {
     vi.stubGlobal("fetch", okFetch({ data: [{ id: "m" }] }));
-    expect(await checkApiBase("https://gw.example/v1")).toBeNull();
+    const error = await checkApiBase("https://gw.example/v1");
+    expect(error).toBeNull();
     vi.unstubAllGlobals();
   });
 
@@ -54,7 +55,8 @@ describe("checkApiBase", () => {
       "fetch",
       vi.fn(async () => new Response("nope", { status: 500 })),
     );
-    expect(await checkApiBase("https://gw.example/v1")).toContain("HTTP 500");
+    const error = await checkApiBase("https://gw.example/v1");
+    expect(error).toContain("HTTP 500");
     vi.unstubAllGlobals();
   });
 

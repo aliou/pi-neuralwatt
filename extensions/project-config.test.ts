@@ -148,7 +148,8 @@ describe("project configuration", () => {
     expect(providers[0].getModels()[0].baseUrl).toBe(
       "https://global.example/v1",
     );
-    expect(await readFile(localPath, "utf8")).toBe(local);
+    const saved = await readFile(localPath, "utf8");
+    expect(saved).toBe(local);
   });
 
   it("keeps untrusted project settings out of quota, catalog and prompt requests", async () => {
@@ -179,8 +180,10 @@ describe("project configuration", () => {
       "info",
     );
     await expect(configLoader.save("local", {})).rejects.toThrow();
-    expect(await readFile(localPath, "utf8")).toBe(local);
-    expect(await readdir(localDir)).toEqual(["neuralwatt.json"]);
+    const saved = await readFile(localPath, "utf8");
+    expect(saved).toBe(local);
+    const entries = await readdir(localDir);
+    expect(entries).toEqual(["neuralwatt.json"]);
   });
 
   it("applies trusted project settings before quota requests and replaces the API", async () => {
@@ -222,108 +225,113 @@ describe("project configuration", () => {
 });
 
 describe("feature configuration", () => {
-  it.each([
-    false,
-    true,
-  ])("checks quota command settings at invocation with trusted=%s", async (trusted) => {
-    const { commands, start, ctx, fetch } = await setup(
-      trusted,
-      "openai-completions",
-      quotaFactory,
-      false,
-    );
-    const command = commands.get("neuralwatt:quota");
-    expect(command).toBeDefined();
-    await start();
-    await command?.handler("", ctx as ExtensionCommandContext);
-    expect(fetch).toHaveBeenCalledTimes(trusted ? 1 : 0);
-  });
+  it.each([false, true])(
+    "checks quota command settings at invocation with trusted=%s",
+    async (trusted) => {
+      const { commands, start, ctx, fetch } = await setup(
+        trusted,
+        "openai-completions",
+        quotaFactory,
+        false,
+      );
+      const command = commands.get("neuralwatt:quota");
+      expect(command).toBeDefined();
+      await start();
+      await command?.handler("", ctx as ExtensionCommandContext);
+      expect(fetch).toHaveBeenCalledTimes(trusted ? 1 : 0);
+    },
+  );
 
-  it.each([
-    false,
-    true,
-  ])("applies provider settings saves across independent entry points starting enabled=%s", async (enabled) => {
-    const { ctx, fetch } = await setup(
-      false,
-      "openai-completions",
-      factory,
-      enabled,
-    );
-    const loaded = await loadExtensions(
-      [
-        new URL("./provider/index.ts", import.meta.url).pathname,
-        new URL("./command-quotas/index.ts", import.meta.url).pathname,
-      ],
-      cwd,
-      createEventBus(),
-    );
-    expect(loaded.errors).toEqual([]);
-    for (const extension of loaded.extensions) {
-      for (const handler of extension.handlers.get("session_start") ?? []) {
-        await handler({ type: "session_start" }, ctx);
+  it.each([false, true])(
+    "applies provider settings saves across independent entry points starting enabled=%s",
+    async (enabled) => {
+      const { ctx, fetch } = await setup(
+        false,
+        "openai-completions",
+        factory,
+        enabled,
+      );
+      const loaded = await loadExtensions(
+        [
+          new URL("./provider/index.ts", import.meta.url).pathname,
+          new URL("./command-quotas/index.ts", import.meta.url).pathname,
+        ],
+        cwd,
+        createEventBus(),
+      );
+      expect(loaded.errors).toEqual([]);
+      for (const extension of loaded.extensions) {
+        for (const handler of extension.handlers.get("session_start") ?? []) {
+          await handler({ type: "session_start" }, ctx);
+        }
       }
-    }
-    const settings = loaded.extensions[0].commands.get("neuralwatt:settings");
-    const quota = loaded.extensions[1].commands.get("neuralwatt:quota");
-    expect(settings).toBeDefined();
-    expect(quota).toBeDefined();
-    initTheme("dark", false);
-    for (const next of [!enabled, enabled]) {
-      const custom = vi.fn(
-        async (
-          create: Parameters<ExtensionCommandContext["ui"]["custom"]>[0],
-        ) => {
-          const panel = create(
-            { requestRender: vi.fn() } as never,
-            theme,
-            {} as never,
-            vi.fn(),
-          ) as unknown as Pick<
-            SettingsCommandOptions<NeuralwattConfig, ResolvedNeuralwattConfig>,
-            "configStore" | "onSave"
-          >;
-          await panel.configStore.save("global", {
-            quotaCommand: { enabled: next },
-          });
-          expect(panel.configStore.getConfig().quotaCommand.enabled).toBe(next);
-          await panel.onSave?.(ctx as ExtensionCommandContext);
-        },
-      );
-      await settings?.handler("", {
-        ...ctx,
-        ui: { ...ctx.ui, custom },
-      } as unknown as ExtensionCommandContext);
-      await new Promise((resolve) => setImmediate(resolve));
-      fetch.mockClear();
-      await quota?.handler("", ctx as ExtensionCommandContext);
-      expect(fetch).toHaveBeenCalledTimes(next ? 1 : 0);
-    }
-  });
+      const settings = loaded.extensions[0].commands.get("neuralwatt:settings");
+      const quota = loaded.extensions[1].commands.get("neuralwatt:quota");
+      expect(settings).toBeDefined();
+      expect(quota).toBeDefined();
+      initTheme("dark", false);
+      for (const next of [!enabled, enabled]) {
+        const custom = vi.fn(
+          async (
+            create: Parameters<ExtensionCommandContext["ui"]["custom"]>[0],
+          ) => {
+            const panel = create(
+              { requestRender: vi.fn() } as never,
+              theme,
+              {} as never,
+              vi.fn(),
+            ) as unknown as Pick<
+              SettingsCommandOptions<
+                NeuralwattConfig,
+                ResolvedNeuralwattConfig
+              >,
+              "configStore" | "onSave"
+            >;
+            await panel.configStore.save("global", {
+              quotaCommand: { enabled: next },
+            });
+            expect(panel.configStore.getConfig().quotaCommand.enabled).toBe(
+              next,
+            );
+            await panel.onSave?.(ctx as ExtensionCommandContext);
+          },
+        );
+        await settings?.handler("", {
+          ...ctx,
+          ui: { ...ctx.ui, custom },
+        } as unknown as ExtensionCommandContext);
+        await new Promise((resolve) => setImmediate(resolve));
+        fetch.mockClear();
+        await quota?.handler("", ctx as ExtensionCommandContext);
+        expect(fetch).toHaveBeenCalledTimes(next ? 1 : 0);
+      }
+    },
+  );
 
-  it.each([
-    false,
-    true,
-  ])("loads quota warning settings before subscribing with trusted=%s", async (trusted) => {
-    const { bus, start, notify } = await setup(
-      trusted,
-      "openai-completions",
-      warningsFactory,
-    );
-    await start();
-    const quotas = buildQuotasFromHeaders({
-      "x-allowance-remaining-usd": "1",
-      "x-subscription-plan": "standard",
-      "x-energy-included": "10",
-      "x-energy-remaining": "1",
-    });
-    expect(quotas).toBeDefined();
-    bus.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, { quotas, source: "header" });
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(notify).toHaveBeenCalledTimes(trusted ? 0 : 1);
-    if (!trusted)
-      expect(notify).toHaveBeenCalledWith(
-        expect.stringContaining("Neuralwatt quota warning"),
-        "error",
+  it.each([false, true])(
+    "loads quota warning settings before subscribing with trusted=%s",
+    async (trusted) => {
+      const { bus, start, notify } = await setup(
+        trusted,
+        "openai-completions",
+        warningsFactory,
       );
-  });
+      await start();
+      const quotas = buildQuotasFromHeaders({
+        "x-allowance-remaining-usd": "1",
+        "x-subscription-plan": "standard",
+        "x-energy-included": "10",
+        "x-energy-remaining": "1",
+      });
+      expect(quotas).toBeDefined();
+      bus.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, { quotas, source: "header" });
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(notify).toHaveBeenCalledTimes(trusted ? 0 : 1);
+      if (!trusted)
+        expect(notify).toHaveBeenCalledWith(
+          expect.stringContaining("Neuralwatt quota warning"),
+          "error",
+        );
+    },
+  );
 });

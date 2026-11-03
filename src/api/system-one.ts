@@ -162,7 +162,8 @@ async function request(
   options.signal?.throwIfAborted();
 
   const rawPayload = formatRequest(model, context);
-  const payload = (await options.onPayload?.(rawPayload, model)) ?? rawPayload;
+  const formattedPayload = await options.onPayload?.(rawPayload, model);
+  const payload = formattedPayload ?? rawPayload;
 
   const url = new URL("systemone", `${model.baseUrl.replace(/\/+$/u, "")}/`);
 

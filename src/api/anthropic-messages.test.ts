@@ -110,10 +110,11 @@ interface TestBody {
 describe("reasoning injector", () => {
   it("passes positive efforts and adaptive thinking through", async () => {
     const call = captureStreamSimpleCall();
-    const result = (await call({
+    const response = await call({
       thinking: { type: "adaptive", display: "summarized" },
       output_config: { effort: "high" },
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.thinking).toEqual({
       type: "adaptive",
       display: "summarized",
@@ -125,37 +126,41 @@ describe("reasoning injector", () => {
   it("converts thinking.disabled into enable_thinking=false", async () => {
     // Verified live: thinking:{type:"disabled"} is accepted but ignored, only
     // the chat-template kwarg performs a genuine disable.
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       thinking: { type: "disabled" },
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.thinking).toBeUndefined();
     expect(result.output_config).toBeUndefined();
     expect(result.chat_template_kwargs).toEqual({ enable_thinking: false });
   });
 
   it("converts effort 'none' (minimal->none alias) into reasoning off", async () => {
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       thinking: { type: "adaptive", display: "summarized" },
       output_config: { effort: "none" },
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.thinking).toBeUndefined();
     expect(result.output_config).toBeUndefined();
     expect(result.chat_template_kwargs).toEqual({ enable_thinking: false });
   });
 
   it("converts effort 'minimal' into reasoning off (outside vLLM's enum)", async () => {
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       output_config: { effort: "minimal" },
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.output_config).toBeUndefined();
     expect(result.chat_template_kwargs).toEqual({ enable_thinking: false });
   });
 
   it("merges with pre-existing chat_template_kwargs", async () => {
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       thinking: { type: "disabled" },
       chat_template_kwargs: { repetition_penalty: 1.05 },
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.chat_template_kwargs).toEqual({
       repetition_penalty: 1.05,
       enable_thinking: false,
@@ -165,7 +170,8 @@ describe("reasoning injector", () => {
   it("chains a caller onPayload and maps its replacement", async () => {
     const upstream = vi.fn(async () => ({ thinking: { type: "disabled" } }));
     const call = captureStreamSimpleCall({ onPayload: upstream } as never);
-    const result = (await call({ model: "x" })) as TestBody;
+    const response = await call({ model: "x" });
+    const result = response as TestBody;
     expect(upstream).toHaveBeenCalledOnce();
     expect(result.chat_template_kwargs).toEqual({ enable_thinking: false });
   });

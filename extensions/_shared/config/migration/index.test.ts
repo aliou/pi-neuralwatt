@@ -50,12 +50,14 @@ afterEach(async () => {
 });
 
 describe("renameHiddenToEarlyAccessMigration", () => {
-  const run = async (config: Record<string, unknown>) =>
-    (await renameHiddenToEarlyAccessMigration.run(
+  const run = async (config: Record<string, unknown>) => {
+    const migrated = await renameHiddenToEarlyAccessMigration.run(
       config as never,
       "neuralwatt.json",
       migrationContext,
-    )) as Record<string, unknown>;
+    );
+    return migrated as Record<string, unknown>;
+  };
 
   it("runs only when the pre-rename key is present", () => {
     const shouldRun = (config: Record<string, unknown>) =>

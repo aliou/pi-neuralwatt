@@ -114,13 +114,14 @@ interface TestBody {
 
 describe("reasoning replay injector", () => {
   it("renames replayed `reasoning` to `reasoning_content` on assistant messages", async () => {
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       messages: [
         { role: "user", content: "hi" },
         { role: "assistant", content: "ok", reasoning: "thinking text" },
         { role: "user", content: "done" },
       ],
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.messages?.[1]).toEqual({
       role: "assistant",
       content: "ok",
@@ -131,9 +132,10 @@ describe("reasoning replay injector", () => {
   });
 
   it("moves the field instead of copying it, so an empty reasoning_content never shadows the replay", async () => {
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       messages: [{ role: "assistant", content: "ok", reasoning: "t" }],
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.messages?.[0]).toEqual({
       role: "assistant",
       content: "ok",
@@ -147,7 +149,7 @@ describe("reasoning replay injector", () => {
   });
 
   it("keeps an existing non-empty reasoning_content and drops the duplicate", async () => {
-    const result = (await captureStreamSimpleCall()({
+    const response = await captureStreamSimpleCall()({
       messages: [
         {
           role: "assistant",
@@ -156,7 +158,8 @@ describe("reasoning replay injector", () => {
           reasoning_content: "kept",
         },
       ],
-    })) as TestBody;
+    });
+    const result = response as TestBody;
     expect(result.messages?.[0]).toEqual({
       role: "assistant",
       content: "ok",
@@ -177,7 +180,8 @@ describe("reasoning replay injector", () => {
         { role: "tool", content: "result", tool_call_id: "call_1" },
       ],
     };
-    const result = (await captureStreamSimpleCall()(body)) as TestBody;
+    const response = await captureStreamSimpleCall()(body);
+    const result = response as TestBody;
     expect(result.model).toBe("nw/reasoning");
     expect(result.messages?.[0]).toEqual({ role: "user", content: "hi" });
     expect(result.messages?.[1]).toEqual({
@@ -194,7 +198,8 @@ describe("reasoning replay injector", () => {
 
   it("passes through bodies without a messages array", async () => {
     const body = { model: "nw/reasoning" };
-    const result = (await captureStreamSimpleCall()(body)) as TestBody;
+    const response = await captureStreamSimpleCall()(body);
+    const result = response as TestBody;
     expect(result).toBe(body);
   });
 
@@ -203,7 +208,8 @@ describe("reasoning replay injector", () => {
       messages: [{ role: "assistant", content: "ok", reasoning: "t" }],
     }));
     const call = captureStreamSimpleCall({ onPayload: upstream } as never);
-    const result = (await call({ model: "x" })) as TestBody;
+    const response = await call({ model: "x" });
+    const result = response as TestBody;
     expect(upstream).toHaveBeenCalledOnce();
     expect(result.messages?.[0]).toEqual({
       role: "assistant",

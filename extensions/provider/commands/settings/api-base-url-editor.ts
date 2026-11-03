@@ -1,10 +1,6 @@
 import type { Component, SettingsListTheme } from "@earendil-works/pi-tui";
-import {
-  Input,
-  Key,
-  matchesKey,
-  truncateToWidth,
-} from "@earendil-works/pi-tui";
+import { Input, Key, matchesKey } from "@earendil-works/pi-tui";
+import { truncateToWidth } from "../../../shared/truncate";
 
 export interface ApiBaseUrlEditorOptions {
   initial: string;

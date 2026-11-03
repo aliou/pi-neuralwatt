@@ -383,19 +383,17 @@ describe("classify (System One)", () => {
     expect(result.usage?.input).toBe(10);
   });
 
-  it.each([
-    null,
-    [],
-    {},
-    "invalid",
-  ])("rejects responses with malformed usage: %j", async (usage) => {
-    const result = await classify(clefFlash, sentimentContext, {
-      fetch: okFetch({ ...realClefFlashResponse, usage }) as never,
-    });
-    expect(result.stopReason).toBe("error");
-    expect(result.answers).toEqual({});
-    expect(result.usage).toBeUndefined();
-  });
+  it.each([null, [], {}, "invalid"])(
+    "rejects responses with malformed usage: %j",
+    async (usage) => {
+      const result = await classify(clefFlash, sentimentContext, {
+        fetch: okFetch({ ...realClefFlashResponse, usage }) as never,
+      });
+      expect(result.stopReason).toBe("error");
+      expect(result.answers).toEqual({});
+      expect(result.usage).toBeUndefined();
+    },
+  );
 
   it("accepts a response without usage", async () => {
     const result = await classify(clefFlash, sentimentContext, {

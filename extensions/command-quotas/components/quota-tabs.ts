@@ -1,5 +1,4 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { NeuralwattQuotas } from "../../../src/types/quota-api";
 import {
   percentCreditsRemaining,
@@ -11,6 +10,7 @@ import {
   formatTokens,
   formatUsd,
 } from "../../../src/utils/quota-format";
+import { truncateToWidth } from "../../shared/truncate";
 import { renderProgressBar } from "./progress-bar";
 
 /**

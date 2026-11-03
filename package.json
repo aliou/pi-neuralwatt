@@ -36,6 +36,7 @@
     "extensions",
     "dist",
     "schema.json",
+    "CHANGELOG.md",
     "README.md",
     "!src/**/*.test.ts",
     "!extensions/**/*.test.ts"

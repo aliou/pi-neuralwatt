@@ -92,7 +92,7 @@ const KIMI_K3: NeuralwattModelFamily = {
 // and `none`; the API aliases every other effort onto those, with `minimal`
 // landing on `none`.
 const MIMO_V2_6_PRO: NeuralwattModelFamily = {
-  cost: { input: 0.87, output: 1.74, cacheRead: 0.036 },
+  cost: { input: 0.435, output: 0.87, cacheRead: 0.0036 },
   vision: true,
   reasoningMetadata: {
     supported_efforts: ["high", "none"],

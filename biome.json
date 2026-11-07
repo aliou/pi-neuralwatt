@@ -1,31 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
-  "extends": ["@aliou/biome-plugins/configs/pi"],
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
+  "extends": ["@aliou/biome-plugins/configs/pi-coding-agent-extension"],
   "files": {
     "includes": ["**/*.ts", "**/*.json", "!schema.json"],
     "ignoreUnknown": true
-  },
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true
-    }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2
   }
 }

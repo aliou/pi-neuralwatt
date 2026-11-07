@@ -1,3 +1,4 @@
+import { truncateToWidth } from "@aliou/pi-utils-ui";
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import type { NeuralwattQuotas } from "../../../src/types/quota-api";
 import {
@@ -10,7 +11,6 @@ import {
   formatTokens,
   formatUsd,
 } from "../../../src/utils/quota-format";
-import { truncateToWidth } from "../../shared/truncate";
 import { renderProgressBar } from "./progress-bar";
 
 /**

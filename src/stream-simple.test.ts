@@ -88,6 +88,7 @@ describe("wrapNeuralwattStreamSimple (fake base)", () => {
     const wrapped = wrapNeuralwattStreamSimple(base, {
       onSseQuota: () => {},
       onRateLimit: () => {},
+      onEnergy: () => {},
     });
     wrapped(model, transcript, { fetch: callerFetch });
 
@@ -116,6 +117,7 @@ describe("wrapNeuralwattStreamSimple (fake base)", () => {
     const wrapped = wrapNeuralwattStreamSimple(base, {
       onSseQuota: () => {},
       onRateLimit: () => {},
+      onEnergy: () => {},
     });
     wrapped(model, transcript);
 
@@ -150,6 +152,7 @@ describe("wrapNeuralwattStreamSimple (fake base)", () => {
     const wrapped = wrapNeuralwattStreamSimple(base, {
       onSseQuota,
       onRateLimit,
+      onEnergy: () => {},
     });
     // model.baseUrl is api.neuralwatt.com; the request below goes elsewhere.
     wrapped(model, transcript, { fetch: callerFetch });
@@ -177,6 +180,7 @@ describe("wrapNeuralwattStreamSimple (fake base)", () => {
     const wrapped = wrapNeuralwattStreamSimple(base, {
       onSseQuota,
       onRateLimit: () => {},
+      onEnergy: () => {},
     });
     wrapped(model, transcript, { fetch: callerFetch });
 
@@ -222,6 +226,7 @@ describe("wrapNeuralwattStreamSimple (e2e, real pi-ai streamSimple)", () => {
     const wrapped = wrapNeuralwattStreamSimple(realBase(), {
       onSseQuota: () => {},
       onRateLimit,
+      onEnergy: () => {},
     });
     const events = await collect(
       wrapped(model, transcript, { apiKey: "test-key", fetch: fetchMock }),
@@ -249,6 +254,7 @@ describe("wrapNeuralwattStreamSimple (e2e, real pi-ai streamSimple)", () => {
 
   it("tees successful SSE responses and emits quota comments", async () => {
     const onSseQuota = vi.fn();
+    const onEnergy = vi.fn();
     const fetchMock = vi.fn(async () =>
       makeSseEventResponse([
         ': energy {"energy_joules":360000}',
@@ -272,20 +278,20 @@ describe("wrapNeuralwattStreamSimple (e2e, real pi-ai streamSimple)", () => {
     const wrapped = wrapNeuralwattStreamSimple(realBase(), {
       onSseQuota,
       onRateLimit: () => {},
+      onEnergy,
     });
     const events = await collect(
       wrapped(model, transcript, { apiKey: "test-key", fetch: fetchMock }),
     );
 
-    await vi.waitFor(() => {
-      expect(onSseQuota).toHaveBeenCalledWith(
-        ': energy {"energy_joules":360000}',
-      );
-    });
+    expect(onSseQuota).toHaveBeenCalledWith(
+      ': energy {"energy_joules":360000}',
+    );
 
     const doneEvent = events.find(
       (event) => (event as { type?: string }).type === "done",
     ) as { message: { stopReason: string } };
     expect(doneEvent.message.stopReason).toBe("stop");
+    expect(onEnergy).toHaveBeenCalledWith(doneEvent.message, 360000);
   });
 });

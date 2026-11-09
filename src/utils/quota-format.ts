@@ -16,6 +16,11 @@ export function formatKwh(value: number): string {
   return `${value.toFixed(2)} kWh`;
 }
 
+export function formatEnergy(joules: number): string {
+  if (joules < 3_600) return `${joules.toFixed(2)} J`;
+  return formatKwh(joules / 3_600_000);
+}
+
 /** Format token counts (raw integer counts from the API). */
 export function formatTokens(value: number): string {
   if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;

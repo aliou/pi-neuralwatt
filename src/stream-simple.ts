@@ -10,6 +10,7 @@
 // https://github.com/monotykamary/pi-neuralwatt-provider
 
 import type {
+  AssistantMessage,
   AssistantMessageEventStream,
   FetchFunction,
   Model,
@@ -21,7 +22,7 @@ import {
   type NeuralwattRateLimitInfo,
   parseRateLimitHeaders,
 } from "./rate-limit-error";
-import { readQuotaCommentsFromTee } from "./sse-quotas";
+import { parseEnergyComment, readQuotaCommentsFromTee } from "./sse-quotas";
 
 export type AnyStreamSimple = (
   model: Model<string>,
@@ -32,6 +33,38 @@ export type AnyStreamSimple = (
 export interface NeuralwattStreamCallbacks {
   onSseQuota: (line: string) => void;
   onRateLimit: (info: NeuralwattRateLimitInfo | undefined) => void;
+  onEnergy: (message: AssistantMessage, joules: number) => void;
+}
+
+class NeuralwattEnergyStream {
+  private finalized: Promise<AssistantMessage> | undefined;
+
+  constructor(
+    private readonly stream: AssistantMessageEventStream,
+    private readonly finalizeEnergy: (
+      message: AssistantMessage,
+    ) => Promise<void>,
+  ) {}
+
+  private finalize(message: AssistantMessage): Promise<AssistantMessage> {
+    if (!this.finalized) {
+      this.finalized = this.finalizeEnergy(message).then(() => message);
+    }
+    return this.finalized;
+  }
+
+  async *[Symbol.asyncIterator]() {
+    for await (const event of this.stream) {
+      if (event.type === "done") await this.finalize(event.message);
+      if (event.type === "error") await this.finalize(event.error);
+      yield event;
+    }
+  }
+
+  async result(): Promise<AssistantMessage> {
+    const message = await this.stream.result();
+    return this.finalize(message);
+  }
 }
 
 function headersToRecord(headers: Headers): Record<string, string> {
@@ -73,6 +106,8 @@ export function wrapNeuralwattStreamSimple(
   return (model, context, options = {}) => {
     const providerOrigin = new URL(model.baseUrl ?? fallbackBaseUrl).origin;
     const callerFetch = options.fetch;
+    let energyJoules = 0;
+    let quotaComments = Promise.resolve();
 
     const neuralwattFetch: FetchFunction = async (input, init) => {
       // Chain onto a caller-provided fetch when present; otherwise resolve
@@ -92,7 +127,10 @@ export function wrapNeuralwattStreamSimple(
         const [sdkBody, quotaBody] = response.body.tee();
         // Best-effort side channel; failures inside are swallowed by the
         // reader so quota comments can never break the SDK stream.
-        void readQuotaCommentsFromTee(quotaBody, callbacks.onSseQuota);
+        quotaComments = readQuotaCommentsFromTee(quotaBody, (line) => {
+          energyJoules = parseEnergyComment(line) ?? energyJoules;
+          callbacks.onSseQuota(line);
+        });
         return new Response(sdkBody, {
           headers: response.headers,
           status: response.status,
@@ -103,6 +141,10 @@ export function wrapNeuralwattStreamSimple(
       return response;
     };
 
-    return base(model, context, { ...options, fetch: neuralwattFetch });
+    const stream = base(model, context, { ...options, fetch: neuralwattFetch });
+    return new NeuralwattEnergyStream(stream, async (message) => {
+      await quotaComments;
+      if (energyJoules > 0) callbacks.onEnergy(message, energyJoules);
+    }) as unknown as AssistantMessageEventStream;
   };
 }

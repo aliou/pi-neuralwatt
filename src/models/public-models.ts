@@ -88,6 +88,19 @@ const KIMI_K3: NeuralwattModelFamily = {
   },
 };
 
+// MoonshotAI. K3.1 Pro is a separate flagship from K3: cheaper, multimodal
+// with a broader effort contract (max/high/medium/low/none, default max),
+// aliasing `xhigh` to `max` and `minimal` to `low`.
+const KIMI_K3_1_PRO: NeuralwattModelFamily = {
+  cost: { input: 2, output: 10, cacheRead: 0.2 },
+  vision: true,
+  reasoningMetadata: {
+    supported_efforts: ["max", "high", "medium", "low", "none"],
+    mandatory: false,
+    effort_aliases: { xhigh: "max", minimal: "low" },
+  },
+};
+
 // Xiaomi. MiMo-V2.6-Pro only has two reasoning behaviors: `high` (default)
 // and `none`; the API aliases every other effort onto those, with `minimal`
 // landing on `none`.
@@ -274,6 +287,26 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
       {
         id: "kimi-k3-flex",
         name: "Kimi K3 (flex)",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+        costMultiplier: 0.65,
+      },
+    ],
+  ],
+  [
+    KIMI_K3_1_PRO,
+    [
+      {
+        id: "kimi-k3.1-pro",
+        name: "Kimi K3.1 Pro",
+        contextWindow: 1048560,
+        maxOutputTokens: null,
+        reasoning: true,
+      },
+      {
+        id: "kimi-k3.1-pro-flex",
+        name: "Kimi K3.1 Pro (flex)",
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,

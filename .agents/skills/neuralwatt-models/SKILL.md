@@ -234,16 +234,21 @@ pnpm lint
 ```
 
 4. Check `git status`.
-5. Stage only relevant files, usually:
+5. Check for open drift issues with `gh issue list --label model-sync --state open`.
+   If this commit resolves one, mention it in the commit message with `Fixes #N`
+   so it closes when the commit reaches `main`.
+6. Stage only relevant files, usually:
    - `src/models/public-models.ts`
    - `.changeset/*.md`
-6. Commit with a concise conventional commit message, for example:
+7. Commit with a concise conventional commit message, for example:
 
 ```bash
-git commit -m "chore: update neuralwatt models"
+git commit -m "chore: update neuralwatt models (fixes #146)"
 ```
 
 Never use `git add .` or `git add -A`.
+
+Do not add issue-closing keywords for issues this commit does not fully resolve.
 
 Do not push.
 

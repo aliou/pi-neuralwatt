@@ -75,19 +75,6 @@ const GLM_5_3_FLASH: NeuralwattModelFamily = {
   },
 };
 
-// MoonshotAI. K3 supports reasoning efforts low/high/max (default max) and
-// can be turned off (`mandatory: false`). The `-fast` endpoint is a shorthand
-// to set thinking to off.
-const KIMI_K3: NeuralwattModelFamily = {
-  cost: { input: 3, output: 15, cacheRead: 0.3 },
-  vision: true,
-  reasoningMetadata: {
-    supported_efforts: ["max", "high", "low", "none"],
-    mandatory: false,
-    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
-  },
-};
-
 // MoonshotAI. K3.1 Pro is a separate flagship from K3: cheaper, multimodal
 // with a broader effort contract (max/high/medium/low/none, default max),
 // aliasing `xhigh` to `max` and `minimal` to `low`.
@@ -120,16 +107,16 @@ const MIMO_V2_6_PRO: NeuralwattModelFamily = {
   },
 };
 
-// Neuralwatt tracking alias: the current large model, today Kimi K3. The
-// alias moves to newer models over time, so it snapshots K3's contract
-// instead of sharing the KIMI_K3 family.
+// Neuralwatt tracking alias: the current large model, today Kimi K3.1 Pro. The
+// alias moves to newer models over time, so it snapshots K3.1 Pro's contract
+// instead of sharing the KIMI_K3_1_PRO family.
 const NW_LARGE: NeuralwattModelFamily = {
-  cost: { input: 3, output: 15, cacheRead: 0.3 },
+  cost: { input: 2, output: 10, cacheRead: 0.2 },
   vision: true,
   reasoningMetadata: {
-    supported_efforts: ["max", "high", "low", "none"],
+    supported_efforts: ["max", "high", "medium", "low", "none"],
     mandatory: false,
-    effort_aliases: { xhigh: "max", medium: "high", minimal: "low" },
+    effort_aliases: { xhigh: "max", minimal: "low" },
   },
 };
 
@@ -260,33 +247,6 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
       {
         id: "glm-5.3-flash-flex",
         name: "GLM-5.3 Flash (flex)",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
-        reasoning: true,
-        costMultiplier: 0.65,
-      },
-    ],
-  ],
-  [
-    KIMI_K3,
-    [
-      {
-        id: "kimi-k3",
-        name: "Kimi K3",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
-        reasoning: true,
-      },
-      {
-        id: "kimi-k3-fast",
-        name: "Kimi K3 Fast",
-        contextWindow: 1048560,
-        maxOutputTokens: null,
-        reasoning: false,
-      },
-      {
-        id: "kimi-k3-flex",
-        name: "Kimi K3 (flex)",
         contextWindow: 1048560,
         maxOutputTokens: null,
         reasoning: true,

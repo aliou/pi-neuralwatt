@@ -259,8 +259,8 @@ function makeSseResponse(events: string[]): Response {
 // recorded from the K3 stream (no mocks of pi-ai itself; only fetch is fake).
 describe("end-to-end replay through pi-ai", () => {
   it("sends prior thinking as reasoning_content and no reasoning key", async () => {
-    const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3");
-    if (!k3) throw new Error("kimi-k3 missing from the fallback catalog");
+    const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3.1-pro");
+    if (!k3) throw new Error("kimi-k3.1-pro missing from the fallback catalog");
     const [model] = createOpenAiCompletionsApi().stampModels([
       k3 as NeuralwattChatModel,
     ]);
@@ -376,8 +376,8 @@ describe("end-to-end replay through pi-ai", () => {
 
   it("sends the opt-out header on the wire when hosted tools are disabled", async () => {
     optOutMock.mockReturnValue(true);
-    const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3");
-    if (!k3) throw new Error("kimi-k3 missing from the fallback catalog");
+    const k3 = NEURALWATT_MODELS.find((model) => model.id === "kimi-k3.1-pro");
+    if (!k3) throw new Error("kimi-k3.1-pro missing from the fallback catalog");
     const [model] = createOpenAiCompletionsApi().stampModels([
       k3 as NeuralwattChatModel,
     ]);

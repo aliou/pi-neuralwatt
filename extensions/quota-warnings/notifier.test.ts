@@ -1,11 +1,14 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
 import {
   checkQuotas,
   clearAlertState,
   computeOverageProgress,
+  type FreeEnergyWarningsConfig,
 } from "./notifier";
+
+const FREE_ENERGY: FreeEnergyWarningsConfig = { enabled: true, warningPct: 20 };
 
 function mockCtx(): ExtensionContext & { calls: string[] } {
   const calls: string[] = [];
@@ -60,6 +63,146 @@ function subFixture(): NonNullable<NeuralwattQuotas["subscription"]> {
     NeuralwattQuotas["subscription"]
   >;
 }
+
+function freeEnergyBlock(
+  overrides: Partial<NonNullable<NeuralwattQuotas["daily_free_energy"]>> = {},
+): NonNullable<NeuralwattQuotas["daily_free_energy"]> {
+  return {
+    kwh_included: 0.825,
+    kwh_used: 0.7425,
+    kwh_remaining: 0.0825,
+    reset_at: "2026-11-15T00:00:00Z",
+    model_labels: ["DeepSeek-V4.1-Flash", "GLM-5.3-Flash"],
+    ...overrides,
+  };
+}
+
+describe("checkQuotas daily free energy", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    clearAlertState();
+  });
+
+  it("warns when the daily allowance drops to the threshold", () => {
+    vi.setSystemTime("2026-11-14T10:00:00Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({ daily_free_energy: freeEnergyBlock() });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0]).toContain("Daily free energy:");
+    expect(ctx.calls[0]).toContain("10%");
+    expect(ctx.calls[0]).toContain("82.5 Wh of 825.0 Wh");
+    expect(ctx.calls[0]).not.toContain("Energy:");
+  });
+
+  it("goes critical when the daily allowance is exhausted", () => {
+    vi.setSystemTime("2026-11-14T10:00:00Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      daily_free_energy: freeEnergyBlock({
+        kwh_used: 0.825,
+        kwh_remaining: 0,
+      }),
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0].startsWith("error:")).toBe(true);
+    expect(ctx.calls[0]).toContain("Daily free energy exhausted");
+  });
+
+  it("stays silent above the threshold", () => {
+    vi.setSystemTime("2026-11-14T10:00:00Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      daily_free_energy: freeEnergyBlock({
+        kwh_used: 0.1,
+        kwh_remaining: 0.725,
+      }),
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(0);
+  });
+
+  it("stays silent when disabled", () => {
+    vi.setSystemTime("2026-11-14T10:00:00Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      daily_free_energy: freeEnergyBlock(),
+      subscription: {
+        ...subFixture(),
+        kwh_remaining: 2,
+        kwh_used: 14,
+      },
+    });
+
+    checkQuotas(ctx, quotas, { enabled: false, warningPct: 20 });
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0]).toContain("Energy:");
+  });
+
+  it("stays silent on a stale block and reports the fallback stage", () => {
+    vi.setSystemTime("2026-11-15T00:00:01Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      daily_free_energy: freeEnergyBlock(),
+      subscription: {
+        ...subFixture(),
+        kwh_remaining: 2,
+        kwh_used: 14,
+      },
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0]).toContain("Energy:");
+    expect(ctx.calls[0]).not.toContain("Daily free energy");
+  });
+
+  it("re-arms after UTC rollover", () => {
+    vi.setSystemTime("2026-11-14T23:59:00Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({ daily_free_energy: freeEnergyBlock() });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+    expect(ctx.calls).toHaveLength(1);
+
+    vi.setSystemTime("2026-11-15T00:01:00Z");
+    const nextDay = baseQuotas({
+      daily_free_energy: freeEnergyBlock({
+        reset_at: "2026-11-16T00:00:00Z",
+      }),
+    });
+    checkQuotas(ctx, nextDay, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(2);
+  });
+
+  it("does not re-fire within cooldown on the same day", () => {
+    vi.setSystemTime("2026-11-14T10:00:00Z");
+    clearAlertState();
+    const ctx = mockCtx();
+    const quotas = baseQuotas({ daily_free_energy: freeEnergyBlock() });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+  });
+});
 
 describe("computeOverageProgress", () => {
   it("subscribed: bills kWh beyond the included quota at the plan's monthly rate", () => {
@@ -200,7 +343,7 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Energy:");
@@ -221,7 +364,7 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Overage cap:");
@@ -254,7 +397,7 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Credits:");
@@ -281,7 +424,7 @@ describe("checkQuotas warning staging", () => {
       limits: { overage_limit_usd: null, rate_limit_tier: "standard" },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Credits:");
@@ -304,7 +447,7 @@ describe("checkQuotas warning staging", () => {
       limits: { overage_limit_usd: 10, rate_limit_tier: "standard" },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Overage cap:");
@@ -331,7 +474,7 @@ describe("checkQuotas warning staging", () => {
       limits: { overage_limit_usd: 10, rate_limit_tier: "standard" },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(0);
   });
@@ -350,7 +493,7 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
     expect(ctx.calls[0]).toContain("Credits:");
@@ -370,8 +513,8 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(1);
   });
@@ -389,7 +532,7 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls[0].startsWith("error:")).toBe(true);
   });
@@ -413,7 +556,7 @@ describe("checkQuotas warning staging", () => {
       },
     });
 
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, FREE_ENERGY);
 
     expect(ctx.calls).toHaveLength(0);
   });

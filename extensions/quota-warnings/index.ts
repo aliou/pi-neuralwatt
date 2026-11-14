@@ -44,7 +44,7 @@ export default async function (pi: ExtensionAPI) {
     if (currentProvider !== "neuralwatt") return;
 
     const { quotas } = data as NeuralwattQuotasUpdatedPayload;
-    checkQuotas(ctx, quotas);
+    checkQuotas(ctx, quotas, configLoader.getConfig().quotaWarnings.freeEnergy);
   }
 
   pi.on("session_start", async (_event, ctx) => {

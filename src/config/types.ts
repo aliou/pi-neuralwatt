@@ -3,9 +3,17 @@ export interface NeuralwattQuotaCommandConfig {
   enabled?: boolean;
 }
 
+export interface NeuralwattFreeEnergyWarningsConfig {
+  /** Warn when the daily free-energy allowance runs low. */
+  enabled?: boolean;
+  /** Remaining-percentage threshold for the first warning. */
+  warningPct?: number;
+}
+
 export interface NeuralwattQuotaWarningsConfig {
   /** Show quota warnings when credits or energy are low. */
   enabled?: boolean;
+  freeEnergy?: NeuralwattFreeEnergyWarningsConfig;
 }
 
 /**
@@ -58,6 +66,10 @@ export interface ResolvedNeuralwattConfig {
   };
   quotaWarnings: {
     enabled: boolean;
+    freeEnergy: {
+      enabled: boolean;
+      warningPct: number;
+    };
   };
   hostedTools?: NeuralwattHostedToolsConfig;
   provider: {

@@ -155,6 +155,26 @@ export function registerNeuralwattSettings(
               ),
               loaded.has("quotaWarnings"),
             ),
+            {
+              id: "freeEnergyWarnings",
+              label: "Free-energy warnings",
+              description:
+                "Toggle notifications when the daily free-energy allowance runs low",
+              currentValue: resolved.quotaWarnings.freeEnergy.enabled
+                ? "enabled"
+                : "disabled",
+              values: ["enabled", "disabled"],
+            },
+            {
+              id: "freeEnergyWarningPct",
+              label: "Free-energy threshold",
+              description:
+                "Remaining percentage at which the free-energy warning fires",
+              currentValue: String(
+                resolved.quotaWarnings.freeEnergy.warningPct,
+              ),
+              values: ["10", "20", "30"],
+            },
           ],
         },
       ];
@@ -185,6 +205,35 @@ export function registerNeuralwattSettings(
           delete updated.hostedTools;
         }
         return updated;
+      }
+
+      if (id === "freeEnergyWarnings") {
+        if (newValue !== "enabled" && newValue !== "disabled") return null;
+        return {
+          ...config,
+          quotaWarnings: {
+            ...config.quotaWarnings,
+            freeEnergy: {
+              ...config.quotaWarnings?.freeEnergy,
+              enabled: newValue === "enabled",
+            },
+          },
+        };
+      }
+
+      if (id === "freeEnergyWarningPct") {
+        const warningPct = Number(newValue);
+        if (!Number.isFinite(warningPct)) return null;
+        return {
+          ...config,
+          quotaWarnings: {
+            ...config.quotaWarnings,
+            freeEnergy: {
+              ...config.quotaWarnings?.freeEnergy,
+              warningPct,
+            },
+          },
+        };
       }
 
       if (!getLoadedFeatures().has(id as NeuralwattFeatureId)) {

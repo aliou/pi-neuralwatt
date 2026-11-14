@@ -2,8 +2,10 @@ import { truncateToWidth } from "@aliou/pi-utils-ui";
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import type { NeuralwattQuotas } from "../../../src/types/quota-api";
 import {
+  isFreeEnergyStale,
   percentCreditsRemaining,
   percentEnergyRemaining,
+  percentFreeEnergyRemaining,
   severityFromPercent,
 } from "../../../src/utils/quota-bar";
 import {
@@ -74,6 +76,43 @@ export function renderSubscriptionTab(
       truncateToWidth(
         `  ${theme.fg("error", "In overage \u2014 pay-per-use rates apply")}`,
         maxWidth,
+      ),
+    );
+  }
+
+  // --- Daily free energy ---
+  const freeBlock = quotas.daily_free_energy;
+  if (freeBlock && !isFreeEnergyStale(freeBlock)) {
+    lines.push("");
+    lines.push(
+      truncateToWidth(
+        `  ${theme.fg("accent", theme.bold("Daily Free Energy"))}`,
+        maxWidth,
+      ),
+    );
+    const freePct = percentFreeEnergyRemaining(freeBlock);
+    const freeColor = severityFromPercent(freePct);
+    const freeBar = renderProgressBar(freePct, barWidth, theme, freeColor);
+    lines.push(
+      truncateToWidth(
+        `  ${freeBar} ${theme.fg(freeColor, `${freePct}%`)}`,
+        maxWidth,
+      ),
+    );
+    lines.push(
+      labelValue(
+        "Remaining",
+        `${formatKwh(freeBlock.kwh_remaining)} of ${formatKwh(freeBlock.kwh_included)}`,
+        maxWidth,
+        theme,
+      ),
+    );
+    lines.push(
+      labelValue(
+        "Resets",
+        freeEnergyResetLabel(freeBlock.reset_at),
+        maxWidth,
+        theme,
       ),
     );
   }
@@ -154,6 +193,7 @@ export function renderCreditsTab(
  */
 export function renderUsageKeyTab(
   quotas: NeuralwattQuotas,
+  periodFreeKwh: number,
   _contentWidth: number,
   maxWidth: number,
   theme: Theme,
@@ -177,6 +217,13 @@ export function renderUsageKeyTab(
   lines.push(
     labelValue("Energy", formatKwh(usage.energy_kwh), maxWidth, theme),
   );
+
+  const freeBlock = quotas.daily_free_energy;
+  if (freeBlock && !isFreeEnergyStale(freeBlock)) {
+    lines.push(
+      labelValue("Free energy", formatKwh(periodFreeKwh), maxWidth, theme),
+    );
+  }
 
   // --- API Key ---
   lines.push("");
@@ -236,6 +283,19 @@ export function renderUsageKeyTab(
   );
 
   return lines;
+}
+
+function freeEnergyResetLabel(resetAt: string): string {
+  const reset = new Date(resetAt);
+  const hhmm = `${String(reset.getHours()).padStart(2, "0")}:${String(reset.getMinutes()).padStart(2, "0")}`;
+  const minutes = Math.max(
+    0,
+    Math.round((reset.getTime() - Date.now()) / 60_000),
+  );
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const remaining = h > 0 ? `${h}h ${m}m` : `${m}m`;
+  return `${hhmm} local (${remaining} until reset)`;
 }
 
 /** Format a label: value pair with aligned labels. */

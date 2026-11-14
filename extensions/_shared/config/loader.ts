@@ -25,6 +25,18 @@ function normalizeResolvedConfig(
     quotaWarnings: {
       enabled:
         config.quotaWarnings?.enabled ?? DEFAULT_CONFIG.quotaWarnings.enabled,
+      freeEnergy: {
+        enabled:
+          config.quotaWarnings?.freeEnergy?.enabled ??
+          DEFAULT_CONFIG.quotaWarnings.freeEnergy.enabled,
+        warningPct:
+          config.quotaWarnings?.freeEnergy?.warningPct === undefined
+            ? DEFAULT_CONFIG.quotaWarnings.freeEnergy.warningPct
+            : Math.max(
+                0,
+                Math.min(100, config.quotaWarnings.freeEnergy.warningPct),
+              ),
+      },
     },
     hostedTools: config.hostedTools,
     provider: {

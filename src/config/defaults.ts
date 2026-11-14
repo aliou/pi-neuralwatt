@@ -8,6 +8,10 @@ export const DEFAULT_CONFIG: ResolvedNeuralwattConfig = {
   },
   quotaWarnings: {
     enabled: true,
+    freeEnergy: {
+      enabled: true,
+      warningPct: 20,
+    },
   },
   provider: {
     api: "openai-completions",

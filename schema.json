@@ -56,6 +56,23 @@
         "enabled": {
           "type": "boolean",
           "description": "Show quota warnings when credits or energy are low."
+        },
+        "freeEnergy": {
+          "$ref": "#/definitions/NeuralwattFreeEnergyWarningsConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "NeuralwattFreeEnergyWarningsConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Warn when the daily free-energy allowance runs low."
+        },
+        "warningPct": {
+          "type": "number",
+          "description": "Remaining-percentage threshold for the first warning."
         }
       },
       "additionalProperties": false

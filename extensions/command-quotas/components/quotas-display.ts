@@ -4,6 +4,7 @@ import { DynamicBorder } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { Loader, matchesKey } from "@earendil-works/pi-tui";
 import type { NeuralwattQuotas } from "../../../src/types/quota-api";
+import { freeEnergyPeriodKwh } from "../free-energy-history";
 import {
   renderCreditsTab,
   renderSubscriptionTab,
@@ -175,7 +176,13 @@ export class QuotasComponent implements Component {
         return renderCreditsTab(quotas, contentWidth, maxWidth, this.theme);
       }
       // "Usage & Key"
-      return renderUsageKeyTab(quotas, contentWidth, maxWidth, this.theme);
+      return renderUsageKeyTab(
+        quotas,
+        freeEnergyPeriodKwh(quotas),
+        contentWidth,
+        maxWidth,
+        this.theme,
+      );
     });
 
     // Equalize tab heights so switching doesn't cause layout jumps

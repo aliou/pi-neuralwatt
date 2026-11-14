@@ -21,8 +21,18 @@ export interface NeuralwattSubscription {
   in_overage: boolean;
 }
 
+/** Daily free-energy allowance block from /v1/quota. */
+export interface NeuralwattDailyFreeEnergy {
+  kwh_included: number;
+  kwh_used: number;
+  kwh_remaining: number;
+  reset_at: string;
+  model_labels: string[];
+}
+
 export interface NeuralwattQuotas {
   snapshot_at: string;
+  daily_free_energy?: NeuralwattDailyFreeEnergy;
   balance: {
     credits_remaining_usd: number;
     total_credits_usd: number;

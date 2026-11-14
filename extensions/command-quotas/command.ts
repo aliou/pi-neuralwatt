@@ -7,6 +7,7 @@ import { fetchQuotas } from "../../src/lib/neuralwatt-api";
 import { getNeuralwattApiKey } from "../_shared/auth";
 import { configuredApiBaseUrl } from "../_shared/config/loader";
 import { QuotasComponent } from "./components/quotas-display";
+import { recordFreeEnergyDay } from "./free-energy-history";
 
 function missingAuthMessage(): string {
   const authPath = join(getAgentDir(), "auth.json");
@@ -52,6 +53,7 @@ export function registerQuotasCommand(
           );
           if (controller.signal.aborted) return;
           if (fetchResult.success) {
+            recordFreeEnergyDay(fetchResult.data.quotas);
             component.setState({
               type: "loaded",
               quotas: fetchResult.data.quotas,

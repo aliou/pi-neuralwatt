@@ -44,6 +44,7 @@ import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
 
 const HEADER_EMIT_THROTTLE_MS = 5_000;
+const FREE_ENERGY_REFETCH_MS = 60_000;
 
 function emitConfigUpdated(pi: ExtensionAPI): void {
   pi.events.emit(NEURALWATT_CONFIG_UPDATED_EVENT, {
@@ -137,6 +138,36 @@ export default async function (pi: ExtensionAPI) {
 
   let lastHeaderEmitAt = 0;
   let quotaRequestInFlight = false;
+  let lastFreeEnergyRefetchAt = 0;
+
+  function isCoveredFreeEnergyModel(
+    provider: string,
+    modelId: string,
+    labels: string[],
+  ): boolean {
+    if (labels.length === 0) return false;
+    const name = currentModelRegistry?.find(provider, modelId)?.name;
+    return name !== undefined && labels.includes(name);
+  }
+
+  function refetchQuotasDebounced(): void {
+    const now = Date.now();
+    if (now - lastFreeEnergyRefetchAt < FREE_ENERGY_REFETCH_MS) return;
+    if (quotaRequestInFlight) return;
+    lastFreeEnergyRefetchAt = now;
+    void (async () => {
+      quotaRequestInFlight = true;
+      try {
+        const apiKey = currentModelRegistry
+          ? await getNeuralwattApiKey(currentModelRegistry)
+          : undefined;
+        const quotas = await fetchRequestedQuotas(apiKey);
+        if (quotas) emitQuotas(quotas, "api");
+      } finally {
+        quotaRequestInFlight = false;
+      }
+    })();
+  }
 
   function emitQuotas(
     quotas: NeuralwattQuotas,
@@ -220,9 +251,21 @@ export default async function (pi: ExtensionAPI) {
       pendingRateLimitInfo = undefined;
     }
 
+    const freeEnergyLabels =
+      latestQuotas?.daily_free_energy?.model_labels ?? [];
     const quotas = buildQuotasFromHeaders(event.headers);
     if (!quotas) return;
     emitQuotas(quotas, "header");
+
+    if (
+      isCoveredFreeEnergyModel(
+        ctx.model.provider,
+        ctx.model.id,
+        freeEnergyLabels,
+      )
+    ) {
+      refetchQuotasDebounced();
+    }
   });
 
   pi.events.on(NEURALWATT_QUOTAS_REQUEST_EVENT, async () => {

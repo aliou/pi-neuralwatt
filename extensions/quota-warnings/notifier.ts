@@ -1,5 +1,9 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
+import {
+  isFreeEnergyStale,
+  percentFreeEnergyRemaining,
+} from "../../src/utils/quota-bar";
 import { formatKwh, formatUsd } from "../../src/utils/quota-format";
 
 export type WarningSeverity = "warning" | "critical";
@@ -166,6 +170,36 @@ function overageWarning(progress: OverageProgress): PendingWarning {
   };
 }
 
+export interface FreeEnergyWarningsConfig {
+  enabled: boolean;
+  warningPct: number;
+}
+
+/**
+ * Daily free-energy allowance. The earliest stage: while the promo block is
+ * present and running low, it reports the day's allowance instead of the
+ * subscription pool it feeds. The UTC date in the key re-arms the alert at
+ * rollover, after a fresh fetch supplies the new day's block.
+ */
+function freeEnergyWarning(
+  quotas: NeuralwattQuotas,
+  config: FreeEnergyWarningsConfig,
+): PendingWarning | undefined {
+  if (!config.enabled) return;
+  const block = quotas.daily_free_energy;
+  if (!block || isFreeEnergyStale(block)) return;
+  const pct = percentFreeEnergyRemaining(block);
+  if (pct > config.warningPct) return;
+  return {
+    key: `freeEnergy:${new Date().toISOString().slice(0, 10)}`,
+    severity: pct <= 0 ? "critical" : "warning",
+    message:
+      pct <= 0
+        ? "Daily free energy exhausted — covered models bill your plan until 00:00 UTC"
+        : `Daily free energy: ${pct}% remaining (${formatKwh(block.kwh_remaining)} of ${formatKwh(block.kwh_included)})`,
+  };
+}
+
 /**
  * Warning progression mirrors Neuralwatt's billing order. Each stage uses its
  * own alert key, so once a later stage starts the earlier one stops — the
@@ -191,13 +225,17 @@ function overageWarning(progress: OverageProgress): PendingWarning {
 export function checkQuotas(
   ctx: ExtensionContext,
   quotas: NeuralwattQuotas,
+  freeEnergy: FreeEnergyWarningsConfig,
 ): void {
   if (!ctx.hasUI) return;
 
   const pending: PendingWarning[] = [];
   const sub = quotas.subscription;
 
-  if (sub?.in_overage) {
+  const fw = freeEnergyWarning(quotas, freeEnergy);
+  if (fw) {
+    pending.push(fw);
+  } else if (sub?.in_overage) {
     const cap = quotas.limits.overage_limit_usd;
     if (cap !== null && cap > 0) {
       const progress = computeOverageProgress(quotas);

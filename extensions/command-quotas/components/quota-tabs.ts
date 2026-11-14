@@ -134,7 +134,9 @@ export function renderSubscriptionTab(
 }
 
 /**
- * Credits tab — credit balance only.
+ * Credits tab — credit balance only. With energy accounting the balance is a
+ * top-up pool drawn only on demand, so it has no meaningful percentage against
+ * lifetime grants; it is shown as a plain balance in that case.
  */
 export function renderCreditsTab(
   quotas: NeuralwattQuotas,
@@ -143,13 +145,33 @@ export function renderCreditsTab(
   theme: Theme,
 ): string[] {
   const lines: string[] = [];
-  const barWidth = Math.min(40, Math.max(20, contentWidth - 30));
 
-  // --- Credit balance ---
   lines.push("");
   lines.push(
     truncateToWidth(`  ${theme.fg("accent", theme.bold("Credits"))}`, maxWidth),
   );
+
+  if (quotas.balance.accounting_method === "energy") {
+    lines.push(
+      labelValue(
+        "Balance",
+        formatUsd(quotas.balance.credits_remaining_usd),
+        maxWidth,
+        theme,
+      ),
+    );
+    lines.push(
+      labelValue(
+        "Accounting",
+        quotas.balance.accounting_method,
+        maxWidth,
+        theme,
+      ),
+    );
+    return lines;
+  }
+
+  const barWidth = Math.min(40, Math.max(20, contentWidth - 30));
   const creditsPct = percentCreditsRemaining(quotas);
   const creditsColor = severityFromPercent(creditsPct);
   const creditsBar = renderProgressBar(

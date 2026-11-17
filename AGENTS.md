@@ -8,7 +8,7 @@ Registers a `neuralwatt` provider with Pi that connects to [Neuralwatt Cloud](ht
 
 ## Structure
 
-Three feature extensions share the provider core. Keep settings loading and migrations in `extensions/_shared/config/`. Keep `src/` free of imports from `extensions/`, Pi coding-agent, Pi TUI, settings/UI helpers, and Node built-ins. Inject live settings and API streams from the host. The offline fallback model table lives in `src/models/public-models.ts`; `.agents/skills/neuralwatt-models/` covers keeping it in sync.
+Feature extensions share the provider core. Keep settings loading and migrations in `extensions/_shared/config/`. Keep `src/` free of imports from `extensions/`, Pi coding-agent, Pi TUI, settings/UI helpers, and Node built-ins. Inject live settings and API streams from the host. The offline fallback model table lives in `src/models/public-models.ts`; `.agents/skills/neuralwatt-models/` covers keeping it in sync.
 
 Keep `provider/` free of extension, coding-agent, TUI, settings/UI helper, and Node imports. Keep imports side-effect free. When changing the library entry, run `pnpm build` and verify the `./provider` export loads without the coding agent.
 

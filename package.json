@@ -23,6 +23,7 @@
   "pi": {
     "extensions": [
       "./extensions/provider/index.ts",
+      "./extensions/flex-mode/index.ts",
       "./extensions/command-quotas/index.ts",
       "./extensions/quota-warnings/index.ts"
     ],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NEURALWATT_MODELS } from "./models";
+import { NEURALWATT_CLASSIFIERS, NEURALWATT_MODELS } from "./models";
 import {
   buildAnthropicThinkingLevelMap,
   buildThinkingLevelMap,
@@ -68,6 +68,26 @@ describe("Neuralwatt models", () => {
           level,
         );
       }
+    }
+  });
+
+  it("should have well-formed classifiers", () => {
+    const ids = NEURALWATT_CLASSIFIERS.map((m) => m.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...ids, ...NEURALWATT_MODELS.map((m) => m.id)]).toHaveLength(
+      new Set([...ids, ...NEURALWATT_MODELS.map((m) => m.id)]).size,
+    );
+    for (const model of NEURALWATT_CLASSIFIERS) {
+      expect(model.id).toBeTruthy();
+      expect(model.name).toBeTruthy();
+      expect(model.contextWindow).toBeGreaterThan(0);
+      expect(model.cost.input).toBeGreaterThanOrEqual(0);
+      expect(model.cost.output).toBeGreaterThanOrEqual(0);
+      expect(model.cost.cacheRead).toBeGreaterThanOrEqual(0);
+      expect(model.input).toContain("text");
+      expect(model).not.toHaveProperty("reasoning");
+      expect(model).not.toHaveProperty("maxTokens");
+      expect(model).not.toHaveProperty("compat");
     }
   });
 });

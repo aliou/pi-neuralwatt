@@ -1,5 +1,7 @@
 import {
   buildNeuralwattFamily,
+  NEURALWATT_SYSTEM_ONE_API,
+  type NeuralwattClassifierModel,
   type NeuralwattModelFamily,
   type NeuralwattVariantSpec,
   type ProviderChatModelConfig,
@@ -412,3 +414,17 @@ const FAMILIES: [NeuralwattModelFamily, NeuralwattVariantSpec[]][] = [
 export const NEURALWATT_MODELS: ProviderChatModelConfig[] = FAMILIES.flatMap(
   ([family, variants]) => buildNeuralwattFamily(family, variants),
 );
+
+// System One classifier models (`metadata.capabilities.task === "decision"`).
+// Served on POST /v1/systemone; no reasoning, compat, or output tokens.
+export const NEURALWATT_CLASSIFIERS: NeuralwattClassifierModel[] = [
+  {
+    type: "classifier",
+    api: NEURALWATT_SYSTEM_ONE_API,
+    id: "mammoth-1",
+    name: "mammoth-1",
+    input: ["text"],
+    cost: { input: 0.18, output: 0, cacheRead: 0.018, cacheWrite: 0 },
+    contextWindow: 32753,
+  },
+];

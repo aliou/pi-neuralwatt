@@ -140,6 +140,13 @@ prices, so declare fallback variants with `costMultiplier: 0.65` rather than
 copying prices. A non-streaming request to a `-flex` model silently falls back
 to standard tier and standard price. See https://docs.neuralwatt.com/guides/flex-tier.md.
 
+System One classifier models (`metadata.capabilities.task === "decision"`)
+live in `NEURALWATT_CLASSIFIERS` in the same file as plain literals — the
+family/variant table and `buildNeuralwattFamily` are chat-only. Classifiers
+have no reasoning, compat, or output tokens; `cost.cacheWrite` mirrors the
+API's `cached_output_per_million ?? 0`. `pnpm check:models` compares both
+tables, each against its own `task` partition of the API.
+
 All Neuralwatt models keep the provider compatibility defaults:
 
 ```ts

@@ -65,10 +65,15 @@ function expectCompiledModel(raw: unknown): void {
   expect(model.api).toEqual(expect.any(String));
   expect(model.provider).toBe(NEURALWATT_PROVIDER_ID);
   expect(model.baseUrl).toEqual(expect.any(String));
-  expect(model.reasoning).toEqual(expect.any(Boolean));
   expect(model.input).toEqual(expect.any(Array));
   expect(model.cost).toEqual(expect.any(Object));
   expect(model.contextWindow).toEqual(expect.any(Number));
+  if (model.type === "classifier") {
+    expect(model).not.toHaveProperty("reasoning");
+    expect(model).not.toHaveProperty("maxTokens");
+    return;
+  }
+  expect(model.reasoning).toEqual(expect.any(Boolean));
   expect(model.maxTokens).toEqual(expect.any(Number));
 }
 
@@ -85,7 +90,7 @@ describe("baseline catalog", () => {
     const provider = createNeuralwattProvider();
     const all = provider.getAllModels?.() ?? [];
     expect(provider.getModels().length).toBeGreaterThan(0);
-    expect(all.length).toBe(provider.getModels().length);
+    expect(all.length).toBeGreaterThanOrEqual(provider.getModels().length);
     const ids = new Set(all.map((model) => model.id));
     expect(ids.size).toBe(all.length);
     for (const model of all) expectCompiledModel(model);

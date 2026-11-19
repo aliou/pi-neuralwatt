@@ -1,8 +1,9 @@
 /**
  * Drift check for the offline fallback model table.
  *
- * Compares `NEURALWATT_MODELS` (src/models/public-models.ts)
- * against the live `/v1/models` catalog and reports any drift. The fallback is
+ * Compares `NEURALWATT_MODELS` and `NEURALWATT_CLASSIFIERS`
+ * (src/models/public-models.ts) against the live `/v1/models` catalog and
+ * reports any drift. The fallback is
  * only the first-start seed — the runtime catalog is built from the API — so
  * drift is a "keep the seed fresh" signal, not a build blocker. This runs on a
  * schedule (see .github/workflows/model-sync.yml), never in the PR test suite.
@@ -13,7 +14,11 @@
  *   2  the check could not run (network/HTTP/unexpected error)
  */
 
-import { NEURALWATT_MODELS } from "../src/models";
+import {
+  isServedApiModel,
+  NEURALWATT_CLASSIFIERS,
+  NEURALWATT_MODELS,
+} from "../src/models";
 import { buildThinkingLevelMap } from "../src/models/build";
 import type { NeuralwattApiModel } from "../src/types/models-api";
 
@@ -63,10 +68,7 @@ async function fetchApiModels(): Promise<NeuralwattApiModel[]> {
   if (!Array.isArray(data.data)) {
     throw new Error("API response has no `data` array");
   }
-  // Filter out deprecated and pricing_tbd models, same as the live provider.
-  return data.data.filter(
-    (m) => !m.metadata?.deprecated && !m.metadata?.pricing.pricing_tbd,
-  );
+  return data.data.filter(isServedApiModel);
 }
 
 function compareModels(
@@ -220,6 +222,94 @@ function compareModels(
   return discrepancies;
 }
 
+function compareClassifiers(
+  apiModels: NeuralwattApiModel[],
+  hardcodedModels: typeof NEURALWATT_CLASSIFIERS,
+): Discrepancy[] {
+  const discrepancies: Discrepancy[] = [];
+
+  for (const hardcoded of hardcodedModels) {
+    const apiModel = apiModels.find((m) => m.id === hardcoded.id);
+    if (!apiModel) {
+      discrepancies.push({
+        model: hardcoded.id,
+        field: "exists",
+        hardcoded: true,
+        api: false,
+      });
+      continue;
+    }
+
+    const meta = apiModel.metadata;
+
+    if (apiModel.max_model_len !== hardcoded.contextWindow) {
+      discrepancies.push({
+        model: hardcoded.id,
+        field: "contextWindow",
+        hardcoded: hardcoded.contextWindow,
+        api: apiModel.max_model_len,
+      });
+    }
+
+    if (meta) {
+      const hasVision = hardcoded.input.includes("image");
+      if (meta.capabilities.vision !== hasVision) {
+        discrepancies.push({
+          model: hardcoded.id,
+          field: "input (vision)",
+          hardcoded: hasVision,
+          api: meta.capabilities.vision,
+        });
+      }
+
+      if (
+        Math.abs(meta.pricing.input_per_million - hardcoded.cost.input) >
+        EPSILON
+      ) {
+        discrepancies.push({
+          model: hardcoded.id,
+          field: "cost.input",
+          hardcoded: hardcoded.cost.input,
+          api: meta.pricing.input_per_million,
+        });
+      }
+      if (
+        Math.abs(meta.pricing.output_per_million - hardcoded.cost.output) >
+        EPSILON
+      ) {
+        discrepancies.push({
+          model: hardcoded.id,
+          field: "cost.output",
+          hardcoded: hardcoded.cost.output,
+          api: meta.pricing.output_per_million,
+        });
+      }
+      const apiCacheRead = meta.pricing.cached_input_per_million ?? 0;
+      if (Math.abs(apiCacheRead - hardcoded.cost.cacheRead) > EPSILON) {
+        discrepancies.push({
+          model: hardcoded.id,
+          field: "cost.cacheRead",
+          hardcoded: hardcoded.cost.cacheRead,
+          api: apiCacheRead,
+        });
+      }
+    }
+  }
+
+  for (const apiModel of apiModels) {
+    if (!hardcodedModels.some((m) => m.id === apiModel.id)) {
+      discrepancies.push({
+        model: apiModel.id,
+        field: "exists",
+        hardcoded: false,
+        api: true,
+      });
+    }
+  }
+
+  return discrepancies;
+}
+
 function formatTable(discrepancies: Discrepancy[]): string {
   const lines = ["| Model | Field | Fallback | API |", "|---|---|---|---|"];
   for (const d of discrepancies) {
@@ -310,7 +400,16 @@ function report(discrepancies: Discrepancy[]): void {
 
 async function main(): Promise<void> {
   const apiModels = await fetchApiModels();
-  const discrepancies = compareModels(apiModels, NEURALWATT_MODELS);
+  const chatApiModels = apiModels.filter(
+    (m) => m.metadata?.capabilities.task !== "decision",
+  );
+  const classifierApiModels = apiModels.filter(
+    (m) => m.metadata?.capabilities.task === "decision",
+  );
+  const discrepancies = [
+    ...compareModels(chatApiModels, NEURALWATT_MODELS),
+    ...compareClassifiers(classifierApiModels, NEURALWATT_CLASSIFIERS),
+  ];
 
   if (discrepancies.length === 0) {
     console.log("No drift: the fallback table matches the live API.");

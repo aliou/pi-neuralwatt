@@ -8,7 +8,7 @@ import {
   resolveMaxTokens,
   type ThinkingLevelMap,
 } from "./build";
-import { NEURALWATT_MODELS } from "./public-models";
+import { NEURALWATT_CLASSIFIERS, NEURALWATT_MODELS } from "./public-models";
 
 export type NeuralwattChatModel = NeuralwattCompiledModel;
 
@@ -125,26 +125,35 @@ function apiModelToProviderModel(
   return result;
 }
 
+const SERVED_TASKS = ["chat", "completions", "decision"] as const;
+
+export function isServedApiModel(
+  model: NeuralwattApiModel,
+): model is NeuralwattApiModel & {
+  metadata: NonNullable<NeuralwattApiModel["metadata"]>;
+} {
+  const meta = model.metadata;
+  return (
+    !!meta &&
+    !meta.deprecated &&
+    !meta.pricing.pricing_tbd &&
+    (!meta.capabilities.task ||
+      (SERVED_TASKS as readonly string[]).includes(meta.capabilities.task))
+  );
+}
+
 export function buildNeuralwattProviderModels(): NeuralwattModel[] {
-  return NEURALWATT_MODELS.map((model) => ({ ...model }));
+  return [
+    ...NEURALWATT_MODELS.map((model) => ({ ...model })),
+    ...NEURALWATT_CLASSIFIERS.map((model) => ({ ...model })),
+  ];
 }
 
 export function buildNeuralwattProviderModelsFromApi(
   apiModels: readonly NeuralwattApiModel[],
 ): NeuralwattModel[] {
   const models = apiModels
-    .filter(
-      (m) =>
-        m.metadata &&
-        !m.metadata.deprecated &&
-        !m.metadata.pricing.pricing_tbd &&
-        !(
-          m.metadata.capabilities.task &&
-          !["chat", "completions", "decision"].includes(
-            m.metadata.capabilities.task,
-          )
-        ),
-    )
+    .filter(isServedApiModel)
     .map((m) =>
       m.metadata?.capabilities.task === "decision"
         ? apiModelToClassifierModel(m)

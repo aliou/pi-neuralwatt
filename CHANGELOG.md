@@ -1,5 +1,15 @@
 # @aliou/pi-extension-template
 
+## 0.21.0
+
+### Minor Changes
+
+- ebddddb: Add `/neuralwatt:flex` to toggle between standard and flex model variants, including models routed through a virtual model.
+
+### Patch Changes
+
+- ed3cf03: Seed System One classifier models in the offline fallback table and verify them in the model drift check, sharing the provider's served-model filter.
+
 ## 0.20.0
 
 ### Minor Changes

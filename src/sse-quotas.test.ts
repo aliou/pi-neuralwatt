@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  parseEnergyComment,
   readQuotaCommentsFromTee,
   updateQuotasFromSseComment,
 } from "./sse-quotas";
@@ -49,6 +50,26 @@ function streamFromChunks(chunks: string[]): ReadableStream<Uint8Array> {
     },
   });
 }
+
+describe("parseEnergyComment", () => {
+  it("returns joules from energy comments", () => {
+    expect(
+      parseEnergyComment(
+        ': energy {"energy_joules":45.78,"energy_kwh":0.000012717}',
+      ),
+    ).toBe(45.78);
+  });
+
+  it("rejects other comments and malformed energy", () => {
+    expect(
+      parseEnergyComment(': cost {"request_cost_usd":0.25}'),
+    ).toBeUndefined();
+    expect(
+      parseEnergyComment(': energy {"energy_joules":"45.78"}'),
+    ).toBeUndefined();
+    expect(parseEnergyComment(": energy nope")).toBeUndefined();
+  });
+});
 
 describe("updateQuotasFromSseComment", () => {
   it("applies energy comments", () => {

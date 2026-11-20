@@ -1,4 +1,5 @@
 import { bindProjectConfig } from "@aliou/pi-utils-settings";
+import type { AssistantMessage } from "@earendil-works/pi-ai";
 import {
   anthropicMessagesApi,
   openAICompletionsApi,
@@ -33,12 +34,14 @@ import {
   wrapNeuralwattStreamSimple,
 } from "../../src/stream-simple";
 import type { NeuralwattQuotas } from "../../src/types/quota-api";
+import { formatEnergy } from "../../src/utils/quota-format";
 import { getNeuralwattApiKey } from "../_shared/auth";
 import { configLoader } from "../_shared/config";
 import {
   configuredApiBaseUrl,
   hostedToolsOptOut,
 } from "../_shared/config/loader";
+import { isSignificantCacheMiss } from "./cache-energy";
 import { registerNeuralwattSettings } from "./commands/settings";
 import { normalizeNeuralwattContextOverflowError } from "./context-overflow";
 import { buildQuotasFromHeaders, fetchRequestedQuotas } from "./quota-store";
@@ -101,6 +104,7 @@ export default async function (pi: ExtensionAPI) {
   bindProjectConfig(pi, configLoader);
 
   let latestQuotas: NeuralwattQuotas | undefined;
+  const energyByMessage = new WeakMap<AssistantMessage, number>();
 
   let lastSseEmitAt = 0;
 
@@ -124,6 +128,9 @@ export default async function (pi: ExtensionAPI) {
     onSseQuota: handleSseQuota,
     onRateLimit: (info) => {
       pendingRateLimitInfo = info;
+    },
+    onEnergy: (message, joules) => {
+      energyByMessage.set(message, joules);
     },
   };
   let registeredApi = configLoader.getConfig().provider.api;
@@ -232,6 +239,33 @@ export default async function (pi: ExtensionAPI) {
     );
     if (!overflowMessage) return;
     return { message: overflowMessage };
+  });
+
+  pi.on("message_end", (event, ctx) => {
+    if (!pi.getSettings().showCacheMissNotices) return;
+    if (event.message.role !== "assistant") return;
+    if (
+      event.message.stopReason === "aborted" ||
+      event.message.stopReason === "error"
+    ) {
+      return;
+    }
+    const joules = energyByMessage.get(event.message);
+    if (joules === undefined) return;
+    energyByMessage.delete(event.message);
+    if (
+      !isSignificantCacheMiss(
+        ctx.sessionManager.getEntries(),
+        event.message,
+        ctx.modelRegistry,
+      )
+    ) {
+      return;
+    }
+    ctx.ui.notify(
+      `Neuralwatt cache miss: response used ${formatEnergy(joules)}`,
+      "info",
+    );
   });
 
   // Inject the active Pi session id as a conversation id on every Neuralwatt

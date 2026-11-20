@@ -1,6 +1,24 @@
+import { Type } from "typebox";
+import { Check } from "typebox/value";
 import type { NeuralwattQuotas } from "./types/quota-api";
 
 const JOULES_PER_KWH = 3_600_000;
+
+const EnergyCommentSchema = Type.Object({
+  energy_joules: Type.Number({ minimum: 0 }),
+});
+
+export function parseEnergyComment(line: string): number | undefined {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith(": energy ")) return;
+
+  try {
+    const value: unknown = JSON.parse(trimmed.slice(9));
+    return Check(EnergyCommentSchema, value) ? value.energy_joules : undefined;
+  } catch {
+    return;
+  }
+}
 
 export function updateQuotasFromSseComment(
   quotas: NeuralwattQuotas | undefined,
@@ -10,24 +28,24 @@ export function updateQuotasFromSseComment(
   const trimmed = line.trim();
   const next = structuredClone(quotas);
 
-  try {
-    if (trimmed.startsWith(": energy ")) {
-      const energy = JSON.parse(trimmed.slice(9)) as { energy_joules?: number };
-      const energyKwh = (energy.energy_joules ?? 0) / JOULES_PER_KWH;
-      if (energyKwh <= 0) return quotas;
-      next.usage.current_month.energy_kwh += energyKwh;
-      next.usage.lifetime.energy_kwh += energyKwh;
-      if (next.subscription) {
-        next.subscription.kwh_used += energyKwh;
-        next.subscription.kwh_remaining = Math.max(
-          0,
-          next.subscription.kwh_remaining - energyKwh,
-        );
-      }
-      next.snapshot_at = new Date().toISOString();
-      return next;
+  const energyJoules = parseEnergyComment(trimmed);
+  if (energyJoules !== undefined) {
+    const energyKwh = energyJoules / JOULES_PER_KWH;
+    if (energyKwh <= 0) return quotas;
+    next.usage.current_month.energy_kwh += energyKwh;
+    next.usage.lifetime.energy_kwh += energyKwh;
+    if (next.subscription) {
+      next.subscription.kwh_used += energyKwh;
+      next.subscription.kwh_remaining = Math.max(
+        0,
+        next.subscription.kwh_remaining - energyKwh,
+      );
     }
+    next.snapshot_at = new Date().toISOString();
+    return next;
+  }
 
+  try {
     if (trimmed.startsWith(": cost ")) {
       const cost = JSON.parse(trimmed.slice(7)) as {
         request_cost_usd?: number;

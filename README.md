@@ -75,6 +75,10 @@ https://github.com/user-attachments/assets/a8994940-c467-4744-a0f2-833cb63923ff
 
 When enabled, the extension notifies you when credits or energy are running low. With an active subscription, only energy warnings fire (credits are on-demand top-up only).
 
+### Cache Miss Energy Notices
+
+When Pi's `showCacheMissNotices` setting is enabled, significant Neuralwatt cache misses also show the energy used by that response. Detection uses the same thresholds as Pi's notices.
+
 ## Library use
 
 Use `@aliou/pi-neuralwatt/provider` outside the coding agent:

@@ -321,12 +321,15 @@ describe("feature configuration", () => {
         warningsFactory,
       );
       await start();
-      const quotas = buildQuotasFromHeaders({
-        "x-allowance-remaining-usd": "1",
-        "x-subscription-plan": "standard",
-        "x-energy-included": "10",
-        "x-energy-remaining": "1",
-      });
+      const quotas = buildQuotasFromHeaders(
+        {
+          "x-allowance-remaining-usd": "1",
+          "x-subscription-plan": "standard",
+          "x-energy-included": "10",
+          "x-energy-remaining": "1",
+        },
+        undefined,
+      );
       expect(quotas).toBeDefined();
       bus.emit(NEURALWATT_QUOTAS_UPDATED_EVENT, { quotas, source: "header" });
       await new Promise((resolve) => setImmediate(resolve));

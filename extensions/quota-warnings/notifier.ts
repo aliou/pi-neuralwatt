@@ -81,13 +81,34 @@ interface PendingWarning {
   message: string;
 }
 
+function isProjectedToExceedQuota(
+  sub: NonNullable<NeuralwattQuotas["subscription"]>,
+  now: number,
+): boolean {
+  const start = Date.parse(sub.current_period_start ?? "");
+  const end = Date.parse(sub.current_period_end ?? "");
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    end <= start ||
+    now < start ||
+    now >= end
+  ) {
+    return true;
+  }
+
+  const elapsedFraction = (now - start) / (end - start);
+  return sub.kwh_used / sub.kwh_included > elapsedFraction;
+}
+
 /** Subscription energy (kWh) — the primary billing pool while subscribed. */
 function energyWarning(
   sub: NonNullable<NeuralwattQuotas["subscription"]>,
+  now: number,
 ): PendingWarning | undefined {
   if (sub.kwh_included <= 0) return;
   const pct = (sub.kwh_remaining / sub.kwh_included) * 100;
-  if (pct > LOW_PCT) return;
+  if (pct > LOW_PCT || !isProjectedToExceedQuota(sub, now)) return;
   return {
     key: "energy",
     severity: severityForPct(pct),
@@ -252,7 +273,7 @@ export function checkQuotas(
       if (cw) pending.push(cw);
     }
   } else if (sub) {
-    const ew = energyWarning(sub);
+    const ew = energyWarning(sub, Date.now());
     if (ew) pending.push(ew);
   } else {
     // No subscription. All kWh bill at the unsubscribed rate; warn on the

@@ -5,6 +5,7 @@ import { configuredApiBaseUrl } from "../_shared/config/loader";
 
 export function buildQuotasFromHeaders(
   headers: Record<string, string>,
+  previousQuotas: NeuralwattQuotas | undefined,
 ): NeuralwattQuotas | undefined {
   const headerQuotas = parseQuotaHeaders(headers);
   if (!headerQuotas) return;
@@ -29,8 +30,10 @@ export function buildQuotasFromHeaders(
             plan: headerQuotas.subscriptionPlan,
             status: "active",
             billing_interval: "month",
-            current_period_start: "",
-            current_period_end: "",
+            current_period_start:
+              previousQuotas?.subscription?.current_period_start ?? null,
+            current_period_end:
+              previousQuotas?.subscription?.current_period_end ?? null,
             auto_renew: false,
             kwh_included: headerQuotas.energyIncluded ?? 0,
             kwh_used: headerQuotas.energyUsed ?? 0,

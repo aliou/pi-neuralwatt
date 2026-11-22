@@ -12,8 +12,8 @@ export interface NeuralwattSubscription {
   plan: string;
   status: string;
   billing_interval: string;
-  current_period_start: string;
-  current_period_end: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
   auto_renew: boolean;
   kwh_included: number;
   kwh_used: number;

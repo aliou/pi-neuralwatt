@@ -29,7 +29,13 @@ function readHistory(): FreeEnergyHistory {
 
 function currentPeriodRange(quotas: NeuralwattQuotas): PeriodRange | undefined {
   const sub = quotas.subscription;
-  if (!sub) return;
+  if (
+    !sub ||
+    sub.current_period_start === null ||
+    sub.current_period_end === null
+  ) {
+    return;
+  }
   const start = sub.current_period_start.slice(0, 10);
   const end = sub.current_period_end.slice(0, 10);
   const inclusiveEnd =

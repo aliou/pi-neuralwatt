@@ -331,6 +331,91 @@ describe("computeOverageProgress", () => {
 });
 
 describe("checkQuotas warning staging", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    clearAlertState();
+  });
+
+  it("stays silent when low energy is sufficient for the remaining period", () => {
+    vi.setSystemTime("2026-11-22T12:00:00Z");
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        current_period_start: "2026-10-25T00:00:00Z",
+        current_period_end: "2026-11-25T00:00:00Z",
+        kwh_included: 28.57,
+        kwh_used: 24.96,
+        kwh_remaining: 3.61,
+      },
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(0);
+  });
+
+  it("warns when the same low energy projects exhaustion before renewal", () => {
+    vi.setSystemTime("2026-11-09T12:00:00Z");
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        current_period_start: "2026-10-25T00:00:00Z",
+        current_period_end: "2026-11-25T00:00:00Z",
+        kwh_included: 28.57,
+        kwh_used: 24.96,
+        kwh_remaining: 3.61,
+      },
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0]).toContain("Energy:");
+    expect(ctx.calls[0]).toContain("13%");
+  });
+
+  it("uses critical severity when projected exhaustion leaves at most 10%", () => {
+    vi.setSystemTime("2026-11-09T12:00:00Z");
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        current_period_start: "2026-10-25T00:00:00Z",
+        current_period_end: "2026-11-25T00:00:00Z",
+        kwh_included: 28.57,
+        kwh_used: 26.57,
+        kwh_remaining: 2,
+      },
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0].startsWith("error:")).toBe(true);
+    expect(ctx.calls[0]).toContain("7%");
+  });
+
+  it("uses absolute thresholds after the retained billing period expires", () => {
+    vi.setSystemTime("2026-11-25T00:00:00Z");
+    const ctx = mockCtx();
+    const quotas = baseQuotas({
+      subscription: {
+        ...subFixture(),
+        current_period_start: "2026-10-25T00:00:00Z",
+        current_period_end: "2026-11-25T00:00:00Z",
+        kwh_remaining: 2,
+        kwh_used: 14,
+      },
+    });
+
+    checkQuotas(ctx, quotas, FREE_ENERGY);
+
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0]).toContain("Energy:");
+  });
+
   it("warns on energy when subscribed and kWh is low", () => {
     clearAlertState();
     const ctx = mockCtx();

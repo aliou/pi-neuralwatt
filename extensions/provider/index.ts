@@ -253,7 +253,7 @@ export default async function (pi: ExtensionAPI) {
 
     const freeEnergyLabels =
       latestQuotas?.daily_free_energy?.model_labels ?? [];
-    const quotas = buildQuotasFromHeaders(event.headers);
+    const quotas = buildQuotasFromHeaders(event.headers, latestQuotas);
     if (!quotas) return;
     emitQuotas(quotas, "header");
 

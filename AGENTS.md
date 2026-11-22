@@ -30,7 +30,7 @@ Extensions self-register via `neuralwatt:extensions:register` events when the pr
 
 Two sources of quota data:
 
-1. **Response headers** - `after_provider_response` event captures `x-allowance-remaining-usd`, `x-budget-remaining-usd`, `x-request-cost-usd`, `x-cache-savings-usd`, `x-subscription-plan`, `x-energy-included`, `x-energy-remaining`, `x-energy-used` from every Neuralwatt response. Emitted as `neuralwatt:quotas:updated` events (throttled to 5s).
+1. **Response headers** - `after_provider_response` event captures `x-allowance-remaining-usd`, `x-budget-remaining-usd`, `x-request-cost-usd`, `x-cache-savings-usd`, `x-subscription-plan`, `x-energy-included`, `x-energy-remaining`, `x-energy-used` from every Neuralwatt response. Header snapshots retain the billing period from the latest full snapshot. Emitted as `neuralwatt:quotas:updated` events (throttled to 5s).
 
 2. **API fetch** - `/v1/quota` endpoint returns full balance, usage, limits, and subscription info. Used for the `/neuralwatt:quota` command and initial session fetch. While the free-energy promo is active it also returns a top-level `daily_free_energy` block (`kwh_included/used/remaining`, `reset_at`, display-label `model_labels`); it is the only source that populates `dailyFreeEnergy` — header and SSE snapshots never carry it. A snapshot whose `reset_at` has passed is treated as stale until the next fetch. The provider refetches at most once per 60s after responses on covered models (matched by registry display name against `model_labels`).
 
@@ -38,7 +38,7 @@ Two sources of quota data:
 
 When a subscription is active, energy (kWh) is the primary billing method. Credits are on-demand top-up only. The quota warnings progress through the billing stages, each with its own alert key so a later stage suppresses the earlier one instead of re-reporting a depleted pool:
 
-- Subscribed, not in overage — warn on subscription energy (kWh remaining).
+- Subscribed, not in overage — warn on subscription energy at 25% remaining (critical at 10%) only when current usage projects exhaustion before the period ends. Missing, invalid, or expired period dates use the absolute thresholds.
 - Daily free energy present and at/below `quotaWarnings.freeEnergy.warningPct` — warn on the day's allowance instead of the billing pool it feeds; re-arms daily via the UTC date in the alert key. Takes precedence over the stages below.
 - Subscribed, in overage with an overage cap — warn about overage cap progress. Overage cost is derived from kWh usage (`kwh_used - kwh_included`) at a per-plan rate ($7.00–$8.50/kWh by plan and billing interval); remaining cap and % are computed against `limits.overage_limit_usd`. `subscription.in_overage` is a pure on/off flag with no spent counter, so progress is computed rather than read from the API. Credits are not warned here because a cap means they are never reached.
 - Subscribed, in overage with no cap — warn on balance credits (overage draws down the balance directly at the per-plan rate).

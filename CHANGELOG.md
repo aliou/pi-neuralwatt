@@ -1,5 +1,11 @@
 # @aliou/pi-extension-template
 
+## 0.21.1
+
+### Patch Changes
+
+- c71d5d4: Update the Qwen3.6 35B output token limit to match the live API.
+
 ## 0.21.0
 
 ### Minor Changes

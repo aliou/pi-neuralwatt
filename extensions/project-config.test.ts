@@ -16,6 +16,7 @@ import {
   type ExtensionCommandContext,
   type ExtensionContext,
   type RegisteredCommand,
+  VIRTUAL_MODEL_STATE_ENTRY,
 } from "@earendil-works/pi-coding-agent";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { loadExtensions } from "../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/loader";
@@ -28,7 +29,10 @@ import type {
   NeuralwattConfig,
   ResolvedNeuralwattConfig,
 } from "../src/config/types";
-import { NEURALWATT_QUOTAS_UPDATED_EVENT } from "../src/events";
+import {
+  NEURALWATT_FLEX_TOGGLE_EVENT,
+  NEURALWATT_QUOTAS_UPDATED_EVENT,
+} from "../src/events";
 
 const root = await mkdtemp(join(tmpdir(), "neuralwatt-trust-"));
 const agentDir = join(root, "agent");
@@ -85,8 +89,10 @@ async function setup(
     async () => new Response("unavailable", { status: 503 }),
   );
   vi.stubGlobal("fetch", fetch);
-  const handlers: Array<(event: unknown, ctx: ExtensionContext) => unknown> =
-    [];
+  const handlers = new Map<
+    string,
+    Array<(event: unknown, ctx: ExtensionContext) => unknown>
+  >();
   const providers: Provider[] = [];
   const notify = vi.fn();
   const setModel = vi.fn(async (_model: Model<Api>) => true);
@@ -102,7 +108,9 @@ async function setup(
       event: string,
       handler: (event: unknown, ctx: ExtensionContext) => unknown,
     ) => {
-      if (event === "session_start") handlers.push(handler);
+      const eventHandlers = handlers.get(event) ?? [];
+      eventHandlers.push(handler);
+      handlers.set(event, eventHandlers);
     },
   } as never);
   const ctx = {
@@ -124,9 +132,15 @@ async function setup(
     localPath,
     local,
     localDir,
+    emit: async (event: string, eventContext = ctx) => {
+      for (const handler of handlers.get(event) ?? []) {
+        await handler({ type: event }, eventContext);
+      }
+    },
     start: async () => {
-      for (const handler of handlers)
+      for (const handler of handlers.get("session_start") ?? []) {
         await handler({ type: "session_start" }, ctx);
+      }
     },
   };
 }
@@ -368,25 +382,41 @@ const virtualModel = {
 const otherModel: Model<Api> = {
   ...neuralwattModel,
   provider: "acme",
-  id: "other",
-  name: "other",
+  id: "vendor/m1",
+  name: "vendor m1",
+};
+const otherFlexModel: Model<Api> = {
+  ...otherModel,
+  id: "vendor/m1-flex",
+  name: "vendor m1 (flex)",
+};
+const apertureModel: Model<Api> = {
+  ...neuralwattModel,
+  provider: "aperture",
+  id: "neuralwatt/m1",
+  name: "neuralwatt m1",
+};
+const apertureFlexModel: Model<Api> = {
+  ...apertureModel,
+  id: "neuralwatt/m1-flex",
+  name: "neuralwatt m1 (flex)",
 };
 
-function responseEntry(provider: string, model: string, stopReason = "stop") {
+function virtualRouteEntry(
+  provider: string,
+  modelId: string,
+  selection = virtualModel,
+) {
   return {
-    type: "message",
-    id: `${provider}-${model}-${stopReason}`,
+    type: "custom",
+    id: `${selection.provider}-${selection.id}-${provider}-${modelId}`,
     parentId: null,
     timestamp: new Date(0).toISOString(),
-    message: {
-      role: "assistant",
-      content: [],
-      api: "openai-completions",
-      provider,
-      model,
-      usage: {},
-      stopReason,
-      timestamp: 0,
+    customType: VIRTUAL_MODEL_STATE_ENTRY,
+    data: {
+      provider: selection.provider,
+      modelId: selection.id,
+      state: { provider, modelId },
     },
   };
 }
@@ -398,9 +428,9 @@ function flexModeCommandContext(
   catalog: Model<Api>[],
 ) {
   const find = (provider: string, modelId: string) =>
-    provider === "neuralwatt"
-      ? catalog.find((entry) => entry.id === modelId)
-      : undefined;
+    catalog.find(
+      (entry) => entry.provider === provider && entry.id === modelId,
+    );
   return {
     ...runtime.ctx,
     model,
@@ -445,6 +475,32 @@ describe("neuralwatt:flex", () => {
   });
 
   it.each([
+    ["standard", otherModel, "vendor/m1-flex", "enabled"],
+    ["flex", otherFlexModel, "vendor/m1", "disabled"],
+  ])(
+    "toggles a selected %s model from any provider",
+    async (_name, model, targetId, state) => {
+      const { runtime, command } = await loadFlexModeExtensions();
+      const context = flexModeCommandContext(
+        runtime,
+        model,
+        [],
+        [otherModel, otherFlexModel],
+      );
+      await command.handler("", context);
+      await vi.waitFor(() => expect(runtime.setModel).toHaveBeenCalledTimes(1));
+      expect(runtime.setModel.mock.calls[0]?.[0]).toMatchObject({
+        provider: "acme",
+        id: targetId,
+      });
+      expect(runtime.notify).toHaveBeenCalledWith(
+        `Neuralwatt: flex mode ${state}`,
+        "info",
+      );
+    },
+  );
+
+  it.each([
     ["standard", "m1", "m1-flex", "enabled"],
     ["flex", "m1-flex", "m1", "disabled"],
   ])(
@@ -454,7 +510,7 @@ describe("neuralwatt:flex", () => {
       const context = flexModeCommandContext(
         runtime,
         virtualModel,
-        [responseEntry("neuralwatt", routedId)],
+        [virtualRouteEntry("neuralwatt", routedId)],
         [neuralwattModel, flexModel],
       );
       await command.handler("", context);
@@ -470,9 +526,38 @@ describe("neuralwatt:flex", () => {
     },
   );
 
+  it("uses the latest matching virtual route across providers", async () => {
+    const { runtime, command } = await loadFlexModeExtensions();
+    const context = flexModeCommandContext(
+      runtime,
+      virtualModel,
+      [
+        virtualRouteEntry("neuralwatt", "m1"),
+        virtualRouteEntry("acme", "vendor/m1-flex"),
+      ],
+      [neuralwattModel, flexModel, otherModel, otherFlexModel],
+    );
+    await command.handler("", context);
+    expect(runtime.setModel).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "acme", id: "vendor/m1" }),
+    );
+  });
+
   it.each([
-    ["without a routed response", []],
-    ["routed to another provider", [responseEntry("acme", "other")]],
+    ["without a sticky route", []],
+    [
+      "with an unavailable routed model",
+      [virtualRouteEntry("acme", "missing")],
+    ],
+    [
+      "with a route for another virtual selection",
+      [
+        virtualRouteEntry("neuralwatt", "m1", {
+          ...virtualModel,
+          id: "fast",
+        }),
+      ],
+    ],
   ])("reports a virtual model %s", async (_name, branch) => {
     const { runtime, command } = await loadFlexModeExtensions();
     const context = flexModeCommandContext(runtime, virtualModel, branch, [
@@ -481,23 +566,23 @@ describe("neuralwatt:flex", () => {
     ]);
     await command.handler("", context);
     expect(runtime.notify).toHaveBeenCalledWith(
-      "Neuralwatt: flex mode is unavailable until the virtual model routes to a Neuralwatt model",
+      "Neuralwatt: flex mode requires a routed virtual model",
       "error",
     );
     expect(runtime.setModel).not.toHaveBeenCalled();
   });
 
-  it("reports a selected non-Neuralwatt model", async () => {
+  it("reports a missing selected model", async () => {
     const { runtime, command } = await loadFlexModeExtensions();
     const context = flexModeCommandContext(
       runtime,
-      otherModel,
-      [responseEntry("neuralwatt", "m1")],
+      undefined,
+      [],
       [neuralwattModel, flexModel],
     );
     await command.handler("", context);
     expect(runtime.notify).toHaveBeenCalledWith(
-      "Neuralwatt: flex mode requires a Neuralwatt model",
+      "Neuralwatt: flex mode requires a selected model",
       "error",
     );
     expect(runtime.setModel).not.toHaveBeenCalled();
@@ -533,5 +618,120 @@ describe("neuralwatt:flex", () => {
       "Neuralwatt: could not switch models",
       "error",
     );
+  });
+});
+
+describe("neuralwatt:flex:toggle", () => {
+  it.each([
+    ["standard", neuralwattModel, "m1-flex", true],
+    ["flex", flexModel, "m1", false],
+  ] as const)(
+    "toggles a selected %s model",
+    async (_name, model, targetId, enabled) => {
+      const { runtime } = await loadFlexModeExtensions();
+      const context = flexModeCommandContext(
+        runtime,
+        model,
+        [],
+        [neuralwattModel, flexModel],
+      );
+      await runtime.emit("model_select", context);
+      const respond = vi.fn();
+      runtime.bus.emit(NEURALWATT_FLEX_TOGGLE_EVENT, { enabled, respond });
+      await vi.waitFor(() => expect(respond).toHaveBeenCalledWith({ enabled }));
+      expect(runtime.setModel).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: "neuralwatt", id: targetId }),
+      );
+    },
+  );
+
+  it.each([
+    ["standard", apertureModel, "neuralwatt/m1-flex", true],
+    ["flex", apertureFlexModel, "neuralwatt/m1", false],
+  ] as const)(
+    "toggles an Aperture dedicated %s model within its provider",
+    async (_name, model, targetId, enabled) => {
+      const { runtime } = await loadFlexModeExtensions();
+      const context = flexModeCommandContext(
+        runtime,
+        model,
+        [],
+        [apertureModel, apertureFlexModel, neuralwattModel, flexModel],
+      );
+      await runtime.emit("model_select", context);
+      const respond = vi.fn();
+      runtime.bus.emit(NEURALWATT_FLEX_TOGGLE_EVENT, { enabled, respond });
+      await vi.waitFor(() => expect(respond).toHaveBeenCalledWith({ enabled }));
+      expect(runtime.setModel).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: "aperture", id: targetId }),
+      );
+    },
+  );
+
+  it.each([
+    [neuralwattModel, true, false],
+    [flexModel, false, true],
+  ] as const)(
+    "responds with the current state when the variant is missing",
+    async (model, enabled, currentState) => {
+      const { runtime } = await loadFlexModeExtensions();
+      const context = flexModeCommandContext(runtime, model, [], [model]);
+      await runtime.emit("model_select", context);
+      const respond = vi.fn();
+      runtime.bus.emit(NEURALWATT_FLEX_TOGGLE_EVENT, { enabled, respond });
+      await vi.waitFor(() =>
+        expect(respond).toHaveBeenCalledWith({ enabled: currentState }),
+      );
+      expect(runtime.setModel).not.toHaveBeenCalled();
+    },
+  );
+
+  it("responds with flex disabled when the model cannot be resolved", async () => {
+    const { runtime } = await loadFlexModeExtensions();
+    const context = flexModeCommandContext(runtime, undefined, [], []);
+    await runtime.emit("model_select", context);
+    const respond = vi.fn();
+    runtime.bus.emit(NEURALWATT_FLEX_TOGGLE_EVENT, { enabled: true, respond });
+    await vi.waitFor(() =>
+      expect(respond).toHaveBeenCalledWith({ enabled: false }),
+    );
+    expect(runtime.setModel).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [neuralwattModel, false],
+    [flexModel, true],
+  ] as const)(
+    "responds without switching when flex already matches the request",
+    async (model, enabled) => {
+      const { runtime } = await loadFlexModeExtensions();
+      const context = flexModeCommandContext(
+        runtime,
+        model,
+        [],
+        [neuralwattModel, flexModel],
+      );
+      await runtime.emit("model_select", context);
+      const respond = vi.fn();
+      runtime.bus.emit(NEURALWATT_FLEX_TOGGLE_EVENT, { enabled, respond });
+      await vi.waitFor(() => expect(respond).toHaveBeenCalledWith({ enabled }));
+      expect(runtime.setModel).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not respond when the model switch is rejected", async () => {
+    const { runtime } = await loadFlexModeExtensions();
+    runtime.setModel.mockResolvedValueOnce(false);
+    const context = flexModeCommandContext(
+      runtime,
+      neuralwattModel,
+      [],
+      [neuralwattModel, flexModel],
+    );
+    await runtime.emit("model_select", context);
+    const respond = vi.fn();
+    runtime.bus.emit(NEURALWATT_FLEX_TOGGLE_EVENT, { enabled: true, respond });
+    await vi.waitFor(() => expect(runtime.setModel).toHaveBeenCalledTimes(1));
+    expect(respond).not.toHaveBeenCalled();
   });
 });

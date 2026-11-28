@@ -13,11 +13,11 @@ export function registerFlexModeCommand(pi: ExtensionAPI): void {
             "info",
           );
           return;
-        case "requires-neuralwatt":
+        case "unresolved-model":
           ctx.ui.notify(
             result.virtual
-              ? "Neuralwatt: flex mode is unavailable until the virtual model routes to a Neuralwatt model"
-              : "Neuralwatt: flex mode requires a Neuralwatt model",
+              ? "Neuralwatt: flex mode requires a routed virtual model"
+              : "Neuralwatt: flex mode requires a selected model",
             "error",
           );
           return;

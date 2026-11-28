@@ -18,6 +18,13 @@ export const NEURALWATT_QUOTAS_UPDATED_EVENT =
 export const NEURALWATT_QUOTAS_REQUEST_EVENT =
   "neuralwatt:quotas:request" as const;
 
+export const NEURALWATT_FLEX_TOGGLE_EVENT = "neuralwatt:flex:toggle" as const;
+
+export interface NeuralwattFlexTogglePayload {
+  enabled: boolean;
+  respond?(result: { enabled: boolean }): void;
+}
+
 export interface NeuralwattExtensionsRegisterPayload {
   feature: NeuralwattFeatureId;
 }
